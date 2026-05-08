@@ -7,6 +7,8 @@ import SignupPage from "../../auth/pages/SignupPage";
 import LoginPage from "../../auth/pages/LoginPage";
 import SearchPage from "../../pages/SearchPage";
 import CartPage from "../../cart/pages/CartPage";
+import CoursesPage from "../../courses/pages/CoursesPage";
+import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
 
 function CategoryRedirect() {
   const { categoryId } = useParams();
@@ -18,7 +20,8 @@ export const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { path: "/", element: <LandingPage /> },
-      { path: "/courses", element: <SimplePage title="Courses" /> },
+      { path: "/courses", element: <CoursesPage /> },
+      { path: "/courses/:courseId", element: <CourseDetailsPage /> },
       { path: "/categories", element: <CategoriesPage /> },
       { path: "/categories/:categoryId", element: <CategoryRedirect /> },
       { path: "/search", element: <SearchPage /> },

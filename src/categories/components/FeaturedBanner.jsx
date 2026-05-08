@@ -1,7 +1,7 @@
 import React from "react";
 import { FaCheck, FaStar, FaUsers, FaClock } from "react-icons/fa";
 import { motion } from "framer-motion";
-import catImages from "../assets/images/categories";
+import catImages from "../../assets/Images/categories/categories5.jpeg";
 
 const FALLBACK =
   "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200";
