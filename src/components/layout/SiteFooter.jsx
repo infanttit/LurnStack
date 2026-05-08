@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FiGlobe, FiMail, FiShare2, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
+import { FiGlobe, FiMail, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
 
 function FooterLink({ to, children }) {
   return (

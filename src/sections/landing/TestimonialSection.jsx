@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Star, Quote, Pause, Play } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 
 const testimonials = [
   {
