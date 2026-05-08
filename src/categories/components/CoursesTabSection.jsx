@@ -18,7 +18,6 @@ const CoursesTabSection = () => {
 
   return (
     <div className="mb-12">
-      <h2 className="text-[17px] font-bold text-gray-900 mb-4">Courses to get you started</h2>
 
       <div className="flex items-center border-b border-gray-200 mb-6 overflow-x-auto">
         {TABS.map((tab) => (

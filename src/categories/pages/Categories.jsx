@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { FaChevronDown, FaSearch, FaTimes, FaFilter } from "react-icons/fa";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 import CourseCard from "../components/CourseCard";
 import FilterSidebar from "../components/FilterSidebar";
 import FeaturedBanner from "../components/FeaturedBanner";
-import CategoryCarousel from "../components/CategoryCarousel";
 import CoursesTabSection from "../components/CoursesTabSection";
+import catImages from "../assets/images/categories";
 import TopInstructors from "../components/TopInstructors";
 import TrustStrip from "../components/TrustStrip";
-import catImages from "../../assets/Images/categories/categoryes2.jpeg";
 
 const ALL_COURSES = [
   {
@@ -310,28 +310,25 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <nav className="text-xs text-gray-500 mb-4 flex items-center gap-2">
-            <span className="hover:text-black cursor-pointer">Home</span>
-            <span className="text-gray-300">/</span>
-            <span className="text-black font-semibold">Categories</span>
-          </nav>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Explore Courses</h1>
-          <p className="text-gray-600">Learn from industry experts with {ALL_COURSES.length} premium courses.</p>
-        </div>
+      <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+        <nav className="text-[12px] text-gray-500 flex items-center gap-2">
+          <Link to="/" className="hover:text-black transition-colors">Home</Link>
+          <span className="text-gray-300">/</span>
+          <span className="text-black font-semibold">Categories</span>
+        </nav>
+      </div>
 
-        <TrustStrip />
+      {/* Section 1: Hero Banner */}
+      <div className="w-full">
         <FeaturedBanner />
+      </div>
 
-        <div className="mb-12">
-          <CategoryCarousel activeCategory={activeCategory} onSelect={setActiveCategory} />
-        </div>
+      <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Gap between Banner and Grid */}
+        <div className="h-12" />
 
-        <CoursesTabSection />
-        <TopInstructors />
-
-        <div className="flex flex-col lg:flex-row gap-8 relative">
+        {/* Section 2: Main Course Grid with Filters */}
+        <div className="flex flex-col lg:flex-row gap-12 relative">
           <div className="hidden lg:block w-64 xl:w-72 flex-shrink-0">
             <div className="sticky top-24">
               <FilterSidebar activeFilters={activeFilters} toggleFilter={toggleFilter} onClear={clearFilters} />
@@ -461,12 +458,15 @@ const Categories = () => {
               </motion.div>
             )}
 
-            <div className="mt-16 text-center">
-              <button className="px-10 py-3 border-2 border-black font-bold text-sm hover:bg-gray-50 transition-colors">
-                Show more courses
-              </button>
-            </div>
           </main>
+        </div>
+
+        {/* Section 3: Courses to get you started */}
+        <div className="mt-20 mb-16">
+          <div className="mb-8">
+            <h2 className="text-2xl font-extrabold text-gray-900">Courses to get you started</h2>
+          </div>
+          <CoursesTabSection />
         </div>
       </div>
 

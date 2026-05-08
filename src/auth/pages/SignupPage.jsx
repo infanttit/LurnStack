@@ -46,7 +46,7 @@ const Logo = ({ dark = false }) => (
   <div className="flex items-center gap-2">
     <div
       className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-        dark ? "bg-[#1A3A2A]" : "bg-white/10 border border-white/20"
+        dark ? "bg-[#004d3d]" : "bg-white/10 border border-white/20"
       }`}
     >
       <svg
@@ -63,7 +63,7 @@ const Logo = ({ dark = false }) => (
     </div>
     <span
       className={`text-lg font-bold tracking-tight ${
-        dark ? "text-[#1A3A2A]" : "text-white"
+        dark ? "text-[#004d3d]" : "text-white"
       }`}
     >
       LurnStack
@@ -74,6 +74,8 @@ const Logo = ({ dark = false }) => (
 /* ─── Global Styles ──────────────────────────────────────────── */
 const GlobalStyles = () => (
   <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+    .font-serif-heading { font-family: 'Playfair Display', serif; }
     @keyframes fade-in-up {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -117,7 +119,7 @@ const PolicyModal = ({ type, onClose, onAccept }) => {
       <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden modal-anim">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
           <div>
-            <h2 className="text-2xl font-extrabold text-[#1A3A2A]">
+            <h2 className="text-2xl font-serif-heading text-[#004d3d]">
               {isTerms ? "Terms of Service" : "Privacy Policy"}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -229,7 +231,7 @@ const PolicyModal = ({ type, onClose, onAccept }) => {
           </button>
           <button
             onClick={onAccept}
-            className="px-10 py-2.5 rounded-xl bg-[#004d3d] hover:bg-[#003d30] text-white text-sm font-bold shadow-xl shadow-emerald-900/20 transition-all active:scale-[0.95] order-1 sm:order-2"
+            className="px-10 py-2.5 rounded-xl bg-[#004d3d] hover:bg-[#00392d] text-white text-sm font-bold shadow-xl shadow-emerald-900/20 transition-all active:scale-[0.95] order-1 sm:order-2"
           >
             I Accept
           </button>
@@ -365,36 +367,39 @@ export default function SignupPage() {
       <GlobalStyles />
       <div className="h-screen w-full flex flex-col lg:flex-row bg-white overflow-hidden">
         {/* ── LEFT PANEL (Desktop Only) ── */}
-        <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-between p-12 overflow-hidden flex-shrink-0 h-full">
+        <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-center p-12 overflow-hidden flex-shrink-0 h-full">
           <div className="absolute inset-0 z-0">
             <img src={loginImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-tr from-[#0f2d1f]/95 via-[#0f2d1f]/85 to-[#0f2d1f]/40" />
           </div>
-          <div className="relative z-10">
-            <Logo />
-          </div>
-          <div className="relative z-10">
-            <h2 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4 tracking-tight">
-              Start your <span className="text-emerald-400">learning</span> <br />{" "}
-              journey today.
-            </h2>
-            <p className="text-emerald-100/70 text-lg max-w-md font-medium">
-              Access the tools you need to build what's next.
-            </p>
-          </div>
-          <div className="relative z-10 border-t border-white/10 pt-6 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-white text-xl font-bold">1K+</span>
-              <span className="text-emerald-300/60 text-[10px] uppercase font-bold tracking-widest mt-0.5">
-                Courses
-              </span>
+          
+          <div className="absolute top-10 left-12 z-10"><Logo /></div>
+
+          <div className="relative z-10 space-y-10">
+            <div>
+              <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-3 tracking-tight">
+                Start your <span className="text-emerald-400">learning</span> <br />{" "}
+                journey today.
+              </h2>
+              <p className="text-emerald-100/70 text-base max-w-md font-medium">
+                Access the tools you need to build what's next.
+              </p>
             </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="flex items-center gap-2">
-              <span className="text-white text-xl font-bold">98%</span>
-              <span className="text-emerald-300/60 text-[10px] uppercase font-bold tracking-widest mt-0.5">
-                Satisfaction
-              </span>
+            
+            <div className="border-t border-white/10 pt-6 flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-white text-xl font-bold">1K+</span>
+                <span className="text-emerald-300/60 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+                  Courses
+                </span>
+              </div>
+              <div className="w-px h-8 bg-white/10" />
+              <div className="flex items-center gap-2">
+                <span className="text-white text-xl font-bold">98%</span>
+                <span className="text-emerald-300/60 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+                  Satisfaction
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -402,17 +407,17 @@ export default function SignupPage() {
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
           {/* Logo Bar (Mobile Only) */}
-          <div className="lg:hidden flex justify-center py-4 border-b border-slate-50">
+          <div className="lg:hidden flex justify-center py-3 border-b border-slate-50">
             <Logo dark />
           </div>
 
-          <div className="flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar py-4 lg:py-0">
+          <div className="flex-1 h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar pt-8 lg:pt-12 bg-white">
             <div className="w-full max-w-md mx-auto">
-              <div className="mb-3 lg:mb-6 anim-1">
-                <h1 className="text-2xl lg:text-3xl font-extrabold text-[#1A3A2A] mb-0.5">
+              <div className="anim-1 mb-4">
+                <h1 className="text-xl lg:text-2xl font-serif-heading text-[#004d3d] mb-0.5">
                   Create Account
                 </h1>
-                <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold hidden sm:block">
+                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold hidden sm:block">
                   Step into your portal.
                 </p>
               </div>
@@ -421,23 +426,23 @@ export default function SignupPage() {
               <div className="flex border-b border-slate-200 mb-4 anim-2">
                 <Link
                   to="/login"
-                  className="flex-1 pb-2 text-center text-sm font-medium text-slate-400"
+                  className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
-                  className="flex-1 pb-2 text-center text-sm font-bold text-[#1B4332] border-b-2 border-[#1B4332]"
+                  className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]"
                 >
                   Sign Up
                 </Link>
               </div>
 
-              <form onSubmit={handleSubmit} noValidate className="space-y-3 anim-3">
+              <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
                 <div>
                   <label
                     htmlFor="signup-fullname"
-                    className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1"
+                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
                   >
                     Full Name
                   </label>
@@ -448,11 +453,11 @@ export default function SignupPage() {
                     placeholder="John Doe"
                     value={form.fullName}
                     onChange={handleChange}
-                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-sm outline-none transition-all
+                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
                       ${
                         errors.fullName
                           ? "border-red-400"
-                          : "border-slate-200 focus:border-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5"
+                          : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                       }`}
                   />
                 </div>
@@ -460,7 +465,7 @@ export default function SignupPage() {
                 <div>
                   <label
                     htmlFor="signup-email"
-                    className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1"
+                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
                   >
                     Email Address
                   </label>
@@ -471,11 +476,11 @@ export default function SignupPage() {
                     placeholder="john@example.com"
                     value={form.email}
                     onChange={handleChange}
-                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-sm outline-none transition-all
+                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
                       ${
                         errors.email
                           ? "border-red-400"
-                          : "border-slate-200 focus:border-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5"
+                          : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                       }`}
                   />
                 </div>
@@ -483,7 +488,7 @@ export default function SignupPage() {
                 <div>
                   <label
                     htmlFor="signup-password"
-                    className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1"
+                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
                   >
                     Password
                   </label>
@@ -495,17 +500,17 @@ export default function SignupPage() {
                       placeholder="Min. 8 characters"
                       value={form.password}
                       onChange={handleChange}
-                      className={`w-full h-11 px-4 pr-12 rounded-xl bg-slate-50 border text-sm outline-none transition-all
+                      className={`w-full h-11 px-4 pr-12 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
                         ${
                           errors.password
                             ? "border-red-400"
-                            : "border-slate-200 focus:border-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5"
+                            : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                         }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute inset-y-0 right-0 px-4 text-slate-300"
+                      className="absolute inset-y-0 right-0 px-4 text-slate-400"
                     >
                       <EyeIcon open={showPassword} />
                     </button>
@@ -519,14 +524,14 @@ export default function SignupPage() {
                       name="agree"
                       checked={form.agree}
                       onChange={handleChange}
-                      className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 text-[#1A3A2A]"
+                      className="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 text-[#004d3d] focus:ring-[#004d3d]/20"
                     />
-                    <span className="text-[10px] text-slate-400 leading-tight">
+                    <span className="text-[11px] text-slate-600 leading-tight">
                       I agree to the{" "}
                       <button
                         type="button"
                         onClick={() => setActiveModal("terms")}
-                        className="font-bold text-slate-600 hover:text-[#1A3A2A] transition-colors underline decoration-slate-200 underline-offset-2"
+                        className="font-bold text-slate-600 hover:text-[#004d3d] transition-colors underline decoration-slate-200 underline-offset-2"
                       >
                         Terms
                       </button>{" "}
@@ -534,7 +539,7 @@ export default function SignupPage() {
                       <button
                         type="button"
                         onClick={() => setActiveModal("privacy")}
-                        className="font-bold text-slate-600 hover:text-[#1A3A2A] transition-colors underline decoration-slate-200 underline-offset-2"
+                        className="font-bold text-slate-600 hover:text-[#004d3d] transition-colors underline decoration-slate-200 underline-offset-2"
                       >
                         Privacy
                       </button>
@@ -546,7 +551,7 @@ export default function SignupPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-11 rounded-xl bg-[#1A3A2A] hover:bg-[#25523a] active:scale-[0.98] text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-lg flex items-center justify-center gap-2 mt-1"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -556,11 +561,11 @@ export default function SignupPage() {
                 </button>
               </form>
 
-              <p className="mt-5 text-center text-[11px] text-slate-400">
+              <p className="mt-2 text-center text-[11px] text-slate-500">
                 Already have an account?{" "}
                 <Link
                   to="/login"
-                  className="font-bold text-[#1A3A2A] hover:underline transition-colors"
+                  className="font-bold text-[#004d3d] hover:underline transition-colors"
                 >
                   Log In
                 </Link>
