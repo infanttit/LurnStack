@@ -9,7 +9,7 @@ import CategoryCarousel from "../components/CategoryCarousel";
 import CoursesTabSection from "../components/CoursesTabSection";
 import TopInstructors from "../components/TopInstructors";
 import TrustStrip from "../components/TrustStrip";
-import catImages from "../assets/images/categories";
+import catImages from "../../assets/Images/categories/categoryes2.jpeg";
 
 const ALL_COURSES = [
   {

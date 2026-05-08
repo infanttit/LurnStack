@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { HiMiniStar, HiChevronRight } from "react-icons/hi2";
 import { HiCheck } from "react-icons/hi";
 import { useCart, emitCartFlyFromElement, parseINRPriceToPaise } from "../../cart";
@@ -613,7 +614,7 @@ function StarRating({ rating }) {
 }
 
 // ── HOVER POPUP ───────────────────────────────────────────────────────────────
-function CoursePopup({ course, side, onAddToCart }) {
+function CoursePopup({ course, side, onAddToCart, onViewDetails }) {
   return (
     <div
       className={`
@@ -663,18 +664,27 @@ function CoursePopup({ course, side, onAddToCart }) {
         ))}
       </ul>
 
-      <button
-        type="button"
-        onClick={onAddToCart}
-        className="w-full bg-[#059669] hover:bg-[#047857] text-white font-bold text-[14px] py-3 rounded-sm transition-colors mt-1"
-      >
-        Add to cart
-      </button>
+      <div className="grid grid-cols-2 gap-2 mt-1">
+        <button
+          type="button"
+          onClick={onAddToCart}
+          className="w-full bg-[#059669] hover:bg-[#047857] text-white font-bold text-[14px] py-3 rounded-sm transition-colors"
+        >
+          Add to cart
+        </button>
+        <button
+          type="button"
+          onClick={onViewDetails}
+          className="w-full border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[14px] py-3 rounded-sm transition-colors"
+        >
+          View details
+        </button>
+      </div>
     </div>
   );
 }
 
-function CourseModal({ course, onClose, onAddToCart }) {
+function CourseModal({ course, onClose, onAddToCart, onViewDetails }) {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
@@ -734,13 +744,22 @@ function CourseModal({ course, onClose, onAddToCart }) {
             ))}
           </ul>
 
-          <button
-            type="button"
-            onClick={onAddToCart}
-            className="w-full bg-[#059669] hover:bg-[#047857] text-white font-bold text-[14px] py-3 rounded-sm transition-colors mt-5"
-          >
-            Add to cart
-          </button>
+          <div className="grid grid-cols-2 gap-2 mt-5">
+            <button
+              type="button"
+              onClick={onAddToCart}
+              className="w-full bg-[#059669] hover:bg-[#047857] text-white font-bold text-[14px] py-3 rounded-sm transition-colors"
+            >
+              Add to cart
+            </button>
+            <button
+              type="button"
+              onClick={onViewDetails}
+              className="w-full border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[14px] py-3 rounded-sm transition-colors"
+            >
+              View details
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -818,7 +837,14 @@ function CourseCard({ course, index, total, onOpenMobile }) {
       </div>
 
       {/* Hover popup */}
-      {supportsHover && hovered && <CoursePopup course={course} side={popupSide} onAddToCart={course.onAddToCart} />}
+      {supportsHover && hovered && (
+        <CoursePopup
+          course={course}
+          side={popupSide}
+          onAddToCart={course.onAddToCart}
+          onViewDetails={course.onViewDetails}
+        />
+      )}
     </div>
   );
 }
@@ -829,6 +855,7 @@ export default function FeaturedCoursesSection() {
   const courses = useMemo(() => COURSES_BY_TAB[activeTab] ?? [], [activeTab]);
   const [mobileCourse, setMobileCourse] = useState(null);
   const { addItem } = useCart();
+  const navigate = useNavigate();
 
   const addCourseToCart = useCallback((course, fromEl) => {
     addItem({
@@ -850,8 +877,9 @@ export default function FeaturedCoursesSection() {
       courses.map((c) => ({
         ...c,
         onAddToCart: (e) => addCourseToCart(c, e?.currentTarget),
+        onViewDetails: () => navigate(`/courses/${c.id}`, { state: { course: c } }),
       })),
-    [courses, addCourseToCart]
+    [courses, addCourseToCart, navigate]
   );
 
   return (
@@ -929,6 +957,10 @@ export default function FeaturedCoursesSection() {
           onClose={() => setMobileCourse(null)}
           onAddToCart={(e) => {
             addCourseToCart(mobileCourse, e?.currentTarget);
+            setMobileCourse(null);
+          }}
+          onViewDetails={() => {
+            navigate(`/courses/${mobileCourse.id}`, { state: { course: mobileCourse } });
             setMobileCourse(null);
           }}
         />
