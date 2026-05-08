@@ -33,26 +33,28 @@ const FacebookIcon = () => (
 /* ─── Logo ───────────────────────────────────────────────────── */
 const Logo = ({ dark = false }) => (
   <div className="flex items-center gap-2">
-    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${dark ? "bg-[#1A3A2A]" : "bg-white/10 border border-white/20"}`}>
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${dark ? "bg-[#004d3d]" : "bg-white/10 border border-white/20"}`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path d="M12 14l9-5-9-5-9 5 9 5z" />
         <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
       </svg>
     </div>
-    <span className={`text-xl font-bold tracking-tight ${dark ? "text-[#1A3A2A]" : "text-white"}`}>LurnStack</span>
+    <span className={`text-lg font-bold tracking-tight ${dark ? "text-[#004d3d]" : "text-white"}`}>LurnStack</span>
   </div>
 );
 
 /* ─── Global Styles ──────────────────────────────────────────── */
 const GlobalStyles = () => (
   <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
+    .font-serif-heading { font-family: 'Playfair Display', serif; }
     @keyframes fade-in-up {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .anim-1 { animation: fade-in-up 0.4s ease-out both; }
-    .anim-2 { animation: fade-in-up 0.4s ease-out 0.1s both; }
-    .anim-3 { animation: fade-in-up 0.4s ease-out 0.2s both; }
+    .anim-1 { animation: fade-in-up 0.3s ease-out both; }
+    .anim-2 { animation: fade-in-up 0.3s ease-out 0.05s both; }
+    .anim-3 { animation: fade-in-up 0.3s ease-out 0.1s both; }
     
     html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
     
@@ -98,21 +100,26 @@ export default function LoginPage() {
       <div className="h-screen w-full flex flex-col lg:flex-row bg-white overflow-hidden">
 
         {/* ── LEFT PANEL (Desktop Only) ── */}
-        <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-between p-12 overflow-hidden flex-shrink-0 h-full">
+        <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-center p-12 overflow-hidden flex-shrink-0 h-full">
           <div className="absolute inset-0 z-0">
             <img src={loginImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-br from-[#0f2d1f]/95 via-[#0f2d1f]/85 to-transparent" />
           </div>
-          <div className="relative z-10"><Logo /></div>
-          <div className="relative z-10">
-            <h2 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
-              Master your craft <br /> with <span className="text-emerald-400">structured</span> learning.
-            </h2>
-            <p className="text-emerald-100/70 text-lg max-w-md">Join 50,000+ professionals.</p>
-          </div>
-          <div className="relative z-10 border-t border-white/10 pt-6 flex items-center gap-8">
-            <div className="flex flex-col"><span className="text-white text-xl font-bold">50K+</span><span className="text-emerald-300/60 text-[10px] uppercase font-bold mt-0.5 tracking-wider">Learners</span></div>
-            <div className="flex flex-col"><span className="text-white text-xl font-bold">500+</span><span className="text-emerald-300/60 text-[10px] uppercase font-bold mt-0.5 tracking-wider">Courses</span></div>
+          
+          <div className="absolute top-10 left-12 z-10"><Logo /></div>
+          
+          <div className="relative z-10 space-y-10">
+            <div>
+              <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-3 tracking-tight">
+                Master your craft <br /> with <span className="text-emerald-400">structured</span> learning.
+              </h2>
+              <p className="text-emerald-100/70 text-base max-w-md font-medium">Join 50,000+ professionals.</p>
+            </div>
+            
+            <div className="border-t border-white/10 pt-6 flex items-center gap-10">
+              <div className="flex flex-col"><span className="text-white text-xl font-bold">50K+</span><span className="text-emerald-300/60 text-[10px] uppercase font-bold mt-0.5 tracking-wider">Learners</span></div>
+              <div className="flex flex-col"><span className="text-white text-xl font-bold">500+</span><span className="text-emerald-300/60 text-[10px] uppercase font-bold mt-0.5 tracking-wider">Courses</span></div>
+            </div>
           </div>
         </div>
 
@@ -120,43 +127,43 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
           
           {/* Logo Bar (Mobile Only) */}
-          <div className="lg:hidden flex justify-center py-6 border-b border-slate-50">
+          <div className="lg:hidden flex justify-center py-3 border-b border-slate-50">
             <Logo dark />
           </div>
 
-          <div className="flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar py-8">
+          <div className="flex-1 h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar pt-8 lg:pt-12 bg-white">
             <div className="w-full max-w-md mx-auto">
               
-              <div className="mb-6 lg:mb-8 anim-1">
-                <h1 className="text-3xl lg:text-4xl font-extrabold text-[#1A3A2A] mb-1">Welcome back</h1>
-                <p className="text-slate-500 text-sm">Please enter your details to continue.</p>
+              <div className="anim-1 mb-4">
+                <h1 className="text-xl lg:text-2xl font-serif-heading text-[#004d3d] mb-0.5">Welcome back</h1>
+                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold">Please enter your details to continue.</p>
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-slate-200 mb-6 anim-2">
-                <Link to="/login" className="flex-1 pb-3 text-center text-sm font-bold text-[#1B4332] border-b-2 border-[#1B4332]">Login</Link>
-                <Link to="/signup" className="flex-1 pb-3 text-center text-sm font-medium text-slate-400">Sign Up</Link>
+              <div className="flex border-b border-slate-200 mb-4 anim-2">
+                <Link to="/login" className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]">Login</Link>
+                <Link to="/signup" className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Sign Up</Link>
               </div>
 
-              <form onSubmit={handleSubmit} noValidate className="space-y-4 anim-3">
+              <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
                 <div>
-                  <label htmlFor="email" className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 ml-1">Email Address</label>
+                  <label htmlFor="email" className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1">Email Address</label>
                   <input
                     id="email" type="email" name="email" placeholder="name@company.com"
                     value={form.email} onChange={handleChange}
-                    className={`w-full h-12 px-4 rounded-xl bg-slate-50 border text-sm outline-none transition-all
-                      ${errors.email ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5"}`}
+                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
+                      ${errors.email ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"}`}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 ml-1">Password</label>
+                  <label htmlFor="password" className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1">Password</label>
                   <div className="relative">
                     <input
                       id="password" type={showPassword ? "text" : "password"} name="password" placeholder="••••••••"
                       value={form.password} onChange={handleChange}
-                      className={`w-full h-12 px-4 pr-12 rounded-xl bg-slate-50 border text-sm outline-none transition-all
-                        ${errors.password ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5"}`}
+                      className={`w-full h-11 px-4 pr-12 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
+                        ${errors.password ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"}`}
                     />
                     <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 px-4 text-slate-400"><EyeIcon open={showPassword} /></button>
                   </div>
@@ -164,26 +171,32 @@ export default function LoginPage() {
 
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="remember" checked={form.remember} onChange={handleChange} className="w-4 h-4 rounded border-slate-300 text-[#1B4332]" />
-                    <span className="text-xs text-slate-600 font-medium">Remember me</span>
+                    <input type="checkbox" name="remember" checked={form.remember} onChange={handleChange} className="w-3.5 h-3.5 rounded border-slate-300 text-[#004d3d] focus:ring-[#004d3d]/20" />
+                    <span className="text-[11px] text-slate-600 font-medium">Remember me</span>
                   </label>
-                  <Link to="/forgot-password" hidden className="text-xs font-bold text-[#1B4332]">Forgot password?</Link>
+                  <Link to="/forgot-password" title="Forgot password?" className="text-[11px] font-bold text-[#004d3d] hover:underline">Forgot password?</Link>
                 </div>
 
                 <button type="submit" disabled={loading}
-                  className="w-full h-12 rounded-xl bg-[#1A3A2A] hover:bg-[#25523a] active:scale-[0.98] text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2">
+                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-lg flex items-center justify-center gap-2 mt-1">
                   {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Sign In"}
                 </button>
               </form>
 
-              <div className="relative my-6 anim-3">
+              <div className="relative mt-2 mb-2 anim-3">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
-                <div className="relative flex justify-center"><span className="px-3 bg-white text-slate-400 text-[10px] uppercase tracking-widest font-bold">Or continue with</span></div>
+                <div className="relative flex justify-center"><span className="px-4 bg-white text-slate-400 text-[8px] uppercase tracking-[0.2em] font-bold">OR CONTINUE WITH</span></div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 anim-3">
-                <button type="button" className="h-11 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold transition-all"><GoogleIcon /> Google</button>
-                <button type="button" className="h-11 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold transition-all"><FacebookIcon /> Facebook</button>
+                <button type="button" className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm">
+                  <GoogleIcon />
+                  <span>Google</span>
+                </button>
+                <button type="button" className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm">
+                  <FacebookIcon />
+                  <span>Facebook</span>
+                </button>
               </div>
 
             </div>
