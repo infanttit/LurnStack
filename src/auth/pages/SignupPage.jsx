@@ -305,7 +305,6 @@ function Toast({ message, onClose, tone = "warn" }) {
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const [role, setRole] = useState("student");
   const [form, setForm] = useState({
     fullName: "",
     email: "",
