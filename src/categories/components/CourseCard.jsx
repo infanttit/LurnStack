@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { FaStar, FaHeart, FaShoppingCart, FaCheck, FaPlayCircle } from "react-icons/fa";
+import { FaStar, FaHeart, FaShoppingCart, FaCheck } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../cart/model/CartContext";
 

@@ -8,8 +8,6 @@ import FilterSidebar from "../components/FilterSidebar";
 import FeaturedBanner from "../components/FeaturedBanner";
 import CoursesTabSection from "../components/CoursesTabSection";
 import catImages from "../assets/images/categories";
-import TopInstructors from "../components/TopInstructors";
-import TrustStrip from "../components/TrustStrip";
 
 const ALL_COURSES = [
   {

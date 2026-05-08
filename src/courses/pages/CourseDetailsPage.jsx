@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { HiMiniStar } from "react-icons/hi2";
-import { HiCheck, HiDownload } from "react-icons/hi";
+import { HiDownload } from "react-icons/hi";
 import {
   HiOutlinePlayCircle,
   HiOutlineCheckCircle,
@@ -16,19 +16,7 @@ import { getCourseById } from "../data/courseCatalog";
 import demoVideo from "../../assets/Videos/Hero.mp4";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function StarRating({ rating }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <HiMiniStar
-          key={s}
-          className={`text-sm ${s <= Math.round(rating) ? "text-[#f69c08]" : "text-gray-300"}`}
-        />
-      ))}
-    </div>
-  );
-}
-
+ 
 // ── Mock course content sections ───────────────────────────────────────────
 const MOCK_SECTIONS = [
   {
