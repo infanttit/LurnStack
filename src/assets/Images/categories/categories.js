@@ -5,6 +5,7 @@ import Categories4 from "./categories4.jpeg";
 import Categories5 from "./categories5.jpeg";
 
 const catImages = {
+  "featured-masterclass": Categories1,
   "advanced-strategy": Categories5,
   "data-analytics": Categories3,
   "leadership-digital": Categories4,

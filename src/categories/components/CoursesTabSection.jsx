@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import CourseCard, { TAB_COURSES } from "./CourseCard";
+import CourseCard from "./CourseCard";
+import { TAB_COURSES } from "../data/tabCourses";
 
 const TABS = ["Most Popular", "New", "Trending"];
 
