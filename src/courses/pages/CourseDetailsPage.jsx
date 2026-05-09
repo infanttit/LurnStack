@@ -1,6 +1,5 @@
 import { useMemo, useCallback, useState, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { HiMiniStar } from "react-icons/hi2";
 import { HiDownload } from "react-icons/hi";
 import {
   HiOutlinePlayCircle,
