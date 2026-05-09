@@ -7,7 +7,7 @@ import CourseCard from "../components/CourseCard";
 import FilterSidebar from "../components/FilterSidebar";
 import FeaturedBanner from "../components/FeaturedBanner";
 import CoursesTabSection from "../components/CoursesTabSection";
-import catImages from "../assets/images/categories";
+import catImages from "../../assets/Images/categories/categories";
 
 const ALL_COURSES = [
   {
