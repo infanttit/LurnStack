@@ -40,6 +40,7 @@ const ALL_COURSES = [
     id: 2,
     thumbnail: catImages["data-analytics"],
     category: "Web Development",
+    // eslint-disable-next-line no-script-url
     title: "JavaScript: Zero to Hero",
     rating: 4.9,
     ratingCount: 34200,
@@ -341,11 +342,6 @@ const containerVariants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.05 } },
 };
-const cardVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-};
-
 const SORT_OPTIONS = ["Most Popular", "Highest Rated", "Newest", "Price: Low to High"];
 
 const Categories = () => {

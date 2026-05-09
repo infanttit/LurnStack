@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { FaCheck } from "react-icons/fa";
 import { HiMiniStar } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
