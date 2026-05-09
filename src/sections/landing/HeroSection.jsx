@@ -3,9 +3,12 @@ import { HiCheckBadge } from "react-icons/hi2";
 import { FiAward, FiPlay, FiUsers, FiBookOpen, FiTrendingUp, FiArrowRight } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import backgroundVideo from "../../assets/Videos/Hero.mp4";
+import heroVideoAuth from "../../assets/Videos/Hero.mp4";
+import heroVideoGuest from "../../assets/Videos/Hero1.mp4";
+import { useAuth } from "../../auth";
 
 export default function HeroSection() {
+  const { isAuthenticated } = useAuth();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // Text animation - character by character
@@ -118,20 +121,18 @@ export default function HeroSection() {
 
   return (
     <section className="relative bg-[#00342B] min-h-screen flex items-center">
-      {/* Background Video */}
       <div className="absolute inset-0 w-full h-full">
         <video
+          key={isAuthenticated ? "auth" : "guest"}
           autoPlay
           loop
           muted
           playsInline
           className="absolute w-full h-full object-cover"
         >
-          <source src={backgroundVideo} type="video/mp4" />
+          <source src={isAuthenticated ? heroVideoAuth : heroVideoGuest} type="video/mp4" />
         </video>
-        
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/50" />
+        <div className={["absolute inset-0", isAuthenticated ? "bg-black/50" : "bg-black/55"].join(" ")} />
       </div>
 
       <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-20">

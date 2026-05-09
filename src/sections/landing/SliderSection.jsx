@@ -115,7 +115,6 @@ function SlidePanel({ category }) {
       <span
         className="absolute top-4 left-4 text-white font-bold text-xl
                    pointer-events-none drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)]"
-        style={{ fontFamily: "'Georgia','Times New Roman',serif", letterSpacing: "0.01em" }}
       >
         {name}
       </span>

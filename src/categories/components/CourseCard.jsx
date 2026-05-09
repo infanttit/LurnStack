@@ -1,244 +1,28 @@
-import React, { useMemo } from "react";
-import { FaStar, FaHeart, FaShoppingCart, FaCheck } from "react-icons/fa";
+import React, { useMemo, useState, useRef } from "react";
+import { FaCheck } from "react-icons/fa";
+import { HiMiniStar } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../cart/model/CartContext";
 
-export const TAB_COURSES = {
-  "Most Popular": [
-    {
-      id: 901,
-      thumbnail: null,
-      category: "Development",
-      title: "React + Node Mastery (2026)",
-      rating: 4.8,
-      ratingCount: 15200,
-      instructorName: "Colt Steele",
-      price: 19.99,
-      originalPrice: 129.99,
-      badge: "Bestseller",
-      totalHours: 45,
-      level: "Beginner",
-      priceType: "Paid",
-      topic: "Development",
-      popularity: 15200,
-      dateAdded: "2026-05-01",
-    },
-    {
-      id: 902,
-      thumbnail: null,
-      category: "Business",
-      title: "Business Strategy Foundations",
-      rating: 4.7,
-      ratingCount: 8400,
-      instructorName: "Sarah Jenkins",
-      price: 14.99,
-      originalPrice: 89.99,
-      badge: "Highest Rated",
-      totalHours: 18,
-      level: "Intermediate",
-      priceType: "Paid",
-      topic: "Business Strategy",
-      popularity: 8400,
-      dateAdded: "2026-03-10",
-    },
-    {
-      id: 903,
-      thumbnail: null,
-      category: "Design",
-      title: "Design Systems in Figma",
-      rating: 4.9,
-      ratingCount: 6800,
-      instructorName: "Femke van Schoonhoven",
-      price: 24.99,
-      originalPrice: 119.99,
-      badge: "Highest Rated",
-      totalHours: 20,
-      level: "Intermediate",
-      priceType: "Paid",
-      topic: "Design",
-      popularity: 6800,
-      dateAdded: "2026-04-05",
-    },
-    {
-      id: 904,
-      thumbnail: null,
-      category: "Finance",
-      title: "Finance Essentials for Professionals",
-      rating: 4.6,
-      ratingCount: 3900,
-      instructorName: "James Wilson",
-      price: 17.99,
-      originalPrice: 99.99,
-      badge: undefined,
-      totalHours: 22,
-      level: "Beginner",
-      priceType: "Paid",
-      topic: "Finance",
-      popularity: 3900,
-      dateAdded: "2026-02-12",
-    },
-  ],
-  New: [
-    {
-      id: 905,
-      thumbnail: null,
-      category: "Marketing",
-      title: "Growth Marketing Playbook 2026",
-      rating: 4.9,
-      ratingCount: 4200,
-      instructorName: "Alex Thorne",
-      price: 15.99,
-      originalPrice: 89.99,
-      badge: "Highest Rated",
-      totalHours: 14,
-      level: "Intermediate",
-      priceType: "Paid",
-      topic: "Marketing",
-      popularity: 4200,
-      dateAdded: "2026-03-01",
-    },
-    {
-      id: 906,
-      thumbnail: null,
-      category: "Finance",
-      title: "Global Economic Outlook 2026",
-      rating: 4.8,
-      ratingCount: 150,
-      instructorName: "Patricia Meyer",
-      price: 0,
-      originalPrice: null,
-      badge: "New",
-      totalHours: 8,
-      level: "Beginner",
-      priceType: "Free",
-      topic: "Finance",
-      popularity: 150,
-      dateAdded: "2026-02-20",
-    },
-    {
-      id: 907,
-      thumbnail: null,
-      category: "Data Science",
-      title: "Data Analytics for Executives",
-      rating: 4.9,
-      ratingCount: 2100,
-      instructorName: "Dr. Michael Ross",
-      price: 29.99,
-      originalPrice: 159.99,
-      badge: "Highest Rated",
-      totalHours: 30,
-      level: "Executive",
-      priceType: "Paid",
-      topic: "Data Science",
-      popularity: 2100,
-      dateAdded: "2025-11-15",
-    },
-    {
-      id: 908,
-      thumbnail: null,
-      category: "Business",
-      title: "Leadership in the Digital Age",
-      rating: 4.7,
-      ratingCount: 3400,
-      instructorName: "Elena Rodriguez",
-      price: 21.99,
-      originalPrice: 149.99,
-      badge: "Bestseller",
-      totalHours: 18,
-      level: "Intermediate",
-      priceType: "Paid",
-      topic: "Business Strategy",
-      popularity: 3400,
-      dateAdded: "2025-12-05",
-    },
-  ],
-  Trending: [
-    {
-      id: 909,
-      thumbnail: null,
-      category: "Development",
-      title: "Complete Python Masterclass for 2026",
-      rating: 4.8,
-      ratingCount: 22400,
-      instructorName: "Jose Portilla",
-      price: 13.99,
-      originalPrice: 89.99,
-      badge: "Bestseller",
-      totalHours: 42,
-      level: "Beginner",
-      priceType: "Paid",
-      topic: "Development",
-      popularity: 22400,
-      dateAdded: "2026-04-15",
-    },
-    {
-      id: 910,
-      thumbnail: null,
-      category: "Development",
-      title: "Full-Stack Web Development: The 2026 Edition",
-      rating: 4.7,
-      ratingCount: 15200,
-      instructorName: "Colt Steele",
-      price: 14.99,
-      originalPrice: 84.99,
-      badge: "Bestseller",
-      totalHours: 65,
-      level: "Beginner",
-      priceType: "Paid",
-      topic: "Development",
-      popularity: 15200,
-      dateAdded: "2026-05-01",
-    },
-    {
-      id: 911,
-      thumbnail: null,
-      category: "Design",
-      title: "Design Systems with Figma – Pro Edition",
-      rating: 4.9,
-      ratingCount: 6800,
-      instructorName: "Femke van Schoonhoven",
-      price: 69.99,
-      originalPrice: 179.99,
-      badge: "Highest Rated",
-      totalHours: 20,
-      level: "Intermediate",
-      priceType: "Paid",
-      topic: "Design",
-      popularity: 6800,
-      dateAdded: "2026-04-05",
-    },
-    {
-      id: 912,
-      thumbnail: null,
-      category: "Business",
-      title: "Advanced Corporate Strategy & Planning",
-      rating: 4.8,
-      ratingCount: 1240,
-      instructorName: "Sarah Jenkins",
-      price: 79.99,
-      originalPrice: 189.99,
-      badge: "Bestseller",
-      totalHours: 22,
-      level: "Advanced",
-      priceType: "Paid",
-      topic: "Business Strategy",
-      popularity: 1240,
-      dateAdded: "2025-10-01",
-    },
-  ],
-};
+function StarRating({ rating }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <HiMiniStar
+          key={s}
+          className={`text-[12px] ${
+            s <= Math.round(rating) ? "text-[#f69c08]" : "text-gray-300"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
 
-const StarRow = ({ rating }) => (
-  <div className="flex gap-0.5">
-    {[1, 2, 3, 4, 5].map((s) => (
-      <FaStar
-        key={s}
-        className={`text-[11px] ${s <= Math.round(rating) ? "text-[#b4690e]" : "text-gray-200"}`}
-      />
-    ))}
-  </div>
-);
-
+/**
+ * CourseCard Component
+ * High-fidelity Udemy-style interactive course card.
+ */
 export default function CourseCard({
   id,
   thumbnail,
@@ -252,21 +36,45 @@ export default function CourseCard({
   badge,
   totalHours,
   level,
-  description
+  description,
+  takeaways: customTakeaways
 }) {
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewSide, setPreviewSide] = useState("right");
+  const cardRef = useRef(null);
+  const timerRef = useRef(null);
   const { addItem } = useCart();
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        const spaceRight = window.innerWidth - rect.right;
+        setPreviewSide(spaceRight < 360 ? "left" : "right");
+        setShowPreview(true);
+      }
+    }, 200);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setShowPreview(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
 
   const priceLabel = useMemo(() => {
     if (price === 0) return "Free";
-    if (typeof price === "number") return `₹${(price * 80).toFixed(0)}`; // Mocking INR as per screenshot
-    return String(price ?? "");
+    const p = typeof price === "number" ? price * 80 : 499;
+    return `₹${p.toLocaleString()}`;
   }, [price]);
 
   const originalLabel = useMemo(() => {
     if (!originalPrice) return null;
-    if (typeof originalPrice === "number") return `₹${(originalPrice * 80).toFixed(0)}`;
-    return String(originalPrice);
+    const p = typeof originalPrice === "number" ? originalPrice * 80 : 3499;
+    return `₹${p.toLocaleString()}`;
   }, [originalPrice]);
 
   const handleAddToCart = (e) => {
@@ -276,119 +84,139 @@ export default function CourseCard({
       id,
       title,
       thumbnail,
-      unitPricePaise: Math.round(price * 100),
+      unitPricePaise: Math.round((price || 4.99) * 100),
       qty: 1
     });
   };
 
-  // Mock takeaways based on title/category
-  const takeaways = [
-    "Master the core concepts and industry-standard tools.",
-    "Build real-world projects for your professional portfolio.",
-    "Learn advanced techniques from industry-leading experts.",
-    "Get full lifetime access and certificate of completion."
+  const takeaways = customTakeaways || [
+    "Master advanced industry workflows and best practices.",
+    "Build a production-ready portfolio with real projects.",
+    "Comprehensive curriculum with lifetime access to updates.",
+    "Step-by-step guidance from expert industry professionals."
   ];
 
   return (
     <div 
-      className="relative z-10"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      ref={cardRef}
+      className={`relative border border-gray-200 bg-white rounded-sm cursor-pointer transition-all duration-200 ${isHovered ? 'z-[90]' : 'z-10'}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{ boxShadow: isHovered ? "0 0 0 2px #059669" : undefined }}
     >
-      {/* ── Main List Card (Minimal) ── */}
-      <div className="flex flex-col cursor-pointer transition-all duration-300">
-        <div className="aspect-video w-full rounded-sm overflow-hidden mb-2 border border-gray-100">
+      {/* ── Main List Card ── */}
+      <div className="flex flex-col h-full group">
+        {/* Thumbnail */}
+        <div className="w-full h-[140px] sm:h-[160px] overflow-hidden bg-gray-100 relative">
           {thumbnail ? (
-            <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
+            <img src={thumbnail} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-teal-500" />
+            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-teal-600 flex items-center justify-center">
+               <span className="text-white/20 font-black text-4xl select-none">LurnStack</span>
+            </div>
           )}
+          {isHovered && <div className="absolute inset-0 bg-black/10 transition-opacity" />}
         </div>
-        <div className="space-y-1">
-          <h3 className={`text-[14px] font-bold text-gray-900 leading-tight line-clamp-2 transition-colors ${isHovered ? 'text-[#004d3d]' : ''}`}>
+        
+        {/* Card body */}
+        <div className="p-3 flex flex-col gap-1.5 flex-1">
+          <h3 className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2">
             {title}
           </h3>
-          <p className="text-[11px] text-gray-500 line-clamp-1">{instructorName}</p>
-          <div className="flex items-center gap-1">
-            <span className="text-[#b4690e] text-[13px] font-bold">{rating}</span>
-            <StarRow rating={rating} />
-            <span className="text-[11px] text-gray-400">({ratingCount.toLocaleString()})</span>
+          <p className="text-[12px] text-gray-500">{instructorName}</p>
+          
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-[13px] text-[#b4690e]">{rating || 4.8}</span>
+            <StarRating rating={rating || 4.8} />
+            <span className="text-[11px] text-gray-500">({(ratingCount || 1200).toLocaleString()})</span>
           </div>
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-[15px] font-black text-gray-900">{priceLabel}</span>
+          
+          {badge && (
+            <span className="self-start text-[10px] font-bold px-1.5 py-[2px] rounded-sm bg-[#eceb98] text-[#3d3c0a]">
+              {badge}
+            </span>
+          )}
+
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="font-bold text-[15px] text-gray-900">{priceLabel}</span>
             {originalLabel && (
               <span className="text-[12px] text-gray-400 line-through">{originalLabel}</span>
             )}
           </div>
-          {badge && (
-            <div className="pt-1">
-              <span className="bg-[#eceb98] text-[#3d3c0a] text-[10px] font-bold px-2 py-0.5 rounded-sm">
-                {badge}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
       {/* ── Udemy-style Preview Popover ── */}
       <AnimatePresence>
-        {isHovered && (
+        {showPreview && (
           <motion.div
-            initial={{ opacity: 0, x: 10, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 10, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute top-[-20px] left-[105%] w-[330px] bg-white border border-gray-200 shadow-2xl z-[100] p-6 hidden lg:block rounded-sm pointer-events-auto"
+            initial={{ opacity: 0, x: previewSide === "right" ? 10 : -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: previewSide === "right" ? 10 : -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{
+              minWidth: 300,
+              [previewSide === "right" ? "left" : "right"]: "calc(100% + 8px)",
+              top: "-10px"
+            }}
+            className="absolute z-[100] w-[300px] bg-white border border-gray-200 shadow-2xl rounded-sm p-3 flex flex-col gap-2 pointer-events-auto"
           >
             {/* Popover Arrow */}
-            <div className="absolute top-10 left-[-10px] w-5 h-5 bg-white border-l border-b border-gray-200 rotate-45" />
+            <div
+              className={`absolute top-6 w-3 h-3 bg-white border-gray-200 rotate-45 z-10
+                ${previewSide === "right"
+                  ? "-left-[7px] border-b-0 border-r-0 border border-l border-t"
+                  : "-right-[7px] border-t-0 border-l-0 border border-r border-b"
+                }`}
+            />
 
-            <div className="relative z-10 space-y-4">
-              <h2 className="text-[18px] font-extrabold text-gray-900 leading-tight">
+            <div className="relative z-20">
+              <h4 className="font-bold text-sm text-gray-900 leading-snug">
                 {title}
-              </h2>
+              </h4>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap mt-2">
                 {badge && (
-                  <span className="bg-[#eceb98] text-[#3d3c0a] text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-tighter">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-[#eceb98] text-[#3d3c0a]">
                     {badge}
                   </span>
                 )}
-                <span className="text-[#004d3d] text-[11px] font-bold">
-                  Updated <span className="font-extrabold">April 2026</span>
+                <span className="text-[11px] text-gray-500">
+                  Updated{" "}
+                  <span className="font-semibold text-[#059669]">April 2026</span>
                 </span>
               </div>
 
-              <div className="text-[11px] text-gray-500 font-medium flex items-center gap-3">
-                <span>{totalHours || 25.5} total hours</span>
-                <span>•</span>
-                <span>{level || 'All Levels'}</span>
-                <span>•</span>
-                <span>Subtitles</span>
-              </div>
-
-              <p className="text-[13px] text-gray-700 leading-snug line-clamp-3 font-medium">
-                {description || "Master these skills with real-world projects and expert guidance. This course is designed to take you from beginner to advanced level in record time."}
+              <p className="text-[11px] text-gray-500 mt-2">
+                {totalHours || 22.5} total hours · {level || 'All Levels'} · Subtitles
               </p>
 
-              <ul className="space-y-2 py-1">
-                {takeaways.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-[12px] text-gray-600">
-                    <FaCheck className="mt-0.5 flex-shrink-0 text-gray-400" />
-                    <span>{item}</span>
+              <p className="text-[12px] text-gray-700 leading-snug mt-2 line-clamp-3">
+                {description || "Explore comprehensive modules designed for deep learning. From fundamental concepts to advanced practical applications, this course covers everything you need to succeed."}
+              </p>
+
+              <ul className="flex flex-col gap-1.5 mt-3">
+                {takeaways.map((b, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <FaCheck className="text-gray-800 mt-[2px] flex-shrink-0 w-3 h-3 text-[10px]" />
+                    <span className="text-[11px] text-gray-700 leading-snug">{b}</span>
                   </li>
                 ))}
               </ul>
 
-              <div className="flex items-center gap-4 pt-2">
-                <button 
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button
+                  type="button"
                   onClick={handleAddToCart}
-                  className="flex-1 h-12 bg-[#004d3d] hover:bg-[#00392d] text-white font-bold rounded-sm transition-colors flex items-center justify-center gap-2 text-[14px]"
+                  className="w-full h-8 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors"
                 >
-                  <FaShoppingCart /> Add to cart
+                  Add to cart
                 </button>
-                <button className="w-12 h-12 border-2 border-gray-900 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
-                  <FaHeart className="text-[18px] text-gray-900" />
+                <button
+                  type="button"
+                  className="w-full h-8 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors"
+                >
+                  View details
                 </button>
               </div>
             </div>
@@ -398,4 +226,3 @@ export default function CourseCard({
     </div>
   );
 }
-

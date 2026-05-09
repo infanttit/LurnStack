@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/static/css/main.de50bf20.css",
+    "main.js": "/static/js/main.b4b6dc7a.js",
+    "static/media/Hero1.mp4": "/static/media/Hero1.2425af5287bc318d9b97.mp4",
+    "static/media/Hero.mp4": "/static/media/Hero.15a954031648ea14254a.mp4",
+    "static/media/sample.png": "/static/media/sample.f1f0c5f383b56d319865.png",
+    "static/media/Signup.jpeg": "/static/media/Signup.bea697ae94b6ab426726.jpeg",
+    "static/media/categories3.jpeg": "/static/media/categories3.112c10e28a1356bf410e.jpeg",
+    "static/media/Categories1.jpeg": "/static/media/Categories1.50126fb8b0152ee93cca.jpeg",
+    "static/media/categories4.jpeg": "/static/media/categories4.480b36f95aa85a5e4e94.jpeg",
+    "static/media/categories5.jpeg": "/static/media/categories5.8cbb4a2263f741a0bb1b.jpeg",
+    "static/media/categoryes2.jpeg": "/static/media/categoryes2.f2ac94d2532057311201.jpeg",
+    "index.html": "/index.html",
+    "main.de50bf20.css.map": "/static/css/main.de50bf20.css.map",
+    "main.b4b6dc7a.js.map": "/static/js/main.b4b6dc7a.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.de50bf20.css",
+    "static/js/main.b4b6dc7a.js"
+  ]
+}
