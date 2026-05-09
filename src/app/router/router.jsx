@@ -1,34 +1,72 @@
-import { Navigate, createBrowserRouter, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import AppShell from "../AppShell";
 import LandingPage from "../../pages/LandingPage";
 import SimplePage from "../../pages/SimplePage";
 import CategoriesPage from "../../categories/pages/Categories";
 import SignupPage from "../../auth/pages/SignupPage";
 import LoginPage from "../../auth/pages/LoginPage";
+import ProfilePage from "../../auth/pages/ProfilePage";
 import SearchPage from "../../pages/SearchPage";
 import CartPage from "../../cart/pages/CartPage";
+import CheckoutPage from "../../cart/pages/Checkoutpage .jsx";
+import RequireAuth from "../../auth/components/RequireAuth";
+import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
+import { PATHS, categoryHashPath } from "./paths";
 
 function CategoryRedirect() {
   const { categoryId } = useParams();
-  return <Navigate to={`/categories#${categoryId}`} replace />;
+  return <Navigate to={categoryHashPath(categoryId)} replace />;
 }
 
-export const router = createBrowserRouter([
-  {
-    element: <AppShell />,
-    children: [
-      { path: "/", element: <LandingPage /> },
-      { path: "/courses", element: <CoursesPage /> },
-      { path: "/courses/:courseId", element: <CourseDetailsPage /> },
-      { path: "/categories", element: <CategoriesPage /> },
-      { path: "/categories/:categoryId", element: <CategoryRedirect /> },
-      { path: "/search", element: <SearchPage /> },
-      { path: "/cart", element: <CartPage /> },
-      { path: "/plans", element: <SimplePage title="Plans" /> },
-      { path: "/login", element: <LoginPage /> },
-      { path: "/signup", element: <SignupPage /> },
-    ],
-  },
-]);
+export default function AppRouter() {
+  return (
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route path={PATHS.HOME} element={<LandingPage />} />
+        <Route
+          path={PATHS.DASHBOARD}
+          element={(
+            <RequireAuth>
+              <StudentDashboardPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path={PATHS.LIVE_CLASSES}
+          element={(
+            <RequireAuth>
+              <StudentDashboardPage />
+            </RequireAuth>
+          )}
+        />
+        <Route path={PATHS.COURSES} element={<CoursesPage />} />
+        <Route path={PATHS.COURSE_DETAILS} element={<CourseDetailsPage />} />
+        <Route path={PATHS.CATEGORIES} element={<CategoriesPage />} />
+        <Route path={PATHS.CATEGORY_DETAILS} element={<CategoryRedirect />} />
+        <Route path={PATHS.SEARCH} element={<SearchPage />} />
+        <Route path={PATHS.CART} element={<CartPage />} />
+        <Route
+          path={PATHS.CHECKOUT}
+          element={(
+            <RequireAuth>
+              <CheckoutPage />
+            </RequireAuth>
+          )}
+        />
+        <Route path={PATHS.TERMS} element={<SimplePage title="Terms of Use" />} />
+        <Route
+          path={PATHS.PRIVACY}
+          element={<SimplePage title="Privacy Policy" />}
+        />
+        <Route path={PATHS.PLANS} element={<SimplePage title="Plans" />} />
+        <Route path={PATHS.LOGIN} element={<LoginPage />} />
+        <Route path={PATHS.SIGNUP} element={<SignupPage />} />
+        <Route path={PATHS.PROFILE} element={<ProfilePage />} />
+      </Route>
+    </Routes>
+  );
+}
+
+export const AppRoutes = AppRouter;

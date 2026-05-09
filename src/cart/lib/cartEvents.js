@@ -1,6 +1,6 @@
 const CART_FLY_EVENT = "lurnstack:cartFly";
 
-export function emitCartFlyFromElement(fromEl) {
+export function emitCartFlyFromElement(fromEl, thumbnailUrl = null, title = null) {
   if (!fromEl || typeof window === "undefined") return;
   const rect = fromEl.getBoundingClientRect?.();
   if (!rect) return;
@@ -13,6 +13,8 @@ export function emitCartFlyFromElement(fromEl) {
           width: rect.width,
           height: rect.height,
         },
+        thumbnailUrl: thumbnailUrl,
+        title: title,
       },
     })
   );

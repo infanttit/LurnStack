@@ -409,7 +409,7 @@ const Categories = () => {
   }, [activeFilters, sortBy, activeCategory, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-white">
       <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
         <nav className="text-[12px] text-gray-500 flex items-center gap-2">
           <Link to="/" className="hover:text-black transition-colors">Home</Link>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import loginImage from "../../assets/Images/Signup.jpeg";
+import { useAuth } from "../model/AuthContext";
+import { PATHS } from "../../app/router/paths";
 
 /* ─── Icons ─────────────────────────────────────────────────── */
 const EyeIcon = ({ open }) =>
@@ -74,8 +76,6 @@ const Logo = ({ dark = false }) => (
 /* ─── Global Styles ──────────────────────────────────────────── */
 const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
-    .font-serif-heading { font-family: 'Playfair Display', serif; }
     @keyframes fade-in-up {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -119,7 +119,7 @@ const PolicyModal = ({ type, onClose, onAccept }) => {
       <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden modal-anim">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
           <div>
-            <h2 className="text-2xl font-serif-heading text-[#004d3d]">
+            <h2 className="text-2xl font-extrabold text-[#004d3d]">
               {isTerms ? "Terms of Service" : "Privacy Policy"}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -306,11 +306,13 @@ function Toast({ message, onClose, tone = "warn" }) {
 }
 
 export default function SignupPage() {
+  const { signUp, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     agree: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -319,6 +321,11 @@ export default function SignupPage() {
   const [activeModal, setActiveModal] = useState(null); // 'terms' | 'privacy' | null
   const [toastMessage, setToastMessage] = useState("");
   const [toastTone, setToastTone] = useState("warn");
+  const [formError, setFormError] = useState("");
+
+  if (isAuthenticated) {
+    return <Navigate to={PATHS.HOME} replace />;
+  }
 
   const handleAcceptPolicy = () => {
     setForm((p) => ({ ...p, agree: true }));
@@ -332,6 +339,8 @@ export default function SignupPage() {
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = "Invalid email";
     if (!form.password) errs.password = "Required";
     else if (form.password.length < 8) errs.password = "Min. 8 chars";
+    if (!form.confirmPassword) errs.confirmPassword = "Required";
+    else if (form.confirmPassword !== form.password) errs.confirmPassword = "Does not match";
     return errs;
   };
 
@@ -339,6 +348,7 @@ export default function SignupPage() {
     const { name, value, type, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+    setFormError("");
   };
 
   const handleSubmit = async (e) => {
@@ -357,9 +367,18 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    navigate("/");
+    try {
+      await signUp({
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+      });
+      navigate(PATHS.HOME, { replace: true });
+    } catch (err) {
+      setFormError(err?.message || "Unable to create account.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -414,7 +433,7 @@ export default function SignupPage() {
           <div className="flex-1 h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar pt-8 lg:pt-12 bg-white">
             <div className="w-full max-w-md mx-auto">
               <div className="anim-1 mb-4">
-                <h1 className="text-xl lg:text-2xl font-serif-heading text-[#004d3d] mb-0.5">
+                <h1 className="text-xl lg:text-2xl font-extrabold text-[#004d3d] mb-0.5">
                   Create Account
                 </h1>
                 <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold hidden sm:block">
@@ -439,6 +458,11 @@ export default function SignupPage() {
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
+                {formError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
+                    {formError}
+                  </div>
+                ) : null}
                 <div>
                   <label
                     htmlFor="signup-fullname"
@@ -515,6 +539,29 @@ export default function SignupPage() {
                       <EyeIcon open={showPassword} />
                     </button>
                   </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-confirm-password"
+                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
+                  >
+                    Confirm Password
+                  </label>
+                  <input
+                    id="signup-confirm-password"
+                    type={showPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="Re-enter password"
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
+                      ${
+                        errors.confirmPassword
+                          ? "border-red-400"
+                          : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                      }`}
+                  />
                 </div>
 
                 <div className="pt-0.5">

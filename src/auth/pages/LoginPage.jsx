@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import loginImage from "../../assets/Images/Signup.jpeg";
+import { useAuth } from "../model/AuthContext";
+import { PATHS } from "../../app/router/paths";
 
 
 const EyeIcon = ({ open }) =>
@@ -46,8 +48,6 @@ const Logo = ({ dark = false }) => (
 /* ─── Global Styles ──────────────────────────────────────────── */
 const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap');
-    .font-serif-heading { font-family: 'Playfair Display', serif; }
     @keyframes fade-in-up {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -64,17 +64,28 @@ const GlobalStyles = () => (
 );
 
 export default function LoginPage() {
+  const { signIn, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const redirectTo = (() => {
+    return PATHS.HOME;
+  })();
+
+  if (isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   const validate = () => {
     const errs = {};
     if (!form.email) errs.email = "Required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = "Invalid email";
     if (!form.password) errs.password = "Required";
+    else if (form.password.length < 8) errs.password = "Min. 8 chars";
     return errs;
   };
 
@@ -82,6 +93,7 @@ export default function LoginPage() {
     const { name, value, type, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
     setErrors((p) => ({ ...p, [name]: "" }));
+    setFormError("");
   };
 
   const handleSubmit = async (e) => {
@@ -89,9 +101,14 @@ export default function LoginPage() {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setLoading(false);
-    navigate("/");
+    try {
+      await signIn({ email: form.email, password: form.password });
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setFormError(err?.message || "Unable to sign in.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -135,7 +152,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md mx-auto">
               
               <div className="anim-1 mb-4">
-                <h1 className="text-xl lg:text-2xl font-serif-heading text-[#004d3d] mb-0.5">Welcome back</h1>
+                <h1 className="text-xl lg:text-2xl font-extrabold text-[#004d3d] mb-0.5">Welcome back</h1>
                 <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold">Please enter your details to continue.</p>
               </div>
 
@@ -146,6 +163,11 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
+                {formError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
+                    {formError}
+                  </div>
+                ) : null}
                 <div>
                   <label htmlFor="email" className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1">Email Address</label>
                   <input
