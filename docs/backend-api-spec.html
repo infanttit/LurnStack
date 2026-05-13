@@ -1,0 +1,375 @@
+﻿<!doctype html>
+<html><head><meta charset='utf-8'/>
+<style>
+body{font-family:Arial, sans-serif; font-size:11pt; line-height:1.35;}
+h1{font-size:20pt;} h2{font-size:14pt; margin-top:18px;} h3{font-size:12pt; margin-top:12px;}
+code, pre{font-family:Consolas, monospace; font-size:10pt;}
+pre{background:#f2f2f2; padding:10px; border-radius:6px;}
+hr{border:none; border-top:1px solid #ddd; margin:14px 0;}
+</style></head><body>
+<p># LurnStack MVP Backend API Spec (Admin-only authoring)</p>
+<p></p>
+<p>**Conventions**</p>
+<p></p>
+<p>- Base: `/api`</p>
+<p>- Auth header: `Authorization: Bearer &lt;token&gt;`</p>
+<p>- Standard response:</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;: &quot;OK&quot;, &quot;data&quot;: null }
+</pre>
+<p>- Error response:</p>
+<pre>
+{ &quot;success&quot;: false, &quot;message&quot;: &quot;Reason&quot;, &quot;errorCode&quot;: &quot;SOME_CODE&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## A) Auth (Student/Admin)</p>
+<p></p>
+<p>### POST `/api/auth/register`</p>
+<p>Request</p>
+<pre>
+{ &quot;FULL_NAME&quot;:&quot;Arun&quot;, &quot;EMAIL_ADDRESS&quot;:&quot;arun@gmail.com&quot;, &quot;PASSWORD&quot;:&quot;pass123&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Registered&quot;, &quot;user&quot;: { &quot;id&quot;:&quot;u1&quot;,&quot;fullName&quot;:&quot;Arun&quot;,&quot;email&quot;:&quot;arun@gmail.com&quot;,&quot;role&quot;:&quot;student&quot; }, &quot;token&quot;:&quot;jwt&quot; }
+</pre>
+<p></p>
+<p>### POST `/api/auth/login`</p>
+<p>Request</p>
+<pre>
+{ &quot;EMAIL_ADDRESS&quot;:&quot;admin@gmail.com&quot;, &quot;PASSWORD&quot;:&quot;pass123&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Logged in&quot;, &quot;user&quot;: { &quot;id&quot;:&quot;a1&quot;,&quot;fullName&quot;:&quot;Admin&quot;,&quot;email&quot;:&quot;admin@gmail.com&quot;,&quot;role&quot;:&quot;admin&quot; }, &quot;token&quot;:&quot;jwt&quot; }
+</pre>
+<p></p>
+<p>### GET `/api/auth/me`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;id&quot;:&quot;u1&quot;,&quot;fullName&quot;:&quot;Arun&quot;,&quot;email&quot;:&quot;arun@gmail.com&quot;,&quot;role&quot;:&quot;student&quot; } }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## B) Categories (Public read + Admin write)</p>
+<p></p>
+<p>### GET `/api/categories`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: [ { &quot;id&quot;:&quot;cat1&quot;,&quot;name&quot;:&quot;Development&quot;,&quot;slug&quot;:&quot;development&quot;,&quot;courseCount&quot;:12 } ] }
+</pre>
+<p></p>
+<p>### GET `/api/categories/:categoryId`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;id&quot;:&quot;cat1&quot;,&quot;name&quot;:&quot;Development&quot;,&quot;slug&quot;:&quot;development&quot;,&quot;description&quot;:&quot;...&quot;, &quot;courseCount&quot;:12 } }
+</pre>
+<p></p>
+<p>### (Admin) POST `/api/admin/categories`</p>
+<p>Request</p>
+<pre>
+{ &quot;name&quot;:&quot;Development&quot;, &quot;slug&quot;:&quot;development&quot;, &quot;description&quot;:&quot;All dev courses&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Created&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;cat1&quot;,&quot;name&quot;:&quot;Development&quot;,&quot;slug&quot;:&quot;development&quot;,&quot;description&quot;:&quot;All dev courses&quot; } }
+</pre>
+<p></p>
+<p>### (Admin) PATCH `/api/admin/categories/:categoryId`</p>
+<p>Request</p>
+<pre>
+{ &quot;name&quot;:&quot;Dev&quot;, &quot;description&quot;:&quot;Updated&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Updated&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;cat1&quot;,&quot;name&quot;:&quot;Dev&quot;,&quot;slug&quot;:&quot;development&quot;,&quot;description&quot;:&quot;Updated&quot; } }
+</pre>
+<p></p>
+<p>### (Admin) DELETE `/api/admin/categories/:categoryId`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Deleted&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## C) Courses (Catalog + Details + Admin CRUD)</p>
+<p></p>
+<p>Course card (for listing)</p>
+<pre>
+{ &quot;id&quot;:&quot;c1&quot;,&quot;title&quot;:&quot;React from Zero&quot;,&quot;slug&quot;:&quot;react-from-zero&quot;,&quot;thumbnailUrl&quot;:&quot;https://...&quot;,&quot;pricePaise&quot;:49900,&quot;currency&quot;:&quot;INR&quot;,&quot;ratingAvg&quot;:4.6,&quot;ratingCount&quot;:120,&quot;categoryId&quot;:&quot;cat1&quot;,&quot;categoryName&quot;:&quot;Development&quot;,&quot;level&quot;:&quot;beginner&quot;,&quot;language&quot;:&quot;en&quot;,&quot;isPublished&quot;:true }
+</pre>
+<p></p>
+<p>### GET `/api/courses`</p>
+<p>Query: `?categoryId=cat1&amp;search=react&amp;sort=popular&amp;page=1&amp;limit=12`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;items&quot;: [ { &quot;id&quot;:&quot;c1&quot;,&quot;title&quot;:&quot;React from Zero&quot;,&quot;pricePaise&quot;:49900,&quot;thumbnailUrl&quot;:&quot;https://...&quot; } ], &quot;page&quot;:1, &quot;limit&quot;:12, &quot;total&quot;:34 } }
+</pre>
+<p></p>
+<p>### GET `/api/courses/:courseId`</p>
+<p>Response (public details; no locked video URLs)</p>
+<pre>
+{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {
+    &quot;id&quot;:&quot;c1&quot;,
+    &quot;title&quot;:&quot;React from Zero&quot;,
+    &quot;description&quot;:&quot;...&quot;,
+    &quot;categoryId&quot;:&quot;cat1&quot;,
+    &quot;thumbnailUrl&quot;:&quot;https://...&quot;,
+    &quot;previewVideoUrl&quot;:&quot;https://...&quot;,
+    &quot;pricePaise&quot;:49900,
+    &quot;currency&quot;:&quot;INR&quot;,
+    &quot;whatYouWillLearn&quot;:[&quot;...&quot;],
+    &quot;requirements&quot;:[&quot;...&quot;],
+    &quot;level&quot;:&quot;beginner&quot;,
+    &quot;language&quot;:&quot;en&quot;,
+    &quot;instructorName&quot;:&quot;Admin Team&quot;,
+    &quot;sections&quot;:[
+      { &quot;id&quot;:&quot;s1&quot;,&quot;title&quot;:&quot;Getting Started&quot;,&quot;order&quot;:1,
+        &quot;lectures&quot;:[ { &quot;id&quot;:&quot;l1&quot;,&quot;title&quot;:&quot;Intro&quot;,&quot;order&quot;:1,&quot;durationSec&quot;:180,&quot;isPreview&quot;:true } ]
+      }
+    ],
+    &quot;isPublished&quot;: true
+  }
+}
+</pre>
+<p></p>
+<p>### (Admin) POST `/api/admin/courses`</p>
+<p>Request</p>
+<pre>
+{ &quot;title&quot;:&quot;React from Zero&quot;, &quot;slug&quot;:&quot;react-from-zero&quot;, &quot;categoryId&quot;:&quot;cat1&quot;, &quot;description&quot;:&quot;...&quot;, &quot;pricePaise&quot;:49900, &quot;currency&quot;:&quot;INR&quot;, &quot;level&quot;:&quot;beginner&quot;, &quot;language&quot;:&quot;en&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Created&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;c1&quot;,&quot;isPublished&quot;:false } }
+</pre>
+<p></p>
+<p>### (Admin) PATCH `/api/admin/courses/:courseId`</p>
+<p>Request</p>
+<pre>
+{ &quot;thumbnailUrl&quot;:&quot;https://...&quot;, &quot;previewVideoUrl&quot;:&quot;https://...&quot;, &quot;pricePaise&quot;:39900, &quot;isPublished&quot;: true }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Updated&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;c1&quot;,&quot;isPublished&quot;:true } }
+</pre>
+<p></p>
+<p>### (Admin) DELETE `/api/admin/courses/:courseId`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Deleted&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<p>### (Admin) POST `/api/admin/courses/:courseId/sections`</p>
+<p>Request</p>
+<pre>
+{ &quot;title&quot;:&quot;Getting Started&quot;, &quot;order&quot;:1 }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Created&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;s1&quot;,&quot;courseId&quot;:&quot;c1&quot;,&quot;title&quot;:&quot;Getting Started&quot;,&quot;order&quot;:1 } }
+</pre>
+<p></p>
+<p>### (Admin) PATCH `/api/admin/sections/:sectionId`</p>
+<p>Request</p>
+<pre>
+{ &quot;title&quot;:&quot;Basics&quot;, &quot;order&quot;:2 }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Updated&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;s1&quot;,&quot;title&quot;:&quot;Basics&quot;,&quot;order&quot;:2 } }
+</pre>
+<p></p>
+<p>### (Admin) DELETE `/api/admin/sections/:sectionId`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Deleted&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<p>### (Admin) POST `/api/admin/sections/:sectionId/lectures`</p>
+<p>Request</p>
+<pre>
+{ &quot;title&quot;:&quot;Intro&quot;, &quot;order&quot;:1, &quot;isPreview&quot;: true, &quot;videoAssetId&quot;:&quot;va1&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Created&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;l1&quot;,&quot;sectionId&quot;:&quot;s1&quot;,&quot;title&quot;:&quot;Intro&quot;,&quot;order&quot;:1,&quot;isPreview&quot;:true,&quot;durationSec&quot;:180 } }
+</pre>
+<p></p>
+<p>### (Admin) PATCH `/api/admin/lectures/:lectureId`</p>
+<p>Request</p>
+<pre>
+{ &quot;title&quot;:&quot;Intro updated&quot;, &quot;order&quot;:1, &quot;isPreview&quot;:false, &quot;videoAssetId&quot;:&quot;va2&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Updated&quot;, &quot;data&quot;: { &quot;id&quot;:&quot;l1&quot;,&quot;title&quot;:&quot;Intro updated&quot;,&quot;isPreview&quot;:false } }
+</pre>
+<p></p>
+<p>### (Admin) DELETE `/api/admin/lectures/:lectureId`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Deleted&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## D) Video Upload (Admin only)</p>
+<p></p>
+<p>### (Admin) POST `/api/admin/uploads/videos/presign`</p>
+<p>Request</p>
+<pre>
+{ &quot;fileName&quot;:&quot;intro.mp4&quot;, &quot;contentType&quot;:&quot;video/mp4&quot;, &quot;sizeBytes&quot;:123456789 }
+</pre>
+<p>Response</p>
+<pre>
+{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {
+    &quot;uploadId&quot;:&quot;up1&quot;,
+    &quot;putUrl&quot;:&quot;https://signed-put-url&quot;,
+    &quot;assetKey&quot;:&quot;videos/up1/intro.mp4&quot;,
+    &quot;expiresInSec&quot;:900
+  }
+}
+</pre>
+<p></p>
+<p>### (Admin) POST `/api/admin/uploads/videos/complete`</p>
+<p>Request</p>
+<pre>
+{ &quot;uploadId&quot;:&quot;up1&quot;, &quot;assetKey&quot;:&quot;videos/up1/intro.mp4&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;videoAssetId&quot;:&quot;va1&quot;, &quot;status&quot;:&quot;ready&quot;, &quot;durationSec&quot;:180 } }
+</pre>
+<p></p>
+<p>### (Admin) GET `/api/admin/videos/:videoAssetId`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;videoAssetId&quot;:&quot;va1&quot;, &quot;status&quot;:&quot;ready&quot;, &quot;durationSec&quot;:180, &quot;originalFileName&quot;:&quot;intro.mp4&quot;, &quot;assetKey&quot;:&quot;videos/up1/intro.mp4&quot; } }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## E) Purchase + Enrollment (Student)</p>
+<p></p>
+<p>### POST `/api/checkout/session`</p>
+<p>Request</p>
+<pre>
+{ &quot;items&quot;:[ { &quot;courseId&quot;:&quot;c1&quot; } ], &quot;successUrl&quot;:&quot;https://app/success&quot;, &quot;cancelUrl&quot;:&quot;https://app/cart&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;checkoutSessionId&quot;:&quot;cs_123&quot;, &quot;paymentUrl&quot;:&quot;https://pay/...&quot; } }
+</pre>
+<p></p>
+<p>### POST `/api/webhooks/payment`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;message&quot;:&quot;Webhook processed&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<p>### GET `/api/me/enrollments`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: [ { &quot;courseId&quot;:&quot;c1&quot;, &quot;enrolledAt&quot;:&quot;2026-05-13T10:10:00Z&quot;, &quot;access&quot;:&quot;lifetime&quot; } ] }
+</pre>
+<p></p>
+<p>### GET `/api/me/purchases`</p>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: [ { &quot;orderId&quot;:&quot;o1&quot;,&quot;courseId&quot;:&quot;c1&quot;,&quot;pricePaise&quot;:49900,&quot;currency&quot;:&quot;INR&quot;,&quot;status&quot;:&quot;paid&quot;,&quot;paidAt&quot;:&quot;2026-05-13T10:10:00Z&quot; } ] }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## F) Learn (Locked videos for paid students)</p>
+<p></p>
+<p>### GET `/api/courses/:courseId/learn`</p>
+<p>Response (only if enrolled)</p>
+<pre>
+{
+  &quot;success&quot;: true,
+  &quot;data&quot;: {
+    &quot;courseId&quot;:&quot;c1&quot;,
+    &quot;sections&quot;:[
+      { &quot;id&quot;:&quot;s1&quot;,&quot;title&quot;:&quot;Getting Started&quot;,&quot;lectures&quot;:[
+        { &quot;id&quot;:&quot;l1&quot;,&quot;title&quot;:&quot;Intro&quot;,&quot;durationSec&quot;:180, &quot;video&quot;: { &quot;playbackUrl&quot;:&quot;https://cdn/signed-or-stream/...&quot; } }
+      ]}
+    ],
+    &quot;progress&quot;: { &quot;completedLectureIds&quot;:[&quot;l1&quot;], &quot;percent&quot;: 5 }
+  }
+}
+</pre>
+<p></p>
+<p>If not enrolled</p>
+<pre>
+{ &quot;success&quot;: false, &quot;message&quot;:&quot;Not enrolled&quot;, &quot;errorCode&quot;:&quot;NOT_ENROLLED&quot;, &quot;data&quot;: null }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## G) Progress (Student)</p>
+<p></p>
+<p>### POST `/api/me/progress/lecture-complete`</p>
+<p>Request</p>
+<pre>
+{ &quot;courseId&quot;:&quot;c1&quot;, &quot;lectureId&quot;:&quot;l1&quot; }
+</pre>
+<p>Response</p>
+<pre>
+{ &quot;success&quot;: true, &quot;data&quot;: { &quot;courseId&quot;:&quot;c1&quot;, &quot;completedLectureIds&quot;:[&quot;l1&quot;], &quot;percent&quot;: 5 } }
+</pre>
+<p></p>
+<hr/>
+<p></p>
+<p>## Total endpoint list</p>
+<p></p>
+<p>Auth</p>
+<p>- `POST /api/auth/register`</p>
+<p>- `POST /api/auth/login`</p>
+<p>- `GET /api/auth/me`</p>
+<p></p>
+<p>Categories</p>
+<p>- `GET /api/categories`</p>
+<p>- `GET /api/categories/:categoryId`</p>
+<p>- `POST /api/admin/categories`</p>
+<p>- `PATCH /api/admin/categories/:categoryId`</p>
+<p>- `DELETE /api/admin/categories/:categoryId`</p>
+<p></p>
+<p>Courses</p>
+<p>- `GET /api/courses`</p>
+<p>- `GET /api/courses/:courseId`</p>
+<p>- `POST /api/admin/courses`</p>
+<p>- `PATCH /api/admin/courses/:courseId`</p>
+<p>- `DELETE /api/admin/courses/:courseId`</p>
+<p>- `POST /api/admin/courses/:courseId/sections`</p>
+<p>- `PATCH /api/admin/sections/:sectionId`</p>
+<p>- `DELETE /api/admin/sections/:sectionId`</p>
+<p>- `POST /api/admin/sections/:sectionId/lectures`</p>
+<p>- `PATCH /api/admin/lectures/:lectureId`</p>
+<p>- `DELETE /api/admin/lectures/:lectureId`</p>
+<p></p>
+<p>Video (Admin)</p>
+<p>- `POST /api/admin/uploads/videos/presign`</p>
+<p>- `POST /api/admin/uploads/videos/complete`</p>
+<p>- `GET /api/admin/videos/:videoAssetId`</p>
+<p></p>
+<p>Payments</p>
+<p>- `POST /api/checkout/session`</p>
+<p>- `POST /api/webhooks/payment`</p>
+<p>- `GET /api/me/enrollments`</p>
+<p>- `GET /api/me/purchases`</p>
+<p></p>
+<p>Learn + progress</p>
+<p>- `GET /api/courses/:courseId/learn`</p>
+<p>- `POST /api/me/progress/lecture-complete`</p>
+<p></p>
+</body></html>
+

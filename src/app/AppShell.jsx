@@ -2,10 +2,12 @@ import { Outlet } from "react-router-dom";
 import SiteFooter from "../components/layout/SiteFooter";
 import SiteNavbar from "../components/layout/SiteNavbar";
 import { CartFlyAnimator } from "../cart";
+import { ZohoSalesIQ } from "../integrations/zoho/salesiq";
 
 export default function AppShell() {
   return (
     <div className="min-h-dvh bg-background text-on-background">
+      <ZohoSalesIQ />
       <CartFlyAnimator />
       <SiteNavbar />
       <Outlet />

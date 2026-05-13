@@ -1,5 +1,12 @@
-const USERS_KEY = "lurnstack:auth:users:v1";
-const SESSION_KEY = "lurnstack:auth:session:v1";
+import { loginApi, registerApi } from "../api/authApi";
+
+const USER_KEY = "lurnstack:auth:user:v1";
+const TOKEN_KEY = "lurnstack:auth:token:v1";
+
+function getWebStorage(type) {
+  if (typeof window === "undefined") return null;
+  return type === "session" ? window.sessionStorage : window.localStorage;
+}
 
 function safeJsonParse(raw) {
   try {
@@ -9,96 +16,66 @@ function safeJsonParse(raw) {
   }
 }
 
-function loadUsers() {
-  if (typeof window === "undefined") return [];
-  const parsed = safeJsonParse(window.localStorage.getItem(USERS_KEY));
-  return Array.isArray(parsed) ? parsed : [];
+function saveUser(user, { persist } = {}) {
+  const storage = getWebStorage(persist ? "local" : "session");
+  if (!storage) return;
+  storage.setItem(USER_KEY, JSON.stringify(user || null));
 }
 
-function saveUsers(users) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(USERS_KEY, JSON.stringify(users));
+function loadUser() {
+  const local = getWebStorage("local");
+  const session = getWebStorage("session");
+  const raw = local?.getItem(USER_KEY) || session?.getItem(USER_KEY);
+  const parsed = safeJsonParse(raw);
+  return parsed && typeof parsed === "object" ? parsed : null;
 }
 
-function loadSession() {
-  if (typeof window === "undefined") return null;
-  const parsed = safeJsonParse(window.localStorage.getItem(SESSION_KEY));
-  if (!parsed?.userId) return null;
-  return { userId: String(parsed.userId) };
+function saveToken(token, { persist } = {}) {
+  const storage = getWebStorage(persist ? "local" : "session");
+  if (!storage) return;
+
+  if (!token) storage.removeItem(TOKEN_KEY);
+  else storage.setItem(TOKEN_KEY, String(token));
 }
 
-function saveSession(session) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+function loadToken() {
+  const local = getWebStorage("local");
+  const session = getWebStorage("session");
+  const raw = local?.getItem(TOKEN_KEY) || session?.getItem(TOKEN_KEY) || "";
+  return String(raw);
 }
 
-function clearSession() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(SESSION_KEY);
-}
-
-function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
-}
-
-function makeId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+export function getAuthToken() {
+  return loadToken() || "";
 }
 
 export function getCurrentUser() {
-  const session = loadSession();
-  if (!session) return null;
-  const users = loadUsers();
-  const user = users.find((u) => String(u.id) === String(session.userId));
-  if (!user) return null;
-  return {
-    id: String(user.id),
-    fullName: user.fullName || "",
-    email: user.email || "",
-    createdAt: user.createdAt || "",
-  };
+  const token = loadToken();
+  const user = loadUser();
+  if (!token || !user) return null;
+  return user;
 }
 
-export function registerUser({ fullName, email, password }) {
-  const users = loadUsers();
-  const normEmail = normalizeEmail(email);
-
-  const exists = users.some((u) => normalizeEmail(u.email) === normEmail);
-  if (exists) {
-    const err = new Error("This email is already registered.");
-    err.code = "EMAIL_EXISTS";
-    throw err;
-  }
-
-  const user = {
-    id: makeId(),
-    fullName: String(fullName || "").trim(),
-    email: normEmail,
-    password: String(password || ""),
-    createdAt: new Date().toISOString(),
-  };
-
-  saveUsers([user, ...users]);
-  saveSession({ userId: user.id });
-
-  return { id: user.id, fullName: user.fullName, email: user.email, createdAt: user.createdAt };
+export async function registerUser({ fullName, email, password, persist = true }) {
+  const result = await registerApi({ fullName, email, password });
+  if (result.token) saveToken(result.token, { persist });
+  saveUser(result.user, { persist });
+  return result.user;
 }
 
-export function authenticateUser({ email, password }) {
-  const users = loadUsers();
-  const normEmail = normalizeEmail(email);
-  const user = users.find((u) => normalizeEmail(u.email) === normEmail);
-  if (!user || String(user.password) !== String(password || "")) {
-    const err = new Error("Invalid email or password.");
-    err.code = "INVALID_CREDENTIALS";
-    throw err;
-  }
-
-  saveSession({ userId: user.id });
-  return { id: String(user.id), fullName: user.fullName || "", email: user.email || "", createdAt: user.createdAt || "" };
+export async function authenticateUser({ email, password, persist = true }) {
+  const result = await loginApi({ email, password });
+  saveToken(result.token, { persist });
+  saveUser(result.user, { persist });
+  return result.user;
 }
 
 export function logoutUser() {
-  clearSession();
+  const local = getWebStorage("local");
+  const session = getWebStorage("session");
+  local?.removeItem(TOKEN_KEY);
+  local?.removeItem(USER_KEY);
+  session?.removeItem(TOKEN_KEY);
+  session?.removeItem(USER_KEY);
 }
 

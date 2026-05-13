@@ -342,6 +342,11 @@ const containerVariants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.05 } },
 };
+
+const cardVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.22, ease: "easeOut" } },
+};
 const SORT_OPTIONS = ["Most Popular", "Highest Rated", "Newest", "Price: Low to High"];
 
 const Categories = () => {
@@ -545,9 +550,20 @@ const Categories = () => {
                 </button>
               </div>
             ) : (
-              <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
+              >
                 {filteredCourses.map((course) => (
-                  <CourseCard key={course.id} {...course} />
+                  <motion.div
+                    key={course.id}
+                    variants={cardVariants}
+                    className="h-full"
+                  >
+                    <CourseCard {...course} />
+                  </motion.div>
                 ))}
               </motion.div>
             )}

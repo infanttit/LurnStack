@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FiGlobe, FiMail, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
+import logo from "../../assets/Logo/Logo2.png";
 
 function FooterLink({ to, children }) {
   return (
@@ -77,9 +78,15 @@ export default function SiteFooter() {
           <div className="lg:col-span-4 space-y-5">
             {/* Logo */}
             <div>
-              <span className="text-2xl font-extrabold text-white tracking-tight">
-                Lurn<span className="text-secondary-fixed">Stack</span>
-              </span>
+              <div className="inline-flex items-center">
+                <img
+                  src={logo}
+                  alt="LurnStack"
+                  className="h-14 sm:h-16 w-auto object-contain"
+                  loading="lazy"
+                />
+                <span className="sr-only">LurnStack</span>
+              </div>
               <p className="mt-3 text-[13px] text-white/45 leading-relaxed max-w-xs">
                 Industry-aligned courses, expert mentors, and verified certificates to power your next career leap.
               </p>

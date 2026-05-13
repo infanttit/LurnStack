@@ -1,9 +1,8 @@
 import React, { useEffect } from "react";
 import { screen } from "@testing-library/react";
-import { render } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
 import SiteNavbar from "../components/layout/SiteNavbar";
-import { CartProvider, useCart } from "../cart";
+import { useCart } from "../cart";
+import { renderWithProviders } from "./testUtils";
 
 function Seed() {
   const { addItem } = useCart();
@@ -14,13 +13,12 @@ function Seed() {
 }
 
 test("navbar shows cart badge count", async () => {
-  render(
-    <CartProvider>
-      <MemoryRouter>
-        <Seed />
-        <SiteNavbar />
-      </MemoryRouter>
-    </CartProvider>
+  renderWithProviders(
+    <>
+      <Seed />
+      <SiteNavbar />
+    </>,
+    { route: "/" }
   );
 
   expect(await screen.findByLabelText("Cart")).toBeInTheDocument();

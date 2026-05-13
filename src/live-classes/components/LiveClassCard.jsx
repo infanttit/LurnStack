@@ -1,4 +1,7 @@
 import { FiCalendar, FiClock, FiVideo } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { PATHS } from "../../app/router/paths";
+import SmartImage from "../../shared/components/SmartImage";
 import { formatDuration, getLiveTiming } from "../lib/time";
 import useNow from "../hooks/useNow";
 
@@ -38,14 +41,16 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
   const joinCountdownMs = Math.max(0, joinOpensMs - now);
 
   return (
-    <div className="rounded-2xl bg-surface overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-2xl bg-surface overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-outline-variant/60">
       <div className="p-5 flex gap-4">
-        <div className="w-20 h-16 rounded-lg overflow-hidden bg-surface-variant flex-shrink-0">
-          <div
-            className={[
+        <div className="w-24 h-16 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-surface-variant flex-shrink-0">
+          <SmartImage
+            src={liveClass?.thumbnail}
+            alt={liveClass?.title || "Live class"}
+            className="w-full h-full object-cover"
+            fallbackClassName={[
               "w-full h-full bg-gradient-to-br",
-              liveClass?.courseThumbnailBg ||
-                "from-slate-900 via-emerald-800 to-teal-500",
+              liveClass?.courseThumbnailBg || "from-slate-900 via-emerald-800 to-teal-500",
             ].join(" ")}
           />
         </div>
@@ -56,9 +61,14 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
               <div className="text-[11px] font-semibold text-on-surface-variant truncate">
                 {liveClass?.courseName}
               </div>
-              <div className="mt-0.5 text-sm font-extrabold text-on-surface leading-snug line-clamp-1">
+              <div className="mt-0.5 text-sm sm:text-[15px] font-extrabold text-on-surface leading-snug line-clamp-1">
                 {liveClass?.title}
               </div>
+              {liveClass?.description ? (
+                <div className="mt-1 text-[12px] text-on-surface-variant line-clamp-1">
+                  {liveClass.description}
+                </div>
+              ) : null}
               <div className="mt-1 text-[12px] text-on-surface-variant truncate">
                 Instructor: {liveClass?.instructorName}
               </div>
@@ -66,7 +76,8 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
 
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
               {isLiveNow ? (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 inline-flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                   Live now
                 </span>
               ) : isEnded ? (
@@ -134,6 +145,20 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
               <FiVideo className="text-[16px]" />
               {isLiveNow ? "Join live" : "Join"}
             </button>
+
+            <Link
+              to={
+                liveClass?.id != null
+                  ? PATHS.LIVE_CLASS_DETAILS.replace(
+                      ":classId",
+                      encodeURIComponent(String(liveClass.id))
+                    )
+                  : PATHS.LIVE_CLASSES
+              }
+              className="h-10 px-4 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container-low transition-colors inline-flex items-center"
+            >
+              Details
+            </Link>
 
             {joined?.joinedAt ? (
               <div className="text-[12px] text-on-surface-variant">

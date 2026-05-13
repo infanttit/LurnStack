@@ -5,9 +5,11 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [bootstrapped, setBootstrapped] = useState(false);
 
   useEffect(() => {
     setUser(getCurrentUser());
+    setBootstrapped(true);
   }, []);
 
   const value = useMemo(() => {
@@ -15,21 +17,22 @@ export function AuthProvider({ children }) {
       user,
       isAuthenticated: !!user,
       signUp: async ({ fullName, email, password }) => {
-        const next = registerUser({ fullName, email, password });
-        setUser(next);
-        return next;
+        const next = await registerUser({ fullName, email, password, persist: true });
+        setUser(next || null);
+        return next || null;
       },
-      signIn: async ({ email, password }) => {
-        const next = authenticateUser({ email, password });
-        setUser(next);
-        return next;
+      signIn: async ({ email, password, remember = true }) => {
+        const next = await authenticateUser({ email, password, persist: !!remember });
+        setUser(next || null);
+        return next || null;
       },
       signOut: async () => {
         logoutUser();
         setUser(null);
       },
+      bootstrapped,
     };
-  }, [user]);
+  }, [user, bootstrapped]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

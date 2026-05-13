@@ -11,6 +11,7 @@ import CartPage from "../../cart/pages/CartPage";
 import CheckoutPage from "../../cart/pages/Checkoutpage .jsx";
 import RequireAuth from "../../auth/components/RequireAuth";
 import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage";
+import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
 import { PATHS, categoryHashPath } from "./paths";
@@ -38,6 +39,14 @@ export default function AppRouter() {
           element={(
             <RequireAuth>
               <StudentDashboardPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path={PATHS.LIVE_CLASS_DETAILS}
+          element={(
+            <RequireAuth>
+              <LiveClassDetailsPage />
             </RequireAuth>
           )}
         />

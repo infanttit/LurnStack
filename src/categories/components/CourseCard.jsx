@@ -1,8 +1,10 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { FaCheck } from "react-icons/fa";
 import { HiMiniStar } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../cart/model/CartContext";
+import { emitCartFlyFromElement } from "../../cart";
+import { parseINRPriceToPaise } from "../../cart/lib/cartUtils";
 
 function StarRating({ rating }) {
   return (
@@ -42,12 +44,25 @@ export default function CourseCard({
   const [isHovered, setIsHovered] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewSide, setPreviewSide] = useState("right");
+  const [canHover, setCanHover] = useState(true);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   const cardRef = useRef(null);
   const timerRef = useRef(null);
+  const addBtnRef = useRef(null);
   const { addItem } = useCart();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      setCanHover(window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches ?? true);
+    } catch {
+      setCanHover(true);
+    }
+  }, []);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
+    if (!canHover) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       if (cardRef.current) {
@@ -80,11 +95,12 @@ export default function CourseCard({
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    emitCartFlyFromElement(addBtnRef.current || cardRef.current, thumbnail, title);
     addItem({
       id,
       title,
       thumbnail,
-      unitPricePaise: Math.round((price || 4.99) * 100),
+      unitPricePaise: priceLabel === "Free" ? 0 : parseINRPriceToPaise(priceLabel),
       qty: 1
     });
   };
@@ -99,9 +115,12 @@ export default function CourseCard({
   return (
     <div 
       ref={cardRef}
-      className={`relative border border-gray-200 bg-white rounded-sm cursor-pointer transition-all duration-200 ${isHovered ? 'z-[90]' : 'z-10'}`}
+      className={`relative border border-gray-200 bg-white rounded-sm cursor-pointer transition-all duration-200 ${isHovered ? "z-[1000]" : "z-0"}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={() => {
+        if (!canHover) setMobilePreviewOpen(true);
+      }}
       style={{ boxShadow: isHovered ? "0 0 0 2px #059669" : undefined }}
     >
       {/* ── Main List Card ── */}
@@ -143,12 +162,35 @@ export default function CourseCard({
               <span className="text-[12px] text-gray-400 line-through">{originalLabel}</span>
             )}
           </div>
+
+          {/* Mobile actions */}
+          <div className="grid grid-cols-2 gap-2 mt-3 sm:hidden">
+            <button
+              ref={addBtnRef}
+              type="button"
+              onClick={handleAddToCart}
+              className="w-full h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
+            >
+              Add to cart
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMobilePreviewOpen(true);
+              }}
+              className="w-full h-9 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
+            >
+              View details
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ── Udemy-style Preview Popover ── */}
       <AnimatePresence>
-        {showPreview && (
+        {canHover && showPreview && (
           <motion.div
             initial={{ opacity: 0, x: previewSide === "right" ? 10 : -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -159,7 +201,7 @@ export default function CourseCard({
               [previewSide === "right" ? "left" : "right"]: "calc(100% + 8px)",
               top: "-10px"
             }}
-            className="absolute z-[100] w-[300px] bg-white border border-gray-200 shadow-2xl rounded-sm p-3 flex flex-col gap-2 pointer-events-auto"
+            className="absolute z-[1100] w-[300px] bg-white border border-gray-200 shadow-2xl rounded-sm p-3 flex flex-col gap-2 pointer-events-auto"
           >
             {/* Popover Arrow */}
             <div
@@ -206,6 +248,7 @@ export default function CourseCard({
 
               <div className="grid grid-cols-2 gap-2 mt-4">
                 <button
+                  ref={addBtnRef}
                   type="button"
                   onClick={handleAddToCart}
                   className="w-full h-8 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors"
@@ -222,6 +265,100 @@ export default function CourseCard({
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Mobile details sheet */}
+      <AnimatePresence>
+        {!canHover && mobilePreviewOpen ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[9998]"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMobilePreviewOpen(false);
+              }}
+            />
+            <motion.div
+              initial={{ y: 32, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 32, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed left-0 right-0 bottom-0 z-[9999] bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 p-4 pb-6"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-3" />
+              <div className="flex items-start gap-3">
+                <div className="w-20 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
+                  ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-extrabold text-[15px] text-gray-900 leading-snug">
+                    {title}
+                  </h4>
+                  <p className="text-[12px] text-gray-500 mt-0.5">{instructorName}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="font-bold text-[14px] text-gray-900">{priceLabel}</span>
+                    {originalLabel ? (
+                      <span className="text-[12px] text-gray-400 line-through">{originalLabel}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="px-2 py-1 text-gray-500 text-sm"
+                  onClick={() => setMobilePreviewOpen(false)}
+                  aria-label="Close"
+                >
+                  âœ•
+                </button>
+              </div>
+
+              <p className="text-[12px] text-gray-700 leading-snug mt-3">
+                {description ||
+                  "Explore comprehensive modules designed for deep learning. From fundamental concepts to advanced practical applications, this course covers everything you need to succeed."}
+              </p>
+
+              <ul className="flex flex-col gap-1.5 mt-3">
+                {takeaways.map((b, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <FaCheck className="text-gray-800 mt-[2px] flex-shrink-0 w-3 h-3 text-[10px]" />
+                    <span className="text-[11px] text-gray-700 leading-snug">{b}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button
+                  ref={addBtnRef}
+                  type="button"
+                  onClick={(e) => {
+                    handleAddToCart(e);
+                    setMobilePreviewOpen(false);
+                  }}
+                  className="w-full h-10 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-lg transition-colors"
+                >
+                  Add to cart
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobilePreviewOpen(false)}
+                  className="w-full h-10 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-lg transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </>
+        ) : null}
       </AnimatePresence>
     </div>
   );
