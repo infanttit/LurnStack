@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import loginImage from "../../assets/Images/Signup.jpeg";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
+import { isStrongPassword, isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
 
 /* ─── Icons ─────────────────────────────────────────────────── */
 const EyeIcon = ({ open }) =>
@@ -102,8 +103,13 @@ const GlobalStyles = () => (
 /* ─── Policy Modal (Terms or Privacy) ─────────────────────────── */
 const PolicyModal = ({ type, onClose, onAccept }) => {
   useEffect(() => {
-    if (type) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "hidden";
+    if (typeof document === "undefined") return undefined;
+    if (!type) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [type]);
 
   if (!type) return null;
@@ -334,11 +340,18 @@ export default function SignupPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.fullName.trim()) errs.fullName = "Required";
-    if (!form.email) errs.email = "Required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = "Invalid email";
-    if (!form.password) errs.password = "Required";
-    else if (form.password.length < 8) errs.password = "Min. 8 chars";
+    const fullName = String(form.fullName || "").trim();
+    const email = normalizeEmail(form.email);
+
+    if (!fullName) errs.fullName = "Full name is required";
+    else if (fullName.length < 2) errs.fullName = "Enter your full name";
+
+    if (!email) errs.email = "Email is required";
+    else if (!isValidEmail(email)) errs.email = "Enter a valid email address (example: name@gmail.com)";
+
+    if (!form.password) errs.password = "Password is required";
+    else if (!isStrongPassword(form.password)) errs.password = passwordPolicyText();
+
     if (!form.confirmPassword) errs.confirmPassword = "Required";
     else if (form.confirmPassword !== form.password) errs.confirmPassword = "Does not match";
     return errs;
@@ -369,8 +382,8 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signUp({
-        fullName: form.fullName,
-        email: form.email,
+        fullName: String(form.fullName || "").trim(),
+        email: normalizeEmail(form.email),
         password: form.password,
       });
       navigate(PATHS.HOME, { replace: true });
@@ -484,6 +497,11 @@ export default function SignupPage() {
                           : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                       }`}
                   />
+                  {errors.fullName ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.fullName}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div>
@@ -507,6 +525,11 @@ export default function SignupPage() {
                           : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                       }`}
                   />
+                  {errors.email ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.email}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div>
@@ -539,6 +562,15 @@ export default function SignupPage() {
                       <EyeIcon open={showPassword} />
                     </button>
                   </div>
+                  {errors.password ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.password}
+                    </div>
+                  ) : (
+                    <div className="mt-1 ml-1 text-[10px] text-slate-500">
+                      {passwordPolicyText()}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -562,6 +594,11 @@ export default function SignupPage() {
                           : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                       }`}
                   />
+                  {errors.confirmPassword ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.confirmPassword}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="pt-0.5">

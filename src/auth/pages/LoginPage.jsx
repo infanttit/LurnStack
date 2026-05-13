@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import loginImage from "../../assets/Images/Signup.jpeg";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
+import { isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
 
 
 const EyeIcon = ({ open }) =>
@@ -66,6 +67,7 @@ const GlobalStyles = () => (
 export default function LoginPage() {
   const { signIn, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -73,7 +75,8 @@ export default function LoginPage() {
   const [formError, setFormError] = useState("");
 
   const redirectTo = (() => {
-    return PATHS.HOME;
+    const from = location?.state?.from;
+    return typeof from === "string" && from.trim() ? from : PATHS.HOME;
   })();
 
   if (isAuthenticated) {
@@ -82,10 +85,12 @@ export default function LoginPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.email) errs.email = "Required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = "Invalid email";
-    if (!form.password) errs.password = "Required";
-    else if (form.password.length < 8) errs.password = "Min. 8 chars";
+    const email = normalizeEmail(form.email);
+    if (!email) errs.email = "Email is required";
+    else if (!isValidEmail(email)) errs.email = "Enter a valid email address (example: name@gmail.com)";
+
+    if (!form.password) errs.password = "Password is required";
+    else if (String(form.password).length < 8) errs.password = "Password must be at least 8 characters";
     return errs;
   };
 
@@ -102,7 +107,11 @@ export default function LoginPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      await signIn({ email: form.email, password: form.password });
+      await signIn({
+        email: normalizeEmail(form.email),
+        password: form.password,
+        remember: form.remember,
+      });
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setFormError(err?.message || "Unable to sign in.");
@@ -176,6 +185,11 @@ export default function LoginPage() {
                     className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
                       ${errors.email ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"}`}
                   />
+                  {errors.email ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.email}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div>
@@ -189,6 +203,15 @@ export default function LoginPage() {
                     />
                     <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute inset-y-0 right-0 px-4 text-slate-400"><EyeIcon open={showPassword} /></button>
                   </div>
+                  {errors.password ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.password}
+                    </div>
+                  ) : (
+                    <div className="mt-1 ml-1 text-[10px] text-slate-500">
+                      {passwordPolicyText()}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between">

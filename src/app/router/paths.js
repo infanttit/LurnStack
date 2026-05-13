@@ -2,6 +2,7 @@ export const PATHS = {
   HOME: "/",
   DASHBOARD: "/dashboard",
   LIVE_CLASSES: "/live-classes",
+  LIVE_CLASS_DETAILS: "/live-classes/:classId",
   COURSES: "/courses",
   COURSE_DETAILS: "/courses/:courseId",
   CATEGORIES: "/categories",

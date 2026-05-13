@@ -1,6 +1,7 @@
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { screen, fireEvent, act } from "@testing-library/react";
 import Categories from "../categories/pages/Categories";
+import { renderWithProviders } from "./testUtils";
 
 jest.useFakeTimers();
 
@@ -9,9 +10,10 @@ afterAll(() => {
 });
 
 test("categories page loads and can filter by category", async () => {
-  render(<Categories />);
+  renderWithProviders(<Categories />, { route: "/categories" });
 
-  expect(screen.getByText(/Explore Courses/i)).toBeInTheDocument();
+  // Page breadcrumb / header presence
+  expect(screen.getByText("Categories")).toBeInTheDocument();
 
   act(() => {
     jest.advanceTimersByTime(900);
@@ -20,6 +22,16 @@ test("categories page loads and can filter by category", async () => {
   const initialResults = screen.getByText(/results/i);
   expect(initialResults.textContent).toMatch(/\d+\s+results/);
 
-  fireEvent.click(screen.getByRole("button", { name: /Development/i }));
-  expect(screen.getByText(/Category:\s*Development/i)).toBeInTheDocument();
+  // Topic filter is inside a collapsed accordion; open it then toggle the checkbox.
+  act(() => {
+    fireEvent.click(screen.getByRole("button", { name: /^Topic$/i }));
+    // Allow the Framer Motion accordion animation to mount its contents.
+    jest.advanceTimersByTime(350);
+  });
+
+  const dev = screen.getByRole("checkbox", { name: /^Development$/i });
+  act(() => {
+    fireEvent.click(dev);
+  });
+  expect(dev).toBeChecked();
 });

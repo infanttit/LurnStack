@@ -1,6 +1,9 @@
 import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiBell } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { FiArrowRight, FiBell, FiClock, FiRefreshCcw } from "react-icons/fi";
+import { PATHS } from "../../app/router/paths";
+import SmartImage from "../../shared/components/SmartImage";
 import LiveClassCard from "../components/LiveClassCard";
 import SkeletonCard from "../components/SkeletonCard";
 import { fetchDashboardData, joinLiveClass } from "../model/liveClassesSlice";
@@ -22,9 +25,7 @@ function SectionCard({ title, right, children }) {
           {title}
         </h2>
         {right ? (
-          <div className="text-xs font-semibold text-on-surface-variant">
-            {right}
-          </div>
+          <div className="text-xs font-semibold text-on-surface-variant">{right}</div>
         ) : null}
       </div>
       <div className="p-6">{children}</div>
@@ -34,12 +35,34 @@ function SectionCard({ title, right, children }) {
 
 export default function StudentDashboardPage() {
   const dispatch = useDispatch();
-  const { enrolledCourses, upcomingClasses, completedClasses, joinedByClassId, loading, error } =
+  const {
+    enrolledCourses,
+    upcomingClasses,
+    completedClasses,
+    joinedByClassId,
+    loading,
+    error,
+    lastUpdatedAt,
+  } =
     useSelector((s) => s.liveClasses);
 
   useEffect(() => {
     dispatch(fetchDashboardData());
   }, [dispatch]);
+
+  const nextLive = upcomingClasses?.[0] || null;
+  const nextWhen = useMemo(() => {
+    const start = new Date(nextLive?.scheduledAt || "");
+    if (Number.isNaN(start.getTime())) return "";
+    return start.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }, [nextLive?.scheduledAt]);
 
   const notifications = useMemo(() => {
     const items = [];
@@ -68,8 +91,13 @@ export default function StudentDashboardPage() {
   const handleJoin = async (liveClass) => {
     const classId = liveClass?.id;
     if (!classId) return;
-    await dispatch(joinLiveClass({ classId }));
-    if (liveClass?.meetUrl) window.open(liveClass.meetUrl, "_blank", "noopener,noreferrer");
+    try {
+      const result = await dispatch(joinLiveClass({ classId })).unwrap();
+      const meetUrl = result?.meetUrl || liveClass?.meetUrl;
+      if (meetUrl) window.open(meetUrl, "_blank", "noopener,noreferrer");
+    } catch {
+      // Error is displayed via slice state.
+    }
   };
 
   return (
@@ -80,6 +108,34 @@ export default function StudentDashboardPage() {
           <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
             Times shown in IST (Asia/Kolkata). You can join only from 5 minutes before start.
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-xs font-semibold text-on-surface-variant">
+            Last updated:{" "}
+            <span className="text-on-surface">
+              {lastUpdatedAt
+                ? new Date(lastUpdatedAt).toLocaleTimeString("en-IN", {
+                    timeZone: "Asia/Kolkata",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })
+                : "—"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => dispatch(fetchDashboardData())}
+            disabled={loading}
+            className={[
+              "h-10 px-5 rounded-xl text-sm font-extrabold transition-colors inline-flex items-center gap-2",
+              loading
+                ? "bg-surface-variant text-on-surface-variant cursor-not-allowed"
+                : "bg-primary text-on-primary hover:bg-primary/90",
+            ].join(" ")}
+          >
+            <FiRefreshCcw className={loading ? "animate-spin" : ""} />
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
       </div>
 
@@ -221,20 +277,51 @@ export default function StudentDashboardPage() {
               </div>
             </div>
             <div className="mt-4 space-y-3">
-              {notifications.length === 0 ? (
-                <div className="text-sm text-on-surface-variant">No updates right now.</div>
-              ) : (
-                notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className="rounded-xl border border-outline-variant bg-surface-container-low p-3"
-                  >
-                    <div className="text-sm font-extrabold text-on-surface">{n.title}</div>
-                    <div className="mt-0.5 text-xs text-on-surface-variant line-clamp-2">
-                      {n.body}
+              {nextLive ? (
+                <div className="rounded-2xl border border-outline-variant bg-surface-container-low p-3 hover:bg-surface-container transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden bg-surface-variant flex-shrink-0">
+                      <SmartImage
+                        src={nextLive?.thumbnail}
+                        alt={nextLive?.title || "Next live class"}
+                        className="w-full h-full object-cover"
+                        fallbackClassName="w-full h-full bg-gradient-to-br from-slate-900 via-emerald-800 to-teal-500"
+                      />
                     </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-semibold text-on-surface-variant truncate">
+                        Next live class
+                      </div>
+                      <div className="mt-1 text-[12px] font-semibold text-on-surface-variant truncate">
+                        {nextLive?.courseName || "—"}
+                      </div>
+                      <div className="mt-0.5 text-[13px] font-extrabold text-on-surface leading-snug line-clamp-2">
+                        {nextLive?.title || "—"}
+                      </div>
+                      {nextWhen ? (
+                        <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-on-surface-variant whitespace-nowrap">
+                          <FiClock className="text-[13px]" />
+                          {nextWhen}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {nextLive?.id != null ? (
+                      <Link
+                        to={PATHS.LIVE_CLASS_DETAILS.replace(
+                          ":classId",
+                          encodeURIComponent(String(nextLive.id))
+                        )}
+                        className="h-9 px-3 rounded-xl bg-primary text-on-primary text-xs font-extrabold inline-flex items-center gap-1.5 flex-shrink-0 hover:bg-primary/90 transition-colors self-center"
+                      >
+                        View <FiArrowRight />
+                      </Link>
+                    ) : null}
                   </div>
-                ))
+                </div>
+              ) : (
+                <div className="text-sm text-on-surface-variant">No updates right now.</div>
               )}
             </div>
           </div>

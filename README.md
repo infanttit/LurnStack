@@ -1,70 +1,34 @@
-# Getting Started with Create React App
+# LurnStack (Frontend)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React (Create React App) + TailwindCSS single-page app with feature-based modules (auth, cart, live-classes, courses, etc.). Deployed as an SPA on Vercel (`vercel.json`).
 
-## Available Scripts
+## Quick start
 
-In the project directory, you can run:
+1) Create `.env.local` (or copy from `.env.example`):
 
-### `npm start`
+`REACT_APP_API_BASE_URL=https://lurnstackbackend-production.up.railway.app`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+2) Run:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- `npm start`
 
-### `npm test`
+## Architecture (high level)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- App entry: `src/index.js` → `src/App.js`
+- Global providers: `src/app/providers/AppProviders.jsx` (Redux + AuthContext + CartContext)
+- Routing: `src/app/router/router.jsx` + `src/app/router/paths.js`
+- Shared layout shell: `src/app/AppShell.jsx` (navbar/footer + integrations + `Outlet`)
 
-### `npm run build`
+## Auth flow (Railway backend)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- API base URL comes from `REACT_APP_API_BASE_URL` (`src/shared/config/env.js`)
+- Login: `POST /api/auth/login` (`src/auth/api/authApi.js`)
+- Register: `POST /api/auth/register` (`src/auth/api/authApi.js`)
+- Token + user persistence:
+  - “Remember me” checked → `localStorage`
+  - unchecked → `sessionStorage`
+  (`src/auth/model/authStorage.js`)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Notes on security
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This frontend stores the auth token in Web Storage (session/local). For strongest protection against XSS token theft, prefer **httpOnly secure cookies** on the backend (requires backend changes).

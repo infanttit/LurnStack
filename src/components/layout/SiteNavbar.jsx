@@ -6,6 +6,7 @@ import NavbarSearch from "./navbar/NavbarSearch";
 import { useCart } from "../../cart";
 import { PATHS } from "../../app/router/paths";
 import { useAuth } from "../../auth";
+import logo from "../../assets/Logo/Logo2.png";
 
 function initials(name) {
   const parts = String(name || "")
@@ -49,8 +50,17 @@ export default function SiteNavbar() {
       <header className="bg-primary text-on-primary backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <nav className="px-margin-desktop py-5 max-w-container-max mx-auto">
           <div className="flex items-center justify-between gap-6">
-            <NavLink to={PATHS.HOME} className="font-h3 text-h3 font-extrabold text-white tracking-tight">
-              LurnStack
+            <NavLink
+              to={PATHS.HOME}
+              className="inline-flex items-center"
+              aria-label="LurnStack"
+            >
+              <img
+                src={logo}
+                alt="LurnStack"
+                className="h-12 md:h-14 w-auto object-contain"
+                loading="eager"
+              />
             </NavLink>
             <button
               type="button"
@@ -73,10 +83,16 @@ export default function SiteNavbar() {
             <div className="flex items-center gap-12 min-w-0">
               <NavLink
                 to={PATHS.HOME}
-                className="font-h3 text-h3 font-extrabold text-white tracking-tight"
+                className="inline-flex items-center"
                 onClick={closeMobileMenu}
+                aria-label="LurnStack"
               >
-                LurnStack
+                <img
+                  src={logo}
+                  alt="LurnStack"
+                  className="h-12 md:h-14 w-auto object-contain"
+                  loading="eager"
+                />
               </NavLink>
 
               {isAuthenticated ? (

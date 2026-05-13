@@ -31,7 +31,7 @@ const CategoryCarousel = ({ activeCategory, onSelect }) => {
 
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
+        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {CATEGORIES.map(({ label, Icon, color }, i) => {
@@ -42,8 +42,10 @@ const CategoryCarousel = ({ activeCategory, onSelect }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onSelect(isActive ? null : label)}
-              className={`flex-shrink-0 flex flex-col items-center gap-2 px-5 py-3.5 rounded-xl border-2 transition-all duration-200 min-w-[100px]
+              className={`flex-shrink-0 flex flex-col items-center gap-2 px-5 py-3.5 rounded-xl border-2 transition-all duration-200 min-w-[110px] snap-start
                 ${isActive ? "border-[#004d3d] bg-[#004d3d] text-white shadow-md" : `${color} hover:shadow-sm`}`}
             >
               <Icon className={`text-xl ${isActive ? "text-white" : ""}`} />

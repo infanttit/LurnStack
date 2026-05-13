@@ -1,13 +1,13 @@
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { render } from "@testing-library/react";
-import { CartProvider } from "../cart";
+import AppProviders from "../app/providers/AppProviders";
 
 export function renderWithProviders(ui, { route = "/" } = {}) {
   return render(
-    <CartProvider>
+    <AppProviders>
       <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
-    </CartProvider>
+    </AppProviders>
   );
 }
 

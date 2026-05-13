@@ -1,14 +1,10 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import SignupPage from "../auth/pages/SignupPage";
+import { renderWithProviders } from "./testUtils";
 
 test("signup shows validation styles on empty submit", async () => {
-  render(
-    <MemoryRouter>
-      <SignupPage />
-    </MemoryRouter>
-  );
+  renderWithProviders(<SignupPage />, { route: "/signup" });
 
   // Must accept terms first; otherwise the form short-circuits with a toast
   // and does not run field validation.
