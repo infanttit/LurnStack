@@ -10,7 +10,6 @@ function unwrap(res) {
   if (data?.success === true) return data;
   if (data && typeof data === "object" && "data" in data) return data;
   throw new Error(data?.message || "Request failed");
-  return data;
 }
 
 function parseDurationMinutes(duration) {
