@@ -13,6 +13,7 @@ import {
   getTrainerLiveClassesByCourse,
 } from "../../trainers/model/trainerContentStorage";
 
+// eslint-disable-next-line no-unused-vars
 const ALL_COURSES = [
   {
     id: 1,
