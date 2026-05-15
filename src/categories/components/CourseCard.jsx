@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { FaCheck } from "react-icons/fa";
 import { HiMiniStar } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../../cart/model/CartContext";
 import { emitCartFlyFromElement } from "../../cart";
 import { parseINRPriceToPaise } from "../../cart/lib/cartUtils";
@@ -39,8 +40,11 @@ export default function CourseCard({
   totalHours,
   level,
   description,
-  takeaways: customTakeaways
+  takeaways: customTakeaways,
+  createdByTrainer = false,
+  liveClass = null
 }) {
+  const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewSide, setPreviewSide] = useState("right");
@@ -105,6 +109,26 @@ export default function CourseCard({
     });
   };
 
+  const handleViewDetails = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (createdByTrainer) {
+      navigate(`/courses/${encodeURIComponent(String(id))}`);
+      return;
+    }
+    setMobilePreviewOpen(true);
+  };
+
+  const handleJoinClass = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (liveClass?.meetUrl) {
+      window.open(liveClass.meetUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    navigate(`/courses/${encodeURIComponent(String(id))}`);
+  };
+
   const takeaways = customTakeaways || [
     "Master advanced industry workflows and best practices.",
     "Build a production-ready portfolio with real projects.",
@@ -156,6 +180,17 @@ export default function CourseCard({
             </span>
           )}
 
+          {createdByTrainer && liveClass ? (
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-2">
+              <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800">
+                Live class
+              </div>
+              <div className="mt-1 text-[11px] font-semibold text-gray-700 line-clamp-1">
+                {liveClass.title}
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-2 mt-0.5">
             <span className="font-bold text-[15px] text-gray-900">{priceLabel}</span>
             {originalLabel && (
@@ -164,22 +199,27 @@ export default function CourseCard({
           </div>
 
           {/* Mobile actions */}
-          <div className="grid grid-cols-2 gap-2 mt-3 sm:hidden">
+          <div className={["grid gap-2 mt-3 sm:hidden", createdByTrainer ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
             <button
               ref={addBtnRef}
               type="button"
               onClick={handleAddToCart}
               className="w-full h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
             >
-              Add to cart
+              Add
             </button>
+            {createdByTrainer ? (
+              <button
+                type="button"
+                onClick={handleJoinClass}
+                className="w-full h-9 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
+              >
+                Join
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMobilePreviewOpen(true);
-              }}
+              onClick={handleViewDetails}
               className="w-full h-9 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
             >
               View details
@@ -237,6 +277,17 @@ export default function CourseCard({
                 {description || "Explore comprehensive modules designed for deep learning. From fundamental concepts to advanced practical applications, this course covers everything you need to succeed."}
               </p>
 
+              {createdByTrainer && liveClass ? (
+                <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-800">
+                Expert-led session
+                  </div>
+                  <div className="mt-1 text-[12px] font-semibold text-gray-800">
+                    {liveClass.title}
+                  </div>
+                </div>
+              ) : null}
+
               <ul className="flex flex-col gap-1.5 mt-3">
                 {takeaways.map((b, i) => (
                   <li key={i} className="flex items-start gap-1.5">
@@ -246,17 +297,33 @@ export default function CourseCard({
                 ))}
               </ul>
 
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
                 <button
                   ref={addBtnRef}
                   type="button"
                   onClick={handleAddToCart}
                   className="w-full h-8 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors"
                 >
-                  Add to cart
+                  Add
                 </button>
+                {createdByTrainer ? (
+                  <button
+                    type="button"
+                    onClick={handleJoinClass}
+                    className="w-full h-8 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors"
+                  >
+                    Join
+                  </button>
+                ) : null}
                 <button
                   type="button"
+                  onClick={(e) => {
+                    if (createdByTrainer) handleViewDetails(e);
+                    else {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
                   className="w-full h-8 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors"
                 >
                   View details
@@ -336,7 +403,7 @@ export default function CourseCard({
                 ))}
               </ul>
 
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
                 <button
                   ref={addBtnRef}
                   type="button"
@@ -348,12 +415,28 @@ export default function CourseCard({
                 >
                   Add to cart
                 </button>
+                {createdByTrainer ? (
+                  <button
+                    type="button"
+                    onClick={handleJoinClass}
+                    className="w-full h-10 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-lg transition-colors"
+                  >
+                    Join
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  onClick={() => setMobilePreviewOpen(false)}
+                  onClick={(e) => {
+                    if (createdByTrainer) handleViewDetails(e);
+                    else {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMobilePreviewOpen(false);
+                    }
+                  }}
                   className="w-full h-10 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-lg transition-colors"
                 >
-                  Done
+                  {createdByTrainer ? "View details" : "Done"}
                 </button>
               </div>
             </motion.div>

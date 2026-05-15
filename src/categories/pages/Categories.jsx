@@ -8,6 +8,10 @@ import FilterSidebar from "../components/FilterSidebar";
 import FeaturedBanner from "../components/FeaturedBanner";
 import CoursesTabSection from "../components/CoursesTabSection";
 import catImages from "../../assets/Images/categories/categories";
+import {
+  getTrainerCourses,
+  getTrainerLiveClassesByCourse,
+} from "../../trainers/model/trainerContentStorage";
 
 const ALL_COURSES = [
   {
@@ -357,6 +361,37 @@ const Categories = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const trainerCourses = useMemo(
+    () =>
+      getTrainerCourses().map((course) => {
+        const liveClass = getTrainerLiveClassesByCourse(course.id)[0] || null;
+        return {
+        id: course.id,
+        thumbnail: course.thumbnail,
+        category: course.tab || "Trainer Courses",
+        title: course.title,
+        rating: course.rating || 4.8,
+        ratingCount: 0,
+        instructorName: course.instructor,
+        price: Number(String(course.price || "").replace(/[^0-9.]/g, "")) || 499,
+        originalPrice: null,
+        lastUpdated: course.updated || "Trainer upload",
+        description: course.description,
+        badge: course.badge || "Live",
+        totalHours: course.hours || "Live class",
+        level: course.level || "All Levels",
+        priceType: "Paid",
+        topic: course.tab || "Trainer Courses",
+        popularity: 999999,
+        dateAdded: course.createdAt || new Date().toISOString(),
+        takeaways: course.bullets || [],
+        createdByTrainer: true,
+        liveClass,
+      };
+      }),
+    []
+  );
+  const allCourses = useMemo(() => trainerCourses, [trainerCourses]);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 800);
@@ -381,7 +416,7 @@ const Categories = () => {
     );
     const ratingFilters = activeFilters.filter((f) => f.startsWith("rating-"));
 
-    let result = ALL_COURSES.filter((c) => {
+    let result = allCourses.filter((c) => {
       const passLevel = levelFilters.length === 0 || levelFilters.includes(c.level);
       const passPrice = priceFilters.length === 0 || priceFilters.includes(c.priceType);
       const passTopic = topicFilters.length === 0 || topicFilters.includes(c.topic);
@@ -407,7 +442,7 @@ const Categories = () => {
     else if (sortBy === "Price: Low to High") result.sort((a, b) => a.price - b.price);
 
     return result;
-  }, [activeFilters, sortBy, activeCategory, searchQuery]);
+  }, [activeFilters, sortBy, activeCategory, searchQuery, allCourses]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -543,8 +578,10 @@ const Categories = () => {
             ) : filteredCourses.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-300 rounded-lg">
                 <FaSearch className="text-4xl text-gray-300 mb-4" />
-                <h3 className="text-xl font-bold mb-1">No courses match your filters</h3>
-                <p className="text-gray-500 mb-6">Try adjusting your selection or search query.</p>
+                <h3 className="text-xl font-bold mb-1">No learning sessions found</h3>
+                <p className="text-gray-500 mb-6">
+                  Published expert-led sessions will appear here.
+                </p>
                 <button onClick={clearFilters} className="px-6 py-2 bg-[#004d3d] text-white font-bold rounded">
                   Clear all filters
                 </button>
@@ -574,7 +611,7 @@ const Categories = () => {
         {/* Section 3: Courses to get you started */}
         <div className="mt-20 mb-16">
           <div className="mb-8">
-            <h2 className="text-2xl font-extrabold text-gray-900">Courses to get you started</h2>
+            <h2 className="text-2xl font-extrabold text-gray-900">Latest learning sessions</h2>
           </div>
           <CoursesTabSection />
         </div>

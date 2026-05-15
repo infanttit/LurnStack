@@ -20,7 +20,7 @@ function EmptyState({ title, body }) {
 function SectionCard({ title, right, children }) {
   return (
     <div className="rounded-2xl bg-surface overflow-hidden shadow-sm">
-      <div className="px-6 py-5 flex items-center justify-between gap-4">
+      <div className="px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
         <h2 className="text-base sm:text-lg font-extrabold text-on-surface">
           {title}
         </h2>
@@ -28,7 +28,7 @@ function SectionCard({ title, right, children }) {
           <div className="text-xs font-semibold text-on-surface-variant">{right}</div>
         ) : null}
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-4 sm:p-6">{children}</div>
     </div>
   );
 }
@@ -101,7 +101,7 @@ export default function StudentDashboardPage() {
   };
 
   return (
-    <main className="max-w-container-max mx-auto px-margin-desktop py-14">
+    <main className="max-w-container-max mx-auto px-margin-mobile sm:px-margin-desktop py-10 sm:py-14">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div>
           <h1 className="font-h2 text-h2 text-on-surface">Live classes</h1>

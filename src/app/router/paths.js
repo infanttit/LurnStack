@@ -1,6 +1,7 @@
 export const PATHS = {
   HOME: "/",
   DASHBOARD: "/dashboard",
+  TRAINER_DASHBOARD: "/trainer-dashboard",
   LIVE_CLASSES: "/live-classes",
   LIVE_CLASS_DETAILS: "/live-classes/:classId",
   COURSES: "/courses",

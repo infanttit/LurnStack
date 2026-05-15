@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { authenticateUser, getCurrentUser, logoutUser, registerUser } from "./authStorage";
+import {
+  authenticateTrainer,
+  authenticateUser,
+  getCurrentUser,
+  logoutUser,
+  registerTrainer,
+  registerUser,
+} from "./authStorage";
 
 const AuthContext = createContext(null);
 
@@ -16,13 +23,21 @@ export function AuthProvider({ children }) {
     return {
       user,
       isAuthenticated: !!user,
-      signUp: async ({ fullName, email, password }) => {
-        const next = await registerUser({ fullName, email, password, persist: true });
+      userRole: user?.role || "student",
+      isTrainer: user?.role === "trainer",
+      signUp: async ({ fullName, email, password, role = "student" }) => {
+        const next =
+          role === "trainer"
+            ? await registerTrainer({ fullName, email, password, persist: true })
+            : await registerUser({ fullName, email, password, persist: true });
         setUser(next || null);
         return next || null;
       },
-      signIn: async ({ email, password, remember = true }) => {
-        const next = await authenticateUser({ email, password, persist: !!remember });
+      signIn: async ({ email, password, remember = true, role = "student" }) => {
+        const next =
+          role === "trainer"
+            ? await authenticateTrainer({ email, password, persist: !!remember })
+            : await authenticateUser({ email, password, persist: !!remember });
         setUser(next || null);
         return next || null;
       },

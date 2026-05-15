@@ -1,0 +1,299 @@
+<!doctype html><html><head><meta charset=utf-8><title>Trainer and Student Live Course API Documentation</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#17202a;line-height:1.55;margin:42px auto;max-width:980px;padding:0 28px}h1{font-size:30px;color:#00342b;margin:32px 0 12px;border-bottom:2px solid #d8ebe6;padding-bottom:8px}h2{font-size:20px;color:#005a4a;margin:28px 0 10px}p{font-size:14px;margin:8px 0}.bullet{padding-left:18px}pre{background:#0f172a;color:#e5edf7;padding:16px;border-radius:8px;overflow:auto;font-size:12px;line-height:1.45;white-space:pre-wrap}code{font-family:Consolas,Monaco,monospace}hr{border:0;border-top:1px solid #d7e1de;margin:30px 0}@media print{body{margin:18px;max-width:none}h1{break-after:avoid}pre{break-inside:avoid}}</style></head><body><h1>Trainer and Student Live Course API Documentation</h1><p>This document covers only the trainer dashboard and student Courses/Categories live session flow.</p><p>Admin live class APIs are intentionally not included here.</p><h2>Base URL</h2><pre><code>https://your-domain.com/api</code></pre><h2>Authentication</h2><p>All protected endpoints should receive the JWT token in the request header.</p><pre><code>Authorization: Bearer &lt;token&gt;</code></pre><h2>Common Response Format</h2><p>Success response:</p><pre><code>{
+  "success": true,
+  "message": "Request completed successfully",
+  "data": {}
+}</code></pre><p>Error response:</p><pre><code>{
+  "success": false,
+  "message": "Error message here",
+  "errors": {}
+}</code></pre><h2>Status Values</h2><p>Session status values:</p><pre><code>draft
+published
+cancelled
+deleted
+completed</code></pre><p>Student-facing Courses and Categories pages should show only sessions where:</p><pre><code>{
+  "status": "published"
+}</code></pre><h2>Time Format Rules</h2><p>The trainer selects class timing like:</p><pre><code>10:30 AM to 11:30 AM</code></pre><p>Backend request should receive:</p><pre><code>{
+  "scheduledDate": "2026-05-20",
+  "startTime": "10:30",
+  "endTime": "11:30"
+}</code></pre><p>Backend should calculate:</p><pre><code>{
+  "scheduledAt": "2026-05-20T10:30:00+05:30",
+  "endsAt": "2026-05-20T11:30:00+05:30",
+  "durationMinutes": 60
+}</code></pre><p>Use India timezone:</p><pre><code>Asia/Kolkata</code></pre><hr><h1>1. Trainer Endpoints</h1><h2>1.1 Get Trainer Sessions</h2><p>Used in the trainer dashboard to show only the logged-in trainer's uploaded live classes.</p><pre><code>GET /api/trainer/sessions</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Trainer sessions fetched successfully",
+  "data": [
+    {
+      "id": "session_101",
+      "courseTitle": "React Live Masterclass",
+      "category": "Web Development",
+      "description": "Learn React hooks and state management in a live trainer-led class.",
+      "classTitle": "Hooks and State Management",
+      "thumbnail": "https://cdn.example.com/classes/react.jpg",
+      "trainerId": "trainer_101",
+      "trainerName": "Trainer Kumar",
+      "trainerEmail": "trainer@example.com",
+      "scheduledDate": "2026-05-20",
+      "startTime": "10:30",
+      "endTime": "11:30",
+      "scheduledAt": "2026-05-20T10:30:00+05:30",
+      "endsAt": "2026-05-20T11:30:00+05:30",
+      "durationMinutes": 60,
+      "meetingLink": "https://meet.google.com/abc-defg-hij",
+      "status": "published",
+      "createdAt": "2026-05-15T10:00:00.000Z",
+      "updatedAt": "2026-05-15T10:00:00.000Z"
+    }
+  ]
+}</code></pre><h2>1.2 Create Trainer Session</h2><p>Used when a trainer creates a new live class.</p><pre><code>POST /api/trainer/sessions</code></pre><p>Request:</p><pre><code>{
+  "courseTitle": "React Live Masterclass",
+  "category": "Web Development",
+  "description": "Learn React hooks and state management in a live trainer-led class.",
+  "classTitle": "Hooks and State Management",
+  "thumbnail": "https://cdn.example.com/classes/react.jpg",
+  "scheduledDate": "2026-05-20",
+  "startTime": "10:30",
+  "endTime": "11:30",
+  "meetingLink": "https://meet.google.com/abc-defg-hij"
+}</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Live class created successfully",
+  "data": {
+    "id": "session_101",
+    "courseTitle": "React Live Masterclass",
+    "category": "Web Development",
+    "description": "Learn React hooks and state management in a live trainer-led class.",
+    "classTitle": "Hooks and State Management",
+    "thumbnail": "https://cdn.example.com/classes/react.jpg",
+    "trainerId": "trainer_101",
+    "trainerName": "Trainer Kumar",
+    "trainerEmail": "trainer@example.com",
+    "scheduledDate": "2026-05-20",
+    "startTime": "10:30",
+    "endTime": "11:30",
+    "scheduledAt": "2026-05-20T10:30:00+05:30",
+    "endsAt": "2026-05-20T11:30:00+05:30",
+    "durationMinutes": 60,
+    "meetingLink": "https://meet.google.com/abc-defg-hij",
+    "status": "published",
+    "createdAt": "2026-05-15T10:00:00.000Z"
+  }
+}</code></pre><h2>1.3 Get Single Trainer Session</h2><p>Used for viewing or editing a specific trainer session.</p><pre><code>GET /api/trainer/sessions/:sessionId</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Trainer session fetched successfully",
+  "data": {
+    "id": "session_101",
+    "courseTitle": "React Live Masterclass",
+    "category": "Web Development",
+    "description": "Learn React hooks and state management in a live trainer-led class.",
+    "classTitle": "Hooks and State Management",
+    "thumbnail": "https://cdn.example.com/classes/react.jpg",
+    "trainerId": "trainer_101",
+    "trainerName": "Trainer Kumar",
+    "scheduledDate": "2026-05-20",
+    "startTime": "10:30",
+    "endTime": "11:30",
+    "scheduledAt": "2026-05-20T10:30:00+05:30",
+    "endsAt": "2026-05-20T11:30:00+05:30",
+    "durationMinutes": 60,
+    "meetingLink": "https://meet.google.com/abc-defg-hij",
+    "status": "published"
+  }
+}</code></pre><h2>1.4 Update Trainer Session</h2><p>Used when a trainer edits class details.</p><pre><code>PATCH /api/trainer/sessions/:sessionId</code></pre><p>Request:</p><pre><code>{
+  "courseTitle": "Advanced React Live Class",
+  "category": "Frontend Development",
+  "description": "Updated class description.",
+  "classTitle": "React Performance Optimization",
+  "thumbnail": "https://cdn.example.com/classes/react-advanced.jpg",
+  "scheduledDate": "2026-05-21",
+  "startTime": "14:00",
+  "endTime": "15:30",
+  "meetingLink": "https://meet.google.com/new-link"
+}</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Live class updated successfully",
+  "data": {
+    "id": "session_101",
+    "scheduledAt": "2026-05-21T14:00:00+05:30",
+    "endsAt": "2026-05-21T15:30:00+05:30",
+    "durationMinutes": 90,
+    "status": "published"
+  }
+}</code></pre><h2>1.5 Delete Trainer Session</h2><pre><code>DELETE /api/trainer/sessions/:sessionId</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Live class deleted successfully"
+}</code></pre><h2>1.6 Publish Trainer Session</h2><p>Optional endpoint. Needed only if the backend supports draft mode.</p><pre><code>PATCH /api/trainer/sessions/:sessionId/publish</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Live class published successfully",
+  "data": {
+    "id": "session_101",
+    "status": "published"
+  }
+}</code></pre><h2>1.7 Cancel Trainer Session</h2><pre><code>PATCH /api/trainer/sessions/:sessionId/cancel</code></pre><p>Request:</p><pre><code>{
+  "reason": "Trainer unavailable"
+}</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Live class cancelled successfully",
+  "data": {
+    "id": "session_101",
+    "status": "cancelled"
+  }
+}</code></pre><hr><h1>2. Trainer Image Upload Endpoints</h1><h2>2.1 Get Image Upload URL</h2><p>Used for trainer live class thumbnail upload.</p><pre><code>POST /api/trainer/uploads/images/presign</code></pre><p>Request:</p><pre><code>{
+  "fileName": "react-class.jpg",
+  "fileType": "image/jpeg",
+  "folder": "trainer-classes"
+}</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Upload URL generated successfully",
+  "data": {
+    "uploadUrl": "https://storage.example.com/signed-upload-url",
+    "fileUrl": "https://cdn.example.com/trainer-classes/react-class.jpg"
+  }
+}</code></pre><h2>2.2 Complete Image Upload</h2><pre><code>POST /api/trainer/uploads/images/complete</code></pre><p>Request:</p><pre><code>{
+  "fileUrl": "https://cdn.example.com/trainer-classes/react-class.jpg"
+}</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Image uploaded successfully",
+  "data": {
+    "url": "https://cdn.example.com/trainer-classes/react-class.jpg"
+  }
+}</code></pre><hr><h1>3. Student Session Endpoints</h1><h2>3.1 Get Student Sessions</h2><p>Used for student Courses and Categories pages.</p><pre><code>GET /api/sessions</code></pre><p>Optional query params:</p><pre><code>GET /api/sessions?category=Web%20Development&amp;search=react&amp;filter=upcoming</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Sessions fetched successfully",
+  "data": [
+    {
+      "id": "session_101",
+      "courseTitle": "React Live Masterclass",
+      "category": "Web Development",
+      "description": "Learn React hooks and state management in a live trainer-led class.",
+      "classTitle": "Hooks and State Management",
+      "thumbnail": "https://cdn.example.com/classes/react.jpg",
+      "trainerId": "trainer_101",
+      "trainerName": "Trainer Kumar",
+      "scheduledDate": "2026-05-20",
+      "startTime": "10:30",
+      "endTime": "11:30",
+      "scheduledAt": "2026-05-20T10:30:00+05:30",
+      "endsAt": "2026-05-20T11:30:00+05:30",
+      "durationMinutes": 60,
+      "status": "published",
+      "isAddedToCard": false,
+      "isJoined": false
+    }
+  ]
+}</code></pre><h2>3.2 Get Student Session Details</h2><p>Used for student course/session details page.</p><pre><code>GET /api/sessions/:sessionId</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Session details fetched successfully",
+  "data": {
+    "id": "session_101",
+    "courseTitle": "React Live Masterclass",
+    "category": "Web Development",
+    "description": "Learn React hooks and state management in a live trainer-led class.",
+    "classTitle": "Hooks and State Management",
+    "thumbnail": "https://cdn.example.com/classes/react.jpg",
+    "trainer": {
+      "id": "trainer_101",
+      "name": "Trainer Kumar",
+      "email": "trainer@example.com",
+      "bio": "Senior React trainer",
+      "skills": ["React", "JavaScript", "Frontend"],
+      "profileImage": "https://cdn.example.com/trainers/trainer.jpg"
+    },
+    "scheduledDate": "2026-05-20",
+    "startTime": "10:30",
+    "endTime": "11:30",
+    "scheduledAt": "2026-05-20T10:30:00+05:30",
+    "endsAt": "2026-05-20T11:30:00+05:30",
+    "durationMinutes": 60,
+    "meetingLink": "https://meet.google.com/abc-defg-hij",
+    "status": "published",
+    "isAddedToCard": false,
+    "isJoined": false
+  }
+}</code></pre><h2>3.3 Add Session Card</h2><p>Student adds a class/session to card.</p><pre><code>POST /api/sessions/:sessionId/add-card</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Session added to card successfully",
+  "data": {
+    "cardId": "card_101",
+    "sessionId": "session_101",
+    "studentId": "student_101"
+  }
+}</code></pre><h2>3.4 Remove Session Card</h2><pre><code>DELETE /api/sessions/:sessionId/add-card</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Session removed from card successfully"
+}</code></pre><h2>3.5 Get My Session Cards</h2><p>Used to show the student's added session cards.</p><pre><code>GET /api/me/session-cards</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Session cards fetched successfully",
+  "data": [
+    {
+      "cardId": "card_101",
+      "sessionId": "session_101",
+      "courseTitle": "React Live Masterclass",
+      "classTitle": "Hooks and State Management",
+      "category": "Web Development",
+      "trainerName": "Trainer Kumar",
+      "thumbnail": "https://cdn.example.com/classes/react.jpg",
+      "scheduledAt": "2026-05-20T10:30:00+05:30",
+      "endsAt": "2026-05-20T11:30:00+05:30",
+      "durationMinutes": 60,
+      "status": "published",
+      "addedAt": "2026-05-15T10:20:00.000Z"
+    }
+  ]
+}</code></pre><h2>3.6 Join Session</h2><p>Student joins the live class.</p><pre><code>POST /api/sessions/:sessionId/join</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Session joined successfully",
+  "data": {
+    "bookingId": "booking_101",
+    "sessionId": "session_101",
+    "studentId": "student_101",
+    "meetingLink": "https://meet.google.com/abc-defg-hij",
+    "joinedAt": "2026-05-15T10:30:00.000Z"
+  }
+}</code></pre><h2>3.7 Get My Joined Sessions</h2><pre><code>GET /api/me/session-bookings</code></pre><p>Response:</p><pre><code>{
+  "success": true,
+  "message": "Joined sessions fetched successfully",
+  "data": [
+    {
+      "bookingId": "booking_101",
+      "sessionId": "session_101",
+      "courseTitle": "React Live Masterclass",
+      "classTitle": "Hooks and State Management",
+      "category": "Web Development",
+      "trainerName": "Trainer Kumar",
+      "thumbnail": "https://cdn.example.com/classes/react.jpg",
+      "scheduledAt": "2026-05-20T10:30:00+05:30",
+      "endsAt": "2026-05-20T11:30:00+05:30",
+      "durationMinutes": 60,
+      "meetingLink": "https://meet.google.com/abc-defg-hij",
+      "status": "joined"
+    }
+  ]
+}</code></pre><hr><h1>4. Final Endpoint List</h1><h2>Trainer Session APIs</h2><pre><code>GET    /api/trainer/sessions
+POST   /api/trainer/sessions
+GET    /api/trainer/sessions/:sessionId
+PATCH  /api/trainer/sessions/:sessionId
+DELETE /api/trainer/sessions/:sessionId
+PATCH  /api/trainer/sessions/:sessionId/publish
+PATCH  /api/trainer/sessions/:sessionId/cancel</code></pre><h2>Trainer Image Upload APIs</h2><pre><code>POST   /api/trainer/uploads/images/presign
+POST   /api/trainer/uploads/images/complete</code></pre><h2>Student Session APIs</h2><pre><code>GET    /api/sessions
+GET    /api/sessions/:sessionId
+POST   /api/sessions/:sessionId/add-card
+DELETE /api/sessions/:sessionId/add-card
+GET    /api/me/session-cards
+POST   /api/sessions/:sessionId/join
+GET    /api/me/session-bookings</code></pre><hr><h1>5. Minimum Backend Build List</h1><p>If the backend team wants to build the first working version quickly, start with these endpoints:</p><pre><code>GET    /api/trainer/sessions
+POST   /api/trainer/sessions
+PATCH  /api/trainer/sessions/:sessionId
+DELETE /api/trainer/sessions/:sessionId
+
+POST   /api/trainer/uploads/images/presign
+POST   /api/trainer/uploads/images/complete
+
+GET    /api/sessions
+GET    /api/sessions/:sessionId
+POST   /api/sessions/:sessionId/add-card
+GET    /api/me/session-cards
+POST   /api/sessions/:sessionId/join
+GET    /api/me/session-bookings</code></pre><hr><h1>6. Backend Implementation Notes</h1><p class=bullet>- Trainer dashboard must show only sessions created by the logged-in trainer.</p><p class=bullet>- Student Courses and Categories pages must show only `published` trainer sessions.</p><p class=bullet>- `startTime` and `endTime` should use 24-hour format in the API, for example `10:30` and `11:30`.</p><p class=bullet>- Frontend can display the same time as `10:30 AM to 11:30 AM`.</p><p class=bullet>- Backend should calculate `durationMinutes` from `startTime` and `endTime`.</p><p class=bullet>- Backend should generate `scheduledAt` and `endsAt` in ISO format with timezone.</p><p class=bullet>- Meeting link should be returned only for authenticated users.</p><p class=bullet>- If the backend wants to hide the meeting link until join, then `GET /api/sessions/:sessionId` can return `meetingLink: null`, and `POST /api/sessions/:sessionId/join` should return the actual meeting link.</p><p class=bullet>- Existing admin live class APIs do not need to change for this flow.</p></body></html>

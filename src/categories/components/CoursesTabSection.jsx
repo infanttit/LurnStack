@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import CourseCard from "./CourseCard";
-import { TAB_COURSES } from "../data/tabCourses";
+import {
+  getTrainerCourses,
+  getTrainerLiveClassesByCourse,
+} from "../../trainers/model/trainerContentStorage";
 
-const TABS = ["Most Popular", "New", "Trending"];
+const TABS = ["New"];
 
 const containerVariants = {
   hidden: {},
@@ -16,6 +19,29 @@ const cardVariants = {
 
 const CoursesTabSection = () => {
   const [activeTab, setActiveTab] = useState("Most Popular");
+  const trainerCourses = getTrainerCourses().map((course) => ({
+    id: course.id,
+    thumbnail: course.thumbnail,
+    category: course.tab || "Trainer Courses",
+    title: course.title,
+    rating: course.rating || 4.8,
+    ratingCount: 0,
+    instructorName: course.instructor,
+    price: Number(String(course.price || "").replace(/[^0-9.]/g, "")) || 499,
+    originalPrice: null,
+    badge: course.badge || "Live",
+    totalHours: course.hours || "Live class",
+    level: course.level || "All Levels",
+    priceType: "Paid",
+    topic: course.tab || "Trainer Courses",
+    popularity: 999999,
+    dateAdded: course.createdAt || new Date().toISOString(),
+    description: course.description,
+    takeaways: course.bullets || [],
+    createdByTrainer: true,
+    liveClass: getTrainerLiveClassesByCourse(course.id)[0] || null,
+  }));
+  const activeCourses = trainerCourses;
 
   return (
     <div className="mb-12">
@@ -42,11 +68,20 @@ const CoursesTabSection = () => {
         animate="show"
         className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
       >
-        {TAB_COURSES[activeTab].map((course) => (
-          <motion.div key={course.id} variants={cardVariants} className="h-full">
-            <CourseCard {...course} />
-          </motion.div>
-        ))}
+        {activeCourses.length === 0 ? (
+          <div className="sm:col-span-2 xl:col-span-4 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center">
+            <div className="text-lg font-extrabold text-gray-900">No sessions yet</div>
+            <p className="mt-2 text-sm text-gray-500">
+              Published expert-led sessions will appear here.
+            </p>
+          </div>
+        ) : (
+          activeCourses.map((course) => (
+            <motion.div key={course.id} variants={cardVariants} className="h-full">
+              <CourseCard {...course} />
+            </motion.div>
+          ))
+        )}
       </motion.div>
     </div>
   );
