@@ -85,7 +85,7 @@ const GlobalStyles = () => (
     .anim-2 { animation: fade-in-up 0.3s ease-out 0.05s both; }
     .anim-3 { animation: fade-in-up 0.3s ease-out 0.1s both; }
     
-    html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    html, body, #root { min-height: 100%; margin: 0; padding: 0; overflow-x: hidden; }
     
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -312,8 +312,9 @@ function Toast({ message, onClose, tone = "warn" }) {
 }
 
 export default function SignupPage() {
-  const { signUp, isAuthenticated } = useAuth();
+  const { signUp, isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
+  const [accountType, setAccountType] = useState("student");
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -330,7 +331,12 @@ export default function SignupPage() {
   const [formError, setFormError] = useState("");
 
   if (isAuthenticated) {
-    return <Navigate to={PATHS.HOME} replace />;
+    return (
+      <Navigate
+        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : PATHS.HOME}
+        replace
+      />
+    );
   }
 
   const handleAcceptPolicy = () => {
@@ -385,8 +391,11 @@ export default function SignupPage() {
         fullName: String(form.fullName || "").trim(),
         email: normalizeEmail(form.email),
         password: form.password,
+        role: accountType,
       });
-      navigate(PATHS.HOME, { replace: true });
+      navigate(accountType === "trainer" ? PATHS.TRAINER_DASHBOARD : PATHS.HOME, {
+        replace: true,
+      });
     } catch (err) {
       setFormError(err?.message || "Unable to create account.");
     } finally {
@@ -397,7 +406,7 @@ export default function SignupPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="h-screen w-full flex flex-col lg:flex-row bg-white overflow-hidden">
+      <div className="w-full min-h-dvh lg:h-dvh flex flex-col lg:flex-row bg-white lg:overflow-hidden">
         {/* ── LEFT PANEL (Desktop Only) ── */}
         <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-center p-12 overflow-hidden flex-shrink-0 h-full">
           <div className="absolute inset-0 z-0">
@@ -437,19 +446,17 @@ export default function SignupPage() {
         </div>
 
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
-          {/* Logo Bar (Mobile Only) */}
-          <div className="lg:hidden flex justify-center py-3 border-b border-slate-50">
-            <Logo dark />
-          </div>
-
-          <div className="flex-1 h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar pt-8 lg:pt-12 bg-white">
+        <div className="flex-1 flex flex-col min-h-0 h-full bg-white">
+          <div className="flex-1 min-h-0 flex flex-col justify-start px-4 sm:px-10 lg:px-16 xl:px-24 overflow-y-visible lg:overflow-y-auto no-scrollbar pt-5 pb-10 sm:py-8 lg:py-12 bg-white">
             <div className="w-full max-w-md mx-auto">
+              <div className="lg:hidden flex justify-center mb-5">
+                <Logo dark />
+              </div>
               <div className="anim-1 mb-4">
                 <h1 className="text-xl lg:text-2xl font-extrabold text-[#004d3d] mb-0.5">
                   Create Account
                 </h1>
-                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold hidden sm:block">
+                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold leading-snug hidden sm:block">
                   Step into your portal.
                 </p>
               </div>
@@ -468,6 +475,28 @@ export default function SignupPage() {
                 >
                   Sign Up
                 </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-4 anim-2 rounded-xl bg-slate-50 p-1 border border-slate-100">
+                {["student", "trainer"].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setAccountType(type);
+                      setErrors({});
+                      setFormError("");
+                    }}
+                    className={[
+                      "h-9 rounded-lg text-[12px] font-extrabold capitalize transition-all",
+                      accountType === type
+                        ? "bg-white text-[#004d3d] shadow-sm"
+                        : "text-slate-500 hover:text-slate-700",
+                    ].join(" ")}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">

@@ -57,7 +57,7 @@ const GlobalStyles = () => (
     .anim-2 { animation: fade-in-up 0.3s ease-out 0.05s both; }
     .anim-3 { animation: fade-in-up 0.3s ease-out 0.1s both; }
     
-    html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    html, body, #root { min-height: 100%; margin: 0; padding: 0; overflow-x: hidden; }
     
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -65,9 +65,10 @@ const GlobalStyles = () => (
 );
 
 export default function LoginPage() {
-  const { signIn, isAuthenticated } = useAuth();
+  const { signIn, isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [accountType, setAccountType] = useState("student");
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -80,7 +81,12 @@ export default function LoginPage() {
   })();
 
   if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return (
+      <Navigate
+        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo}
+        replace
+      />
+    );
   }
 
   const validate = () => {
@@ -111,8 +117,11 @@ export default function LoginPage() {
         email: normalizeEmail(form.email),
         password: form.password,
         remember: form.remember,
+        role: accountType,
       });
-      navigate(redirectTo, { replace: true });
+      navigate(accountType === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo, {
+        replace: true,
+      });
     } catch (err) {
       setFormError(err?.message || "Unable to sign in.");
     } finally {
@@ -123,7 +132,7 @@ export default function LoginPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="h-screen w-full flex flex-col lg:flex-row bg-white overflow-hidden">
+      <div className="w-full min-h-dvh lg:h-dvh flex flex-col lg:flex-row bg-white lg:overflow-hidden">
 
         {/* ── LEFT PANEL (Desktop Only) ── */}
         <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-center p-12 overflow-hidden flex-shrink-0 h-full">
@@ -150,25 +159,44 @@ export default function LoginPage() {
         </div>
 
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-white">
-          
-          {/* Logo Bar (Mobile Only) */}
-          <div className="lg:hidden flex justify-center py-3 border-b border-slate-50">
-            <Logo dark />
-          </div>
-
-          <div className="flex-1 h-screen flex flex-col justify-start px-6 sm:px-10 lg:px-16 xl:px-24 overflow-y-auto no-scrollbar pt-8 lg:pt-12 bg-white">
+        <div className="flex-1 flex flex-col min-h-0 h-full bg-white">
+          <div className="flex-1 min-h-0 flex flex-col justify-start px-4 sm:px-10 lg:px-16 xl:px-24 overflow-y-visible lg:overflow-y-auto no-scrollbar pt-5 pb-10 sm:py-8 lg:py-12 bg-white">
             <div className="w-full max-w-md mx-auto">
+              <div className="lg:hidden flex justify-center mb-5">
+                <Logo dark />
+              </div>
               
               <div className="anim-1 mb-4">
                 <h1 className="text-xl lg:text-2xl font-extrabold text-[#004d3d] mb-0.5">Welcome back</h1>
-                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold">Please enter your details to continue.</p>
+                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold leading-snug">Please enter your details to continue.</p>
               </div>
 
               {/* Tabs */}
               <div className="flex border-b border-slate-200 mb-4 anim-2">
                 <Link to="/login" className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]">Login</Link>
                 <Link to="/signup" className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Sign Up</Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-4 anim-2 rounded-xl bg-slate-50 p-1 border border-slate-100">
+                {["student", "trainer"].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setAccountType(type);
+                      setErrors({});
+                      setFormError("");
+                    }}
+                    className={[
+                      "h-9 rounded-lg text-[12px] font-extrabold capitalize transition-all",
+                      accountType === type
+                        ? "bg-white text-[#004d3d] shadow-sm"
+                        : "text-slate-500 hover:text-slate-700",
+                    ].join(" ")}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
@@ -214,7 +242,14 @@ export default function LoginPage() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between">
+                {accountType === "trainer" ? (
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] leading-relaxed text-emerald-900">
+                    <span className="font-extrabold">Trainer demo:</span>{" "}
+                    trainer@lurnstack.com / Trainer@123
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="remember" checked={form.remember} onChange={handleChange} className="w-3.5 h-3.5 rounded border-slate-300 text-[#004d3d] focus:ring-[#004d3d]/20" />
                     <span className="text-[11px] text-slate-600 font-medium">Remember me</span>
@@ -233,7 +268,7 @@ export default function LoginPage() {
                 <div className="relative flex justify-center"><span className="px-4 bg-white text-slate-400 text-[8px] uppercase tracking-[0.2em] font-bold">OR CONTINUE WITH</span></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 anim-3">
+              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 anim-3">
                 <button type="button" className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm">
                   <GoogleIcon />
                   <span>Google</span>

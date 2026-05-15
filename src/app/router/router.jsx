@@ -14,6 +14,7 @@ import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage"
 import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
+import TrainerDashboardPage from "../../trainers/pages/TrainerDashboardPage";
 import { PATHS, categoryHashPath } from "./paths";
 
 function CategoryRedirect() {
@@ -24,6 +25,14 @@ function CategoryRedirect() {
 export default function AppRouter() {
   return (
     <Routes>
+      <Route
+        path={PATHS.TRAINER_DASHBOARD}
+        element={(
+          <RequireAuth role="trainer">
+            <TrainerDashboardPage />
+          </RequireAuth>
+        )}
+      />
       <Route element={<AppShell />}>
         <Route path={PATHS.HOME} element={<LandingPage />} />
         <Route

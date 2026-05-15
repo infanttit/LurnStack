@@ -1,3 +1,9 @@
+import {
+  getTrainerCourseById,
+  getTrainerCourses,
+  getTrainerLiveClassesByCourse,
+} from "../../trainers/model/trainerContentStorage";
+
 export const TABS = [
   "Artificial Intelligence (AI)",
   "Python",
@@ -299,13 +305,27 @@ export const COURSES_BY_TAB = {
 };
 
 export function getAllCourses() {
-  return Object.entries(COURSES_BY_TAB).flatMap(([tab, courses]) =>
+  const catalogCourses = Object.entries(COURSES_BY_TAB).flatMap(([tab, courses]) =>
     (courses || []).map((c) => ({ ...c, tab }))
   );
+  return [...getTrainerCourses(), ...catalogCourses];
+}
+
+export function getCourseTabs() {
+  const trainerTabs = getTrainerCourses().map((course) => course.tab).filter(Boolean);
+  return trainerTabs.length ? [...new Set(trainerTabs)] : ["Live Classes"];
+}
+
+export function getCoursesByTab(tab) {
+  const trainerCourses = getTrainerCourses().filter((course) => course.tab === tab);
+  return trainerCourses;
 }
 
 export function getCourseById(courseId) {
   const id = String(courseId);
-  return getAllCourses().find((c) => String(c.id) === id) || null;
+  return getTrainerCourseById(id) || getAllCourses().find((c) => String(c.id) === id) || null;
 }
 
+export function getCourseLiveClasses(courseId) {
+  return getTrainerLiveClassesByCourse(courseId);
+}

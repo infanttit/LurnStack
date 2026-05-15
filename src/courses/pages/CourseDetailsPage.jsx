@@ -9,7 +9,7 @@ import {
   HiChevronUp,
 } from "react-icons/hi2";
 import { useCart, emitCartFlyFromElement, parseINRPriceToPaise } from "../../cart";
-import { getCourseById } from "../data/courseCatalog";
+import { getCourseById, getCourseLiveClasses } from "../data/courseCatalog";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -339,6 +339,7 @@ export default function CourseDetailsPage() {
   const { addItem } = useCart();
   const [activeTab, setActiveTab] = useState("Overview");
   const [isSubscribed] = useState(false); // Set to true after subscription
+  const liveClasses = useMemo(() => getCourseLiveClasses(courseId), [courseId]);
 
   const course = useMemo(() => {
     const fromState = location?.state?.course;
@@ -379,6 +380,136 @@ export default function CourseDetailsPage() {
         >
           Browse Courses
         </button>
+      </main>
+    );
+  }
+
+  if (course.createdByTrainer) {
+    const liveClass = liveClasses[0] || null;
+    const scheduledAt = liveClass?.scheduledAt ? new Date(liveClass.scheduledAt) : null;
+    const when =
+      scheduledAt && !Number.isNaN(scheduledAt.getTime())
+        ? scheduledAt.toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "Schedule not available";
+
+    return (
+      <main className="min-h-screen bg-[#f4f7f6]">
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
+          <button
+            type="button"
+            onClick={() => navigate("/courses")}
+            className="text-sm font-semibold text-slate-500 hover:text-slate-900"
+          >
+            Back to courses
+          </button>
+
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
+            <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
+              <div className="aspect-[16/8] bg-slate-100">
+                {course.thumbnail ? (
+                  <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className={`w-full h-full bg-gradient-to-br ${course.thumbnailBg}`} />
+                )}
+              </div>
+
+              <div className="p-5 sm:p-7">
+                <div className="inline-flex rounded-full bg-emerald-100 text-emerald-900 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest">
+                  Expert-led session
+                </div>
+                <h1 className="mt-4 text-2xl sm:text-4xl font-extrabold text-slate-950 leading-tight">
+                  {course.title}
+                </h1>
+                <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
+                  {course.description}
+                </p>
+
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    ["Trainer", course.instructor],
+                    ["Level", course.level || "All Levels"],
+                    ["Duration", liveClass?.durationMinutes ? `${liveClass.durationMinutes} min` : course.hours],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                        {label}
+                      </div>
+                      <div className="mt-1 text-sm font-extrabold text-slate-900">{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-7">
+                  <h2 className="text-lg font-extrabold text-slate-950">What students get</h2>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(course.bullets || []).map((item) => (
+                      <div key={item} className="rounded-xl border border-slate-200 bg-white p-4 flex gap-3">
+                        <HiOutlineCheckCircle className="mt-0.5 text-xl text-emerald-600 flex-shrink-0" />
+                        <span className="text-sm text-slate-600 leading-snug">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 shadow-sm lg:sticky lg:top-24">
+              <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
+                Next live class
+              </div>
+              <h2 className="mt-2 text-xl font-extrabold text-slate-950">
+                {liveClass?.title || course.title}
+              </h2>
+              <div className="mt-4 space-y-3 text-sm text-slate-600">
+                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Date and time
+                  </div>
+                  <div className="mt-1 font-extrabold text-slate-900">{when} IST</div>
+                </div>
+                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Meeting
+                  </div>
+                  <div className="mt-1 font-semibold text-slate-700 break-all">
+                    {liveClass?.meetUrl || "Meeting link will be available soon"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3">
+                <button
+                  type="button"
+                  onClick={() => liveClass?.meetUrl && window.open(liveClass.meetUrl, "_blank", "noopener,noreferrer")}
+                  disabled={!liveClass?.meetUrl}
+                  className={[
+                    "h-12 rounded-xl text-sm font-extrabold transition-colors",
+                    liveClass?.meetUrl
+                      ? "bg-[#00342b] text-white hover:bg-[#004d40]"
+                      : "bg-slate-100 text-slate-400 cursor-not-allowed",
+                  ].join(" ")}
+                >
+                  Join class
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => addToCart(e?.currentTarget)}
+                  className="h-12 rounded-xl border border-slate-200 text-slate-900 text-sm font-extrabold hover:bg-slate-50 transition-colors"
+                >
+                  Add class card
+                </button>
+              </div>
+            </aside>
+          </div>
+        </section>
       </main>
     );
   }
@@ -486,6 +617,40 @@ export default function CourseDetailsPage() {
                         ))}
                       </div>
                     </div>
+
+                    {liveClasses.length > 0 ? (
+                      <div className="mt-8 border-t border-gray-100 pt-6">
+                        <h3 className="text-[13px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">
+                          TRAINER LIVE CLASSES
+                        </h3>
+                        <div className="space-y-3">
+                          {liveClasses.map((liveClass) => (
+                            <div
+                              key={liveClass.id}
+                              className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"
+                            >
+                              <div className="text-[14px] font-extrabold text-gray-900">
+                                {liveClass.title}
+                              </div>
+                              <div className="mt-1 text-[12px] text-gray-600">
+                                {new Date(liveClass.scheduledAt).toLocaleString("en-IN", {
+                                  timeZone: "Asia/Kolkata",
+                                  weekday: "short",
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                })}{" "}
+                                IST • {liveClass.durationMinutes} min
+                              </div>
+                              <div className="mt-1 text-[12px] text-gray-600">
+                                Instructor: {liveClass.instructorName}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Instructor + Download */}

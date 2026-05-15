@@ -42,8 +42,8 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
 
   return (
     <div className="rounded-2xl bg-surface overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-outline-variant/60">
-      <div className="p-5 flex gap-4">
-        <div className="w-24 h-16 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-surface-variant flex-shrink-0">
+      <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
+        <div className="w-full h-36 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-surface-variant flex-shrink-0">
           <SmartImage
             src={liveClass?.thumbnail}
             alt={liveClass?.title || "Live class"}
@@ -56,25 +56,25 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold text-on-surface-variant truncate">
+              <div className="text-[11px] font-semibold text-on-surface-variant line-clamp-1">
                 {liveClass?.courseName}
               </div>
-              <div className="mt-0.5 text-sm sm:text-[15px] font-extrabold text-on-surface leading-snug line-clamp-1">
+              <div className="mt-0.5 text-base sm:text-[15px] font-extrabold text-on-surface leading-snug line-clamp-2 sm:line-clamp-1">
                 {liveClass?.title}
               </div>
               {liveClass?.description ? (
-                <div className="mt-1 text-[12px] text-on-surface-variant line-clamp-1">
+                <div className="mt-1 text-[12px] text-on-surface-variant line-clamp-2 sm:line-clamp-1">
                   {liveClass.description}
                 </div>
               ) : null}
-              <div className="mt-1 text-[12px] text-on-surface-variant truncate">
+              <div className="mt-1 text-[12px] text-on-surface-variant line-clamp-1">
                 Instructor: {liveClass?.instructorName}
               </div>
             </div>
 
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
               {isLiveNow ? (
                 <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 inline-flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
@@ -92,11 +92,11 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-on-surface-variant">
-            <span className="inline-flex items-center gap-1.5">
+          <div className="mt-3 grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center gap-x-4 gap-y-2 text-[12px] text-on-surface-variant">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
               <FiCalendar className="text-[14px]" /> {date || "-"}
             </span>
-            <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
               <FiClock className="text-[14px]" /> {time || "-"}
               {endsAt ? `–${endsAt}` : ""} IST • {liveClass?.durationMinutes || 0} min
             </span>
@@ -130,13 +130,13 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
             </div>
           ) : null}
 
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="button"
               disabled={!canJoin || !liveClass?.meetUrl}
               onClick={() => onJoin?.(liveClass)}
               className={[
-                "h-10 px-5 rounded-xl font-extrabold text-sm inline-flex items-center gap-2 transition-colors",
+                "h-10 w-full sm:w-auto justify-center px-5 rounded-xl font-extrabold text-sm inline-flex items-center gap-2 transition-colors",
                 !canJoin || !liveClass?.meetUrl
                   ? "bg-surface-variant text-on-surface-variant cursor-not-allowed"
                   : "bg-primary text-on-primary hover:bg-primary/90",
@@ -155,13 +155,13 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
                     )
                   : PATHS.LIVE_CLASSES
               }
-              className="h-10 px-4 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container-low transition-colors inline-flex items-center"
+              className="h-10 w-full sm:w-auto justify-center px-4 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container-low transition-colors inline-flex items-center"
             >
               Details
             </Link>
 
             {joined?.joinedAt ? (
-              <div className="text-[12px] text-on-surface-variant">
+              <div className="text-[12px] text-on-surface-variant sm:ml-1">
                 Attendance:{" "}
                 <span className="font-semibold text-on-surface">
                   {joined.attendanceStatus || "present"}

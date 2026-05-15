@@ -2,11 +2,20 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 
-export default function RequireAuth({ children }) {
-  const { isAuthenticated } = useAuth();
+export default function RequireAuth({ children, role }) {
+  const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
 
-  if (isAuthenticated) return children;
+  if (isAuthenticated && (!role || userRole === role)) return children;
+
+  if (isAuthenticated && role && userRole !== role) {
+    return (
+      <Navigate
+        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : PATHS.HOME}
+        replace
+      />
+    );
+  }
 
   return (
     <Navigate
