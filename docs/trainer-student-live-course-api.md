@@ -7,7 +7,7 @@ Admin live class APIs are intentionally not included here.
 ## Base URL
 
 ```txt
-https://your-domain.com/api
+https://api.lurnstack.com/api
 ```
 
 ## Authentication

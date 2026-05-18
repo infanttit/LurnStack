@@ -1,5 +1,5 @@
 export const env = {
   apiBaseUrl:
     process.env.REACT_APP_API_BASE_URL ||
-    "https://lurnstackbackend-production.up.railway.app",
+    "https://api.lurnstack.com",
 };

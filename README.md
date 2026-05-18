@@ -1,12 +1,18 @@
 # LurnStack (Frontend)
 
-React (Create React App) + TailwindCSS single-page app with feature-based modules (auth, cart, live-classes, courses, etc.). Deployed as an SPA on Vercel (`vercel.json`).
+React (Create React App) + TailwindCSS single-page app with feature-based modules (auth, cart, live-classes, courses, etc.). Deployed as an SPA on the VPS/aapanel frontend domain (`lurnstack.com`).
+
+## Service domains
+
+- Frontend: `https://lurnstack.com`
+- Admin: `https://admin.lurnstack.com`
+- Backend API: `https://api.lurnstack.com`
 
 ## Quick start
 
 1) Create `.env.local` (or copy from `.env.example`):
 
-`REACT_APP_API_BASE_URL=https://lurnstackbackend-production.up.railway.app`
+`REACT_APP_API_BASE_URL=https://api.lurnstack.com`
 
 2) Run:
 
@@ -19,7 +25,7 @@ React (Create React App) + TailwindCSS single-page app with feature-based module
 - Routing: `src/app/router/router.jsx` + `src/app/router/paths.js`
 - Shared layout shell: `src/app/AppShell.jsx` (navbar/footer + integrations + `Outlet`)
 
-## Auth flow (Railway backend)
+## Auth flow (VPS backend)
 
 - API base URL comes from `REACT_APP_API_BASE_URL` (`src/shared/config/env.js`)
 - Login: `POST /api/auth/login` (`src/auth/api/authApi.js`)
