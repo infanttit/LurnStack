@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import loginImage from "../../assets/Images/Signup.jpeg";
+import brandLogo from "../../assets/Logo/Logo3.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { isStrongPassword, isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
@@ -46,32 +47,14 @@ const EyeIcon = ({ open }) =>
 
 /* ─── Logo ───────────────────────────────────────────────────── */
 const Logo = ({ dark = false }) => (
-  <div className="flex items-center gap-2">
-    <div
-      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-        dark ? "bg-[#004d3d]" : "bg-white/10 border border-white/20"
-      }`}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-4 h-4 text-white"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2.5}
-      >
-        <path d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-      </svg>
-    </div>
-    <span
-      className={`text-lg font-bold tracking-tight ${
-        dark ? "text-[#004d3d]" : "text-white"
-      }`}
-    >
-      LurnStack
-    </span>
-  </div>
+  <Link to="/" className="inline-flex items-center" aria-label="LurnStack home">
+    <img
+      src={brandLogo}
+      alt="LurnStack"
+      className={dark ? "h-14 w-auto object-contain" : "h-16 w-auto object-contain"}
+      loading="eager"
+    />
+  </Link>
 );
 
 /* ─── Global Styles ──────────────────────────────────────────── */
@@ -99,6 +82,338 @@ const GlobalStyles = () => (
     }
   `}</style>
 );
+
+const COUNTRY_CODES = [
+  { name: "Afghanistan", code: "+93" },
+  { name: "Albania", code: "+355" },
+  { name: "Algeria", code: "+213" },
+  { name: "Andorra", code: "+376" },
+  { name: "Angola", code: "+244" },
+  { name: "Argentina", code: "+54" },
+  { name: "Armenia", code: "+374" },
+  { name: "Australia", code: "+61" },
+  { name: "Austria", code: "+43" },
+  { name: "Azerbaijan", code: "+994" },
+  { name: "Bahamas", code: "+1-242" },
+  { name: "Bahrain", code: "+973" },
+  { name: "Bangladesh", code: "+880" },
+  { name: "Barbados", code: "+1-246" },
+  { name: "Belarus", code: "+375" },
+  { name: "Belgium", code: "+32" },
+  { name: "Belize", code: "+501" },
+  { name: "Benin", code: "+229" },
+  { name: "Bhutan", code: "+975" },
+  { name: "Bolivia", code: "+591" },
+  { name: "Bosnia and Herzegovina", code: "+387" },
+  { name: "Botswana", code: "+267" },
+  { name: "Brazil", code: "+55" },
+  { name: "Brunei", code: "+673" },
+  { name: "Bulgaria", code: "+359" },
+  { name: "Burkina Faso", code: "+226" },
+  { name: "Burundi", code: "+257" },
+  { name: "Cambodia", code: "+855" },
+  { name: "Cameroon", code: "+237" },
+  { name: "Canada", code: "+1" },
+  { name: "Cape Verde", code: "+238" },
+  { name: "Central African Republic", code: "+236" },
+  { name: "Chad", code: "+235" },
+  { name: "Chile", code: "+56" },
+  { name: "China", code: "+86" },
+  { name: "Colombia", code: "+57" },
+  { name: "Comoros", code: "+269" },
+  { name: "Congo", code: "+242" },
+  { name: "Costa Rica", code: "+506" },
+  { name: "Croatia", code: "+385" },
+  { name: "Cuba", code: "+53" },
+  { name: "Cyprus", code: "+357" },
+  { name: "Czech Republic", code: "+420" },
+  { name: "Democratic Republic of the Congo", code: "+243" },
+  { name: "Denmark", code: "+45" },
+  { name: "Djibouti", code: "+253" },
+  { name: "Dominican Republic", code: "+1-809" },
+  { name: "Ecuador", code: "+593" },
+  { name: "Egypt", code: "+20" },
+  { name: "El Salvador", code: "+503" },
+  { name: "Estonia", code: "+372" },
+  { name: "Ethiopia", code: "+251" },
+  { name: "Fiji", code: "+679" },
+  { name: "Finland", code: "+358" },
+  { name: "France", code: "+33" },
+  { name: "Georgia", code: "+995" },
+  { name: "Germany", code: "+49" },
+  { name: "Ghana", code: "+233" },
+  { name: "Greece", code: "+30" },
+  { name: "Guatemala", code: "+502" },
+  { name: "Guinea", code: "+224" },
+  { name: "Guyana", code: "+592" },
+  { name: "Haiti", code: "+509" },
+  { name: "Honduras", code: "+504" },
+  { name: "Hong Kong", code: "+852" },
+  { name: "Hungary", code: "+36" },
+  { name: "Iceland", code: "+354" },
+  { name: "India", code: "+91" },
+  { name: "Indonesia", code: "+62" },
+  { name: "Iran", code: "+98" },
+  { name: "Iraq", code: "+964" },
+  { name: "Ireland", code: "+353" },
+  { name: "Israel", code: "+972" },
+  { name: "Italy", code: "+39" },
+  { name: "Jamaica", code: "+1-876" },
+  { name: "Japan", code: "+81" },
+  { name: "Jordan", code: "+962" },
+  { name: "Kazakhstan", code: "+7" },
+  { name: "Kenya", code: "+254" },
+  { name: "Kuwait", code: "+965" },
+  { name: "Kyrgyzstan", code: "+996" },
+  { name: "Laos", code: "+856" },
+  { name: "Latvia", code: "+371" },
+  { name: "Lebanon", code: "+961" },
+  { name: "Liberia", code: "+231" },
+  { name: "Libya", code: "+218" },
+  { name: "Lithuania", code: "+370" },
+  { name: "Luxembourg", code: "+352" },
+  { name: "Malaysia", code: "+60" },
+  { name: "Maldives", code: "+960" },
+  { name: "Mali", code: "+223" },
+  { name: "Malta", code: "+356" },
+  { name: "Mauritius", code: "+230" },
+  { name: "Mexico", code: "+52" },
+  { name: "Moldova", code: "+373" },
+  { name: "Monaco", code: "+377" },
+  { name: "Mongolia", code: "+976" },
+  { name: "Montenegro", code: "+382" },
+  { name: "Morocco", code: "+212" },
+  { name: "Mozambique", code: "+258" },
+  { name: "Myanmar", code: "+95" },
+  { name: "Namibia", code: "+264" },
+  { name: "Nepal", code: "+977" },
+  { name: "Netherlands", code: "+31" },
+  { name: "New Zealand", code: "+64" },
+  { name: "Nicaragua", code: "+505" },
+  { name: "Niger", code: "+227" },
+  { name: "Nigeria", code: "+234" },
+  { name: "North Macedonia", code: "+389" },
+  { name: "Norway", code: "+47" },
+  { name: "Oman", code: "+968" },
+  { name: "Pakistan", code: "+92" },
+  { name: "Panama", code: "+507" },
+  { name: "Papua New Guinea", code: "+675" },
+  { name: "Paraguay", code: "+595" },
+  { name: "Peru", code: "+51" },
+  { name: "Philippines", code: "+63" },
+  { name: "Poland", code: "+48" },
+  { name: "Portugal", code: "+351" },
+  { name: "Qatar", code: "+974" },
+  { name: "Romania", code: "+40" },
+  { name: "Russia", code: "+7" },
+  { name: "Rwanda", code: "+250" },
+  { name: "Saudi Arabia", code: "+966" },
+  { name: "Senegal", code: "+221" },
+  { name: "Serbia", code: "+381" },
+  { name: "Seychelles", code: "+248" },
+  { name: "Singapore", code: "+65" },
+  { name: "Slovakia", code: "+421" },
+  { name: "Slovenia", code: "+386" },
+  { name: "South Africa", code: "+27" },
+  { name: "South Korea", code: "+82" },
+  { name: "Spain", code: "+34" },
+  { name: "Sri Lanka", code: "+94" },
+  { name: "Sudan", code: "+249" },
+  { name: "Sweden", code: "+46" },
+  { name: "Switzerland", code: "+41" },
+  { name: "Taiwan", code: "+886" },
+  { name: "Tanzania", code: "+255" },
+  { name: "Thailand", code: "+66" },
+  { name: "Tunisia", code: "+216" },
+  { name: "Turkey", code: "+90" },
+  { name: "Uganda", code: "+256" },
+  { name: "Ukraine", code: "+380" },
+  { name: "United Arab Emirates", code: "+971" },
+  { name: "United Kingdom", code: "+44" },
+  { name: "United States", code: "+1" },
+  { name: "Uruguay", code: "+598" },
+  { name: "Uzbekistan", code: "+998" },
+  { name: "Venezuela", code: "+58" },
+  { name: "Vietnam", code: "+84" },
+  { name: "Yemen", code: "+967" },
+  { name: "Zambia", code: "+260" },
+  { name: "Zimbabwe", code: "+263" },
+];
+
+const PHONE_LENGTH_BY_COUNTRY_CODE = {
+  "+1": [10],
+  "+1-242": [7],
+  "+1-246": [7],
+  "+1-809": [7],
+  "+1-876": [7],
+  "+7": [10],
+  "+20": [10],
+  "+27": [9],
+  "+30": [10],
+  "+31": [9],
+  "+32": [8, 9],
+  "+33": [9],
+  "+34": [9],
+  "+36": [9],
+  "+39": [9, 10],
+  "+40": [9],
+  "+41": [9],
+  "+43": [10, 11, 12, 13],
+  "+44": [10],
+  "+45": [8],
+  "+46": [9, 10],
+  "+47": [8],
+  "+48": [9],
+  "+49": [10, 11],
+  "+51": [9],
+  "+52": [10],
+  "+53": [8],
+  "+54": [10],
+  "+55": [10, 11],
+  "+56": [9],
+  "+57": [10],
+  "+58": [10],
+  "+60": [9, 10],
+  "+61": [9],
+  "+62": [9, 10, 11, 12],
+  "+63": [10],
+  "+64": [8, 9, 10],
+  "+65": [8],
+  "+66": [9],
+  "+81": [10],
+  "+82": [9, 10],
+  "+84": [9, 10],
+  "+86": [11],
+  "+90": [10],
+  "+91": [10],
+  "+92": [10],
+  "+93": [9],
+  "+94": [9],
+  "+95": [8, 9, 10],
+  "+98": [10],
+  "+211": [9],
+  "+212": [9],
+  "+213": [9],
+  "+216": [8],
+  "+218": [9],
+  "+220": [7],
+  "+221": [9],
+  "+223": [8],
+  "+224": [9],
+  "+226": [8],
+  "+227": [8],
+  "+229": [8],
+  "+230": [8],
+  "+231": [7, 8],
+  "+233": [9],
+  "+234": [10],
+  "+235": [8],
+  "+236": [8],
+  "+237": [9],
+  "+238": [7],
+  "+244": [9],
+  "+248": [7],
+  "+249": [9],
+  "+250": [9],
+  "+251": [9],
+  "+253": [8],
+  "+254": [9],
+  "+255": [9],
+  "+256": [9],
+  "+257": [8],
+  "+258": [9],
+  "+260": [9],
+  "+263": [9],
+  "+264": [9],
+  "+267": [7, 8],
+  "+269": [7],
+  "+351": [9],
+  "+352": [9],
+  "+353": [9],
+  "+354": [7],
+  "+355": [9],
+  "+356": [8],
+  "+357": [8],
+  "+358": [9, 10],
+  "+359": [9],
+  "+370": [8],
+  "+371": [8],
+  "+372": [7, 8],
+  "+373": [8],
+  "+374": [8],
+  "+375": [9],
+  "+376": [6],
+  "+377": [8, 9],
+  "+380": [9],
+  "+381": [8, 9],
+  "+382": [8],
+  "+385": [8, 9],
+  "+386": [8],
+  "+387": [8],
+  "+389": [8],
+  "+420": [9],
+  "+421": [9],
+  "+501": [7],
+  "+502": [8],
+  "+503": [8],
+  "+504": [8],
+  "+505": [8],
+  "+506": [8],
+  "+507": [8],
+  "+509": [8],
+  "+591": [8],
+  "+592": [7],
+  "+593": [9],
+  "+595": [9],
+  "+598": [8],
+  "+675": [8],
+  "+679": [7],
+  "+673": [7],
+  "+855": [8, 9],
+  "+856": [8, 9],
+  "+880": [10],
+  "+886": [9],
+  "+960": [7],
+  "+961": [7, 8],
+  "+962": [9],
+  "+964": [10],
+  "+965": [8],
+  "+966": [9],
+  "+967": [9],
+  "+968": [8],
+  "+971": [9],
+  "+972": [9],
+  "+973": [8],
+  "+974": [8],
+  "+975": [8],
+  "+976": [8],
+  "+977": [10],
+  "+994": [9],
+  "+995": [9],
+  "+996": [9],
+  "+998": [9],
+};
+
+function getPhoneValidationMessage(countryCode, rawPhoneNumber) {
+  const digits = String(rawPhoneNumber || "").replace(/\D/g, "");
+  if (!digits) return "Phone number is required";
+  const countryDigits = String(countryCode || "").replace(/\D/g, "");
+  if (countryDigits && digits.startsWith(countryDigits)) {
+    return "Enter only the phone number after the country code";
+  }
+
+  const lengths = PHONE_LENGTH_BY_COUNTRY_CODE[countryCode] || [];
+  if (lengths.length && !lengths.includes(digits.length)) {
+    const formattedLengths = lengths.length === 1 ? lengths[0] : lengths.join(" or ");
+    return `Enter a valid ${formattedLengths}-digit phone number`;
+  }
+
+  if (!lengths.length && (digits.length < 7 || digits.length > 15)) {
+    return "Enter a valid phone number";
+  }
+
+  return "";
+}
 
 /* ─── Policy Modal (Terms or Privacy) ─────────────────────────── */
 const PolicyModal = ({ type, onClose, onAccept }) => {
@@ -314,12 +629,14 @@ function Toast({ message, onClose, tone = "warn" }) {
 export default function SignupPage() {
   const { signUp, isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [accountType, setAccountType] = useState("student");
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    countryCode: "+91",
+    phoneNumber: "",
     password: "",
-    confirmPassword: "",
     agree: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -329,11 +646,15 @@ export default function SignupPage() {
   const [toastMessage, setToastMessage] = useState("");
   const [toastTone, setToastTone] = useState("warn");
   const [formError, setFormError] = useState("");
+  const redirectTo = (() => {
+    const from = location?.state?.from;
+    return typeof from === "string" && from.trim() ? from : PATHS.HOME;
+  })();
 
   if (isAuthenticated) {
     return (
       <Navigate
-        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : PATHS.HOME}
+        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo}
         replace
       />
     );
@@ -355,11 +676,11 @@ export default function SignupPage() {
     if (!email) errs.email = "Email is required";
     else if (!isValidEmail(email)) errs.email = "Enter a valid email address (example: name@gmail.com)";
 
+    const phoneError = getPhoneValidationMessage(form.countryCode, form.phoneNumber);
+    if (phoneError) errs.phoneNumber = phoneError;
+
     if (!form.password) errs.password = "Password is required";
     else if (!isStrongPassword(form.password)) errs.password = passwordPolicyText();
-
-    if (!form.confirmPassword) errs.confirmPassword = "Required";
-    else if (form.confirmPassword !== form.password) errs.confirmPassword = "Does not match";
     return errs;
   };
 
@@ -387,13 +708,14 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      await signUp({
+      const nextUser = await signUp({
         fullName: String(form.fullName || "").trim(),
         email: normalizeEmail(form.email),
+        phoneNumber: `${form.countryCode} ${String(form.phoneNumber || "").trim()}`,
         password: form.password,
         role: accountType,
       });
-      navigate(accountType === "trainer" ? PATHS.TRAINER_DASHBOARD : PATHS.HOME, {
+      navigate(nextUser?.role === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo, {
         replace: true,
       });
     } catch (err) {
@@ -465,6 +787,7 @@ export default function SignupPage() {
               <div className="flex border-b border-slate-200 mb-4 anim-2">
                 <Link
                   to="/login"
+                  state={{ from: redirectTo }}
                   className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400"
                 >
                   Login
@@ -516,7 +839,7 @@ export default function SignupPage() {
                     id="signup-fullname"
                     type="text"
                     name="fullName"
-                    placeholder="John Doe"
+                    placeholder="Enter full name"
                     value={form.fullName}
                     onChange={handleChange}
                     className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
@@ -544,7 +867,7 @@ export default function SignupPage() {
                     id="signup-email"
                     type="email"
                     name="email"
-                    placeholder="john@example.com"
+                    placeholder="Enter email address"
                     value={form.email}
                     onChange={handleChange}
                     className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
@@ -563,6 +886,63 @@ export default function SignupPage() {
 
                 <div>
                   <label
+                    htmlFor="signup-phone"
+                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
+                  >
+                    Phone Number
+                  </label>
+                  <div className="grid grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)] gap-2">
+                    <div className="relative">
+                      <select
+                        name="countryCode"
+                        value={form.countryCode}
+                        onChange={handleChange}
+                        aria-label="Country code"
+                        className="appearance-none h-11 w-full rounded-xl bg-slate-50 border border-slate-200 pl-3 pr-8 text-[12px] font-semibold text-slate-700 outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                      >
+                        {COUNTRY_CODES.map((country) => (
+                          <option key={`${country.name}-${country.code}`} value={country.code}>
+                            {country.name} ({country.code})
+                          </option>
+                        ))}
+                      </select>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      id="signup-phone"
+                      type="tel"
+                      name="phoneNumber"
+                      placeholder="Enter phone number"
+                      value={form.phoneNumber}
+                      onChange={handleChange}
+                      className={`min-w-0 flex-1 h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
+                        ${
+                          errors.phoneNumber
+                            ? "border-red-400"
+                            : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                        }`}
+                    />
+                  </div>
+                  {errors.phoneNumber ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.phoneNumber}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label
                     htmlFor="signup-password"
                     className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
                   >
@@ -573,7 +953,7 @@ export default function SignupPage() {
                       id="signup-password"
                       type={showPassword ? "text" : "password"}
                       name="password"
-                      placeholder="Min. 8 characters"
+                      placeholder="Enter password"
                       value={form.password}
                       onChange={handleChange}
                       className={`w-full h-11 px-4 pr-12 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
@@ -600,34 +980,6 @@ export default function SignupPage() {
                       {passwordPolicyText()}
                     </div>
                   )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="signup-confirm-password"
-                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
-                  >
-                    Confirm Password
-                  </label>
-                  <input
-                    id="signup-confirm-password"
-                    type={showPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    placeholder="Re-enter password"
-                    value={form.confirmPassword}
-                    onChange={handleChange}
-                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
-                      ${
-                        errors.confirmPassword
-                          ? "border-red-400"
-                          : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
-                      }`}
-                  />
-                  {errors.confirmPassword ? (
-                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
-                      {errors.confirmPassword}
-                    </div>
-                  ) : null}
                 </div>
 
                 <div className="pt-0.5">
@@ -678,6 +1030,7 @@ export default function SignupPage() {
                 Already have an account?{" "}
                 <Link
                   to="/login"
+                  state={{ from: redirectTo }}
                   className="font-bold text-[#004d3d] hover:underline transition-colors"
                 >
                   Log In

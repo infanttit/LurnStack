@@ -1,6 +1,5 @@
 import { axiosClient } from "../../shared/api/axiosClient";
 import { getAxiosErrorMessage } from "../../shared/api/axiosError";
-import { getTrainerLiveClasses } from "../../trainers/model/trainerContentStorage";
 
 function unwrap(res) {
   const data = res?.data;
@@ -85,9 +84,11 @@ function normalizeLiveClass(dto) {
     instructorName: raw?.instructor || raw?.instructorName || raw?.instructor_name || "",
     description: raw?.description || "",
     scheduledAt,
+    endsAt: raw?.endsAt || "",
     durationMinutes,
     meetUrl: raw?.meetLink || raw?.meetUrl || raw?.meetingLink || raw?.meeting_url || "",
     thumbnail: raw?.thumbnail || "",
+    status: raw?.status || "",
     raw,
   };
 }
@@ -101,12 +102,10 @@ export async function getLiveClasses() {
     const res = await axiosClient.get("/api/student/live-classes");
     const payload = unwrap(res);
     const list = Array.isArray(payload.data) ? payload.data : [];
-    return [...list.map(normalizeLiveClass), ...getTrainerLiveClasses()]
+    return list.map(normalizeLiveClass)
       .filter((x) => x?.id != null)
       .sort(sortByScheduleAsc);
   } catch (err) {
-    const localClasses = getTrainerLiveClasses();
-    if (localClasses.length) return localClasses.sort(sortByScheduleAsc);
     throw new Error(getAxiosErrorMessage(err, "Unable to load live classes. Please try again."));
   }
 }
@@ -116,8 +115,6 @@ export async function getLiveClassById(classId) {
   if (!id) throw new Error("Missing class id");
 
   try {
-    const localClass = getTrainerLiveClasses().find((liveClass) => String(liveClass.id) === id);
-    if (localClass) return localClass;
     const res = await axiosClient.get(`/api/student/live-class/${encodeURIComponent(id)}`);
     const payload = unwrap(res);
     return normalizeLiveClass(payload.data || null);
@@ -131,18 +128,13 @@ export async function joinClass(classId) {
   if (!id) throw new Error("Missing class id");
 
   try {
-    const localClass = getTrainerLiveClasses().find((liveClass) => String(liveClass.id) === id);
-    if (localClass) {
-      return {
-        message: "Joined trainer live class",
-        meetUrl: localClass.meetUrl || "",
-      };
-    }
     const res = await axiosClient.post(`/api/student/join-class/${encodeURIComponent(id)}`);
     const payload = unwrap(res);
     return {
       message: payload.message || "",
-      meetUrl: payload.meetLink || payload.meetUrl || "",
+      meetUrl: payload.meetLink || payload.meetUrl || payload.data?.meetingLink || "",
+      joinedAt: payload.data?.joinedAt || "",
+      bookingId: payload.data?.bookingId || "",
     };
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to join class. Please try again."));

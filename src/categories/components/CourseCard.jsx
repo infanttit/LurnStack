@@ -6,6 +6,11 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../../cart/model/CartContext";
 import { emitCartFlyFromElement } from "../../cart";
 import { parseINRPriceToPaise } from "../../cart/lib/cartUtils";
+import { addStudentSessionCard, joinStudentSession } from "../../courses/api/studentSessionsApi";
+import useNow from "../../live-classes/hooks/useNow";
+import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
+import { useAuth } from "../../auth";
+import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 
 function StarRating({ rating }) {
   return (
@@ -20,6 +25,49 @@ function StarRating({ rating }) {
       ))}
     </div>
   );
+}
+
+function formatLiveWhen(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function toCartItem({
+  id,
+  title,
+  instructorName,
+  thumbnail,
+  priceLabel,
+  originalLabel,
+  totalHours,
+  level,
+  createdByTrainer,
+  liveClass,
+}) {
+  return {
+    id: String(id),
+    title,
+    instructor: instructorName,
+    thumbnail,
+    unitPricePaise: parseINRPriceToPaise(priceLabel),
+    displayPrice: priceLabel,
+    oldPrice: originalLabel || null,
+    qty: 1,
+    rating: 4.8,
+    ratingCount: 0,
+    totalHours: totalHours || liveClass?.durationMinutes,
+    level: level || "All Levels",
+    isPremium: !createdByTrainer,
+    sessionId: createdByTrainer ? String(id) : undefined,
+  };
 }
 
 /**
@@ -42,7 +90,8 @@ export default function CourseCard({
   description,
   takeaways: customTakeaways,
   createdByTrainer = false,
-  liveClass = null
+  liveClass = null,
+  isAddedToCard = false
 }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -50,10 +99,42 @@ export default function CourseCard({
   const [previewSide, setPreviewSide] = useState("right");
   const [canHover, setCanHover] = useState(true);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [actionLabel, setActionLabel] = useState("");
   const cardRef = useRef(null);
   const timerRef = useRef(null);
   const addBtnRef = useRef(null);
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
+  const { isAuthenticated } = useAuth();
+  const [authPrompt, setAuthPrompt] = useState(null);
+  const isInCart = items.some((item) => String(item.sessionId || item.id) === String(id));
+  const now = useNow(1000);
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+  const joinOpensMs = startMs - 5 * 60 * 1000;
+  const isLiveNow = startMs > 0 && now >= startMs && now <= endMs;
+  const isEnded = startMs > 0 && now > endMs;
+  const isCancelled = String(liveClass?.status || "").toLowerCase() === "cancelled";
+  const cancellationReason = liveClass?.cancellationReason || "";
+  const canJoin = createdByTrainer && startMs > 0 && now >= joinOpensMs && now <= endMs;
+  const timerLabel = !startMs
+    ? "Schedule pending"
+    : isCancelled
+      ? "Cancelled"
+      : isEnded
+      ? "This class session has ended"
+      : isLiveNow
+        ? "Live now"
+        : now < joinOpensMs
+          ? `Join opens 5 minutes before class - ${formatDuration(joinOpensMs - now)} left`
+          : `Starts in ${formatDuration(startMs - now)}`;
+  const accessNotice = isCancelled
+    ? ""
+    : isEnded
+      ? "This class session has ended."
+      : createdByTrainer && startMs > 0 && now < joinOpensMs
+        ? "You can join from 5 minutes before the class starts."
+        : createdByTrainer && canJoin
+          ? "Join is open now."
+          : "";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -96,17 +177,62 @@ export default function CourseCard({
     return `₹${p.toLocaleString()}`;
   }, [originalPrice]);
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (createdByTrainer && isEnded) return;
+    if (!isAuthenticated) {
+      setAuthPrompt({
+        title: "Log in to add this session",
+        message: "Register or log in to add this class to your shopping cart and continue.",
+      });
+      return;
+    }
+    if (isInCart) return;
+    if (createdByTrainer) {
+      setActionLabel("Adding...");
+      addItem(
+        toCartItem({
+          id,
+          title,
+          instructorName,
+          thumbnail,
+          priceLabel,
+          originalLabel,
+          totalHours,
+          level,
+          createdByTrainer,
+          liveClass,
+        })
+      );
+      emitCartFlyFromElement(addBtnRef.current || cardRef.current, thumbnail, title);
+      if (isAddedToCard) {
+        setActionLabel("Added");
+        return;
+      }
+      try {
+        await addStudentSessionCard(id);
+        setActionLabel("Added");
+      } catch {
+        setActionLabel("Added");
+      }
+      return;
+    }
+    addItem(
+      toCartItem({
+        id,
+        title,
+        instructorName,
+        thumbnail,
+        priceLabel,
+        originalLabel,
+        totalHours,
+        level,
+        createdByTrainer,
+        liveClass,
+      })
+    );
     emitCartFlyFromElement(addBtnRef.current || cardRef.current, thumbnail, title);
-    addItem({
-      id,
-      title,
-      thumbnail,
-      unitPricePaise: priceLabel === "Free" ? 0 : parseINRPriceToPaise(priceLabel),
-      qty: 1
-    });
   };
 
   const handleViewDetails = (e) => {
@@ -119,12 +245,27 @@ export default function CourseCard({
     setMobilePreviewOpen(true);
   };
 
-  const handleJoinClass = (e) => {
+  const handleJoinClass = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (liveClass?.meetUrl) {
-      window.open(liveClass.meetUrl, "_blank", "noopener,noreferrer");
+    if (!isAuthenticated) {
+      setAuthPrompt({
+        title: "Log in to join this class",
+        message: "Register or log in first. After authentication, you can continue with this session.",
+      });
       return;
+    }
+    if (createdByTrainer && !canJoin) {
+      return;
+    }
+    try {
+      const result = await joinStudentSession(id);
+      if (result?.meetingLink) {
+        window.open(result.meetingLink, "_blank", "noopener,noreferrer");
+        return;
+      }
+    } catch {
+      // Keep details navigation as a graceful fallback.
     }
     navigate(`/courses/${encodeURIComponent(String(id))}`);
   };
@@ -139,12 +280,9 @@ export default function CourseCard({
   return (
     <div 
       ref={cardRef}
-      className={`relative border border-gray-200 bg-white rounded-sm cursor-pointer transition-all duration-200 ${isHovered ? "z-[1000]" : "z-0"}`}
+      className={`relative border border-gray-200 bg-white rounded-sm cursor-pointer transition-all duration-200 min-w-0 ${isHovered ? "z-[1000]" : "z-0"}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={() => {
-        if (!canHover) setMobilePreviewOpen(true);
-      }}
       style={{ boxShadow: isHovered ? "0 0 0 2px #059669" : undefined }}
     >
       {/* ── Main List Card ── */}
@@ -162,11 +300,11 @@ export default function CourseCard({
         </div>
         
         {/* Card body */}
-        <div className="p-3 flex flex-col gap-1.5 flex-1">
-          <h3 className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2">
+        <div className="p-3 flex flex-col gap-1.5 flex-1 min-w-0">
+          <h3 className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2 break-words">
             {title}
           </h3>
-          <p className="text-[12px] text-gray-500">{instructorName}</p>
+          <p className="text-[12px] text-gray-500 line-clamp-1 break-words">{instructorName}</p>
           
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-[13px] text-[#b4690e]">{rating || 4.8}</span>
@@ -175,8 +313,11 @@ export default function CourseCard({
           </div>
           
           {badge && (
-            <span className="self-start text-[10px] font-bold px-1.5 py-[2px] rounded-sm bg-[#eceb98] text-[#3d3c0a]">
-              {badge}
+            <span className={[
+              "self-start text-[10px] font-bold px-1.5 py-[2px] rounded-sm",
+              isEnded ? "bg-slate-100 text-slate-700" : "bg-[#eceb98] text-[#3d3c0a]",
+            ].join(" ")}>
+              {isEnded ? "Completed" : badge}
             </span>
           )}
 
@@ -188,6 +329,22 @@ export default function CourseCard({
               <div className="mt-1 text-[11px] font-semibold text-gray-700 line-clamp-1">
                 {liveClass.title}
               </div>
+              <div className="mt-1 text-[10px] text-gray-500 line-clamp-1">
+                {formatLiveWhen(liveClass.scheduledAt)} IST
+              </div>
+              <div className="mt-1 text-[10px] font-extrabold text-emerald-800">
+                {timerLabel}
+              </div>
+              {accessNotice ? (
+                <div className="mt-1 text-[10px] font-semibold text-slate-600">
+                  {accessNotice}
+                </div>
+              ) : null}
+              {isCancelled && cancellationReason ? (
+                <div className="mt-2 rounded-md border border-red-100 bg-red-50 px-2 py-1.5 text-[10px] font-semibold text-red-700">
+                  Reason: {cancellationReason}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -199,28 +356,33 @@ export default function CourseCard({
           </div>
 
           {/* Mobile actions */}
-          <div className={["grid gap-2 mt-3 sm:hidden", createdByTrainer ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
+          <div className={["grid gap-2 mt-3 sm:hidden", createdByTrainer ? "grid-cols-2" : "grid-cols-2"].join(" ")}>
             <button
               ref={addBtnRef}
               type="button"
               onClick={handleAddToCart}
-              className="w-full h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
+              disabled={isEnded || isInCart || actionLabel === "Adding..."}
+              className="w-full h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Add
+              {isEnded ? "Completed" : isInCart ? "In cart" : actionLabel || "Add"}
             </button>
             {createdByTrainer ? (
               <button
                 type="button"
                 onClick={handleJoinClass}
-                className="w-full h-9 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
+                disabled={!canJoin}
+                className="w-full h-9 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Join
+                {canJoin ? "Join" : "Locked"}
               </button>
             ) : null}
             <button
               type="button"
               onClick={handleViewDetails}
-              className="w-full h-9 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]"
+              className={[
+                "w-full h-9 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]",
+                createdByTrainer ? "col-span-2" : "",
+              ].join(" ")}
             >
               View details
             </button>
@@ -253,7 +415,7 @@ export default function CourseCard({
             />
 
             <div className="relative z-20">
-              <h4 className="font-bold text-sm text-gray-900 leading-snug">
+              <h4 className="font-bold text-sm text-gray-900 leading-snug break-words">
                 {title}
               </h4>
 
@@ -285,6 +447,22 @@ export default function CourseCard({
                   <div className="mt-1 text-[12px] font-semibold text-gray-800">
                     {liveClass.title}
                   </div>
+                  <div className="mt-1 text-[11px] text-gray-500">
+                    {formatLiveWhen(liveClass.scheduledAt)} IST
+                  </div>
+                  <div className="mt-1 text-[11px] font-extrabold text-emerald-800">
+                    {timerLabel}
+                  </div>
+                  {accessNotice ? (
+                    <div className="mt-1 text-[11px] font-semibold text-slate-600">
+                      {accessNotice}
+                    </div>
+                  ) : null}
+                  {isCancelled && cancellationReason ? (
+                    <div className="mt-2 rounded-md border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-700">
+                      Reason: {cancellationReason}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -297,22 +475,24 @@ export default function CourseCard({
                 ))}
               </ul>
 
-              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
+              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[360px]:grid-cols-3" : "grid-cols-2"].join(" ")}>
                 <button
                   ref={addBtnRef}
                   type="button"
                   onClick={handleAddToCart}
-                  className="w-full h-8 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors"
+                  disabled={isEnded || isInCart || actionLabel === "Adding..."}
+                  className="w-full h-8 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Add
+                  {isEnded ? "Completed" : isInCart ? "In cart" : actionLabel || "Add"}
                 </button>
                 {createdByTrainer ? (
                   <button
                     type="button"
                     onClick={handleJoinClass}
-                    className="w-full h-8 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors"
+                    disabled={!canJoin}
+                    className="w-full h-8 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Join
+                    {canJoin ? "Join" : "Locked"}
                   </button>
                 ) : null}
                 <button
@@ -368,7 +548,7 @@ export default function CourseCard({
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-extrabold text-[15px] text-gray-900 leading-snug">
+                  <h4 className="font-extrabold text-[15px] text-gray-900 leading-snug break-words">
                     {title}
                   </h4>
                   <p className="text-[12px] text-gray-500 mt-0.5">{instructorName}</p>
@@ -394,6 +574,33 @@ export default function CourseCard({
                   "Explore comprehensive modules designed for deep learning. From fundamental concepts to advanced practical applications, this course covers everything you need to succeed."}
               </p>
 
+              {createdByTrainer && liveClass ? (
+                <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-800">
+                    Expert-led session
+                  </div>
+                  <div className="mt-1 text-[12px] font-semibold text-gray-800 line-clamp-1">
+                    {liveClass.title}
+                  </div>
+                  <div className="mt-1 text-[11px] text-gray-500">
+                    {formatLiveWhen(liveClass.scheduledAt)} IST
+                  </div>
+                  <div className="mt-1 text-[11px] font-extrabold text-emerald-800">
+                    {timerLabel}
+                  </div>
+                  {accessNotice ? (
+                    <div className="mt-1 text-[11px] font-semibold text-slate-600">
+                      {accessNotice}
+                    </div>
+                  ) : null}
+                  {isCancelled && cancellationReason ? (
+                    <div className="mt-2 rounded-md border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-700">
+                      Reason: {cancellationReason}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
               <ul className="flex flex-col gap-1.5 mt-3">
                 {takeaways.map((b, i) => (
                   <li key={i} className="flex items-start gap-1.5">
@@ -403,7 +610,7 @@ export default function CourseCard({
                 ))}
               </ul>
 
-              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
+              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[420px]:grid-cols-3" : "grid-cols-2"].join(" ")}>
                 <button
                   ref={addBtnRef}
                   type="button"
@@ -411,17 +618,19 @@ export default function CourseCard({
                     handleAddToCart(e);
                     setMobilePreviewOpen(false);
                   }}
-                  className="w-full h-10 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-lg transition-colors"
+                  disabled={isEnded || isInCart || actionLabel === "Adding..."}
+                  className="w-full h-10 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Add to cart
+                  {isEnded ? "Completed" : isInCart ? "In cart" : "Add to cart"}
                 </button>
                 {createdByTrainer ? (
                   <button
                     type="button"
                     onClick={handleJoinClass}
-                    className="w-full h-10 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-lg transition-colors"
+                    disabled={!canJoin}
+                    className="w-full h-10 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Join
+                    {canJoin ? "Join" : "Locked"}
                   </button>
                 ) : null}
                 <button
@@ -443,6 +652,12 @@ export default function CourseCard({
           </>
         ) : null}
       </AnimatePresence>
+      <AuthRequiredModal
+        open={!!authPrompt}
+        title={authPrompt?.title}
+        message={authPrompt?.message}
+        onClose={() => setAuthPrompt(null)}
+      />
     </div>
   );
 }

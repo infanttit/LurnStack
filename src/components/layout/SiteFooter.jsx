@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { FiGlobe, FiMail, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
-import logo from "../../assets/Logo/Logo2.png";
+import logo from "../../assets/Logo/Logo3.png";
 
 function FooterLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="text-xs text-white/50 hover:text-white transition-colors duration-200"
+      className="text-sm text-white hover:text-white transition-colors duration-200"
     >
       {children}
     </Link>
@@ -18,7 +18,7 @@ function SocialBtn({ to, label, children }) {
     <Link
       to={to}
       aria-label={label}
-      className="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center text-white/50 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all duration-200"
+      className="w-8 h-8 rounded-full border border-white/25 flex items-center justify-center text-white hover:text-white hover:border-white/40 hover:bg-white/10 transition-all duration-200"
     >
       {children}
     </Link>
@@ -87,7 +87,7 @@ export default function SiteFooter() {
                 />
                 <span className="sr-only">LurnStack</span>
               </div>
-              <p className="mt-3 text-[13px] text-white/45 leading-relaxed max-w-xs">
+              <p className="mt-3 text-sm text-white leading-relaxed max-w-xs">
                 Industry-aligned courses, expert mentors, and verified certificates to power your next career leap.
               </p>
             </div>
@@ -101,8 +101,8 @@ export default function SiteFooter() {
                   </svg>
                 ))}
               </div>
-              <span className="text-[11px] font-bold text-white">4.9</span>
-              <span className="text-[11px] text-white/40">· 50,000+ students</span>
+              <span className="text-xs font-bold text-white">4.9</span>
+              <span className="text-xs text-white">· 50,000+ students</span>
             </div>
 
             {/* Socials */}
@@ -123,18 +123,18 @@ export default function SiteFooter() {
 
             {/* Newsletter */}
             <div>
-              <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-white uppercase tracking-wider mb-2">
                 Weekly learning digest
               </p>
               <div className="flex gap-2">
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="flex-1 bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-[12px] text-white placeholder-white/30 focus:outline-none focus:border-secondary-fixed/60 transition-colors"
+                  className="flex-1 bg-white/8 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-white focus:outline-none focus:border-secondary-fixed/60 transition-colors"
                 />
                 <button
                   type="button"
-                  className="px-3 py-2 bg-secondary-fixed text-primary rounded-lg text-[12px] font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
+                  className="px-3 py-2 bg-secondary-fixed text-primary rounded-lg text-sm font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
                 >
                   Subscribe
                 </button>
@@ -146,7 +146,7 @@ export default function SiteFooter() {
           <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
             {NAV.map((col) => (
               <div key={col.heading} className="space-y-3">
-                <h5 className="text-[10px] font-bold text-white/35 uppercase tracking-widest">
+                <h5 className="text-xs font-bold text-white uppercase tracking-widest">
                   {col.heading}
                 </h5>
                 <ul className="space-y-2.5">
@@ -166,19 +166,19 @@ export default function SiteFooter() {
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-[11px] text-white/25">
+          <p className="text-xs text-white">
             © {new Date().getFullYear()} LurnStack Academy. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-1 text-[11px] text-white/25">
+          <div className="flex items-center gap-1 text-xs text-white">
             <FiGlobe className="text-[12px]" />
             <span>English</span>
-            <span className="mx-3 opacity-40">·</span>
-            <Link to="/privacy" className="hover:text-white/50 transition-colors">Privacy</Link>
-            <span className="mx-3 opacity-40">·</span>
-            <Link to="/cookies" className="hover:text-white/50 transition-colors">Cookies</Link>
-            <span className="mx-3 opacity-40">·</span>
-            <Link to="/terms" className="hover:text-white/50 transition-colors">Terms</Link>
+            <span className="mx-3">·</span>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <span className="mx-3">·</span>
+            <Link to="/cookies" className="hover:text-white transition-colors">Cookies</Link>
+            <span className="mx-3">·</span>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
           </div>
         </div>
       </div>

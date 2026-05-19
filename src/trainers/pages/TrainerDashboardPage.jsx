@@ -1,27 +1,39 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  FiAlertCircle,
   FiBookOpen,
   FiCalendar,
   FiCheckCircle,
   FiClock,
+  FiEdit3,
   FiImage,
   FiLogOut,
   FiMenu,
   FiPlusCircle,
+  FiRefreshCw,
+  FiSend,
   FiSidebar,
+  FiTrash2,
   FiX,
+  FiXCircle,
   FiUploadCloud,
   FiUsers,
   FiVideo,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { PATHS } from "../../app/router/paths";
 import { useAuth } from "../../auth";
 import SmartImage from "../../shared/components/SmartImage";
 import {
-  getTrainerLiveClasses,
-  saveTrainerCourseLiveClass,
-} from "../model/trainerContentStorage";
+  cancelTrainerSession,
+  createTrainerSession,
+  deleteTrainerSession,
+  getTrainerSessions,
+  publishTrainerSession,
+  updateTrainerSession,
+} from "../api/trainerSessionsApi";
 
 const initialForm = {
   courseTitle: "",
@@ -33,7 +45,8 @@ const initialForm = {
   endTime: "",
   meetUrl: "",
   price: "499",
-  thumbnail: "",
+  thumbnailPreview: "",
+  thumbnailFile: null,
 };
 
 const tabs = [
@@ -41,6 +54,122 @@ const tabs = [
   { id: "create", label: "Create live class", icon: FiPlusCircle },
   { id: "classes", label: "Uploaded classes", icon: FiVideo },
 ];
+
+const categoryOptions = [
+  "Trainer Courses",
+  "Web Development",
+  "Full Stack Development",
+  "Frontend Development",
+  "Backend Development",
+  "Mobile App Development",
+  "Data Science",
+  "Artificial Intelligence",
+  "Cloud Computing",
+  "DevOps",
+  "Cybersecurity",
+  "Database",
+  "UI/UX Design",
+  "Digital Marketing",
+  "Business Strategy",
+];
+
+const courseTitleOptionsByCategory = {
+  "Trainer Courses": [
+    "Full Stack Web Development Masterclass",
+    "React Hooks and State Management",
+    "Professional Web Development Bootcamp",
+  ],
+  "Web Development": [
+    "Master React JS",
+    "Modern JavaScript Development",
+    "HTML CSS and Responsive Web Design",
+  ],
+  "Full Stack Development": [
+    "Full Stack Web Development",
+    "MERN Stack Project Bootcamp",
+    "Node.js React PostgreSQL Masterclass",
+  ],
+  "Frontend Development": [
+    "React Frontend Engineering",
+    "Advanced UI Development",
+    "Next.js Production Masterclass",
+  ],
+  "Backend Development": [
+    "Node.js Backend API Development",
+    "Express.js and Authentication",
+    "Backend Architecture with PostgreSQL",
+  ],
+  "Mobile App Development": [
+    "Flutter Mobile App Development",
+    "React Native App Development",
+    "Mobile UI and API Integration",
+  ],
+  "Data Science": [
+    "Python Data Science Bootcamp",
+    "SQL for Data Analysis",
+    "Machine Learning Foundations",
+  ],
+  "Artificial Intelligence": [
+    "AI Engineering Masterclass",
+    "Generative AI for Developers",
+    "LLM Application Development",
+  ],
+  "Cloud Computing": [
+    "AWS Cloud Practitioner",
+    "Cloud Deployment Fundamentals",
+    "Firebase and Cloud Firestore",
+  ],
+  DevOps: [
+    "Docker and Kubernetes Essentials",
+    "CI/CD Pipeline Masterclass",
+    "VPS Deployment and Nginx",
+  ],
+  Cybersecurity: [
+    "Web Application Security",
+    "Ethical Hacking Foundations",
+    "API Security Masterclass",
+  ],
+  Database: [
+    "PostgreSQL Database Design",
+    "MongoDB NoSQL Guide",
+    "Prisma ORM Masterclass",
+  ],
+  "UI/UX Design": [
+    "UI UX Design Foundations",
+    "Design Systems Masterclass",
+    "Figma for Product Design",
+  ],
+  "Digital Marketing": [
+    "Digital Marketing Strategy",
+    "SEO and Content Marketing",
+    "Performance Marketing Masterclass",
+  ],
+  "Business Strategy": [
+    "Strategic Mastery for Global Markets",
+    "Leadership and Business Growth",
+    "Startup Strategy Masterclass",
+  ],
+};
+
+const emptyConfirmDialog = {
+  open: false,
+  action: "",
+  sessionId: "",
+  title: "",
+  message: "",
+  reason: "",
+};
+
+const fieldLabels = {
+  courseTitle: "Course title",
+  category: "Category",
+  description: "Course description",
+  classTitle: "Live class title",
+  scheduledDate: "Date",
+  startTime: "Start time",
+  endTime: "End time",
+  meetUrl: "Meeting link",
+};
 
 function formatClassTime(iso) {
   const date = new Date(iso);
@@ -71,6 +200,13 @@ function formatClassTimeRange(liveClass) {
   return end ? `${start} to ${end}` : start;
 }
 
+function getDisplayStatus(liveClass) {
+  const status = String(liveClass?.status || "").toLowerCase();
+  const endsAt = new Date(liveClass?.endsAt || "").getTime();
+  if (status !== "cancelled" && Number.isFinite(endsAt) && Date.now() > endsAt) return "completed";
+  return status || "draft";
+}
+
 function getDurationMinutes(startTime, endTime) {
   const [startHour, startMinute] = String(startTime || "").split(":").map(Number);
   const [endHour, endMinute] = String(endTime || "").split(":").map(Number);
@@ -98,13 +234,26 @@ export default function TrainerDashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
-  const [liveClasses, setLiveClasses] = useState(() => getTrainerLiveClasses());
+  const [liveClasses, setLiveClasses] = useState([]);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState({});
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [actionId, setActionId] = useState("");
+  const [editingSessionId, setEditingSessionId] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState(emptyConfirmDialog);
 
   const trainerClasses = useMemo(
-    () => liveClasses.filter((liveClass) => liveClass.trainerEmail === user?.email),
+    () => liveClasses.filter((liveClass) => !user?.email || liveClass.trainerEmail === user.email),
     [liveClasses, user?.email]
   );
+  const courseTitleOptions = useMemo(() => {
+    const options = courseTitleOptionsByCategory[form.category] || courseTitleOptionsByCategory["Trainer Courses"];
+    return form.courseTitle && !options.includes(form.courseTitle)
+      ? [form.courseTitle, ...options]
+      : options;
+  }, [form.category, form.courseTitle]);
 
   const nextClass = useMemo(() => {
     const now = Date.now();
@@ -113,25 +262,56 @@ export default function TrainerDashboardPage() {
       .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))[0];
   }, [trainerClasses]);
 
+  const loadTrainerClasses = async ({ silent = false } = {}) => {
+    if (!silent) setLoadingClasses(true);
+    setError("");
+    try {
+      const sessions = await getTrainerSessions();
+      setLiveClasses(sessions);
+    } catch (err) {
+      setError(err?.message || "Unable to load trainer live classes.");
+    } finally {
+      if (!silent) setLoadingClasses(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTrainerClasses();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      if (name === "category") {
+        return { ...prev, category: value, courseTitle: "", classTitle: "" };
+      }
+      return { ...prev, [name]: value };
+    });
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
     setMessage("");
+    setError("");
   };
 
   const handleThumbnailChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setMessage("Please upload a valid image file.");
+      setError("Please upload a valid image file.");
+      toast.error("Please upload a valid image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Thumbnail must be 5 MB or smaller.");
+      toast.error("Thumbnail must be 5 MB or smaller.");
       return;
     }
     const dataUrl = await readImageFile(file);
-    setForm((prev) => ({ ...prev, thumbnail: dataUrl }));
+    setForm((prev) => ({ ...prev, thumbnailPreview: dataUrl, thumbnailFile: file }));
     setMessage("");
+    setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const required = [
       "courseTitle",
@@ -143,28 +323,167 @@ export default function TrainerDashboardPage() {
       "endTime",
       "meetUrl",
     ];
-    const missing = required.find((key) => !String(form[key] || "").trim());
-    if (missing) {
-      setMessage("Please fill all class details before publishing.");
+    const nextErrors = required.reduce((acc, key) => {
+      if (!String(form[key] || "").trim()) acc[key] = `${fieldLabels[key]} is required.`;
+      return acc;
+    }, {});
+    if (Object.keys(nextErrors).length) {
+      setFormErrors(nextErrors);
+      const firstError = Object.values(nextErrors)[0];
+      setError(firstError);
+      toast.error(firstError);
       return;
     }
 
     const durationMinutes = getDurationMinutes(form.startTime, form.endTime);
     if (durationMinutes <= 0) {
-      setMessage("Please select a valid class time range.");
+      setFormErrors((prev) => ({
+        ...prev,
+        startTime: "Choose a valid start time.",
+        endTime: "End time must be after start time.",
+      }));
+      setError("Please select a valid class time range.");
+      toast.error("Please select a valid class time range.");
       return;
     }
 
-    saveTrainerCourseLiveClass({
-      ...form,
-      scheduledTime: form.startTime,
-      durationMinutes,
-      trainer: user,
+    setSubmitting(true);
+    setError("");
+    try {
+      const payload = {
+        courseTitle: String(form.courseTitle || "").trim(),
+        category: String(form.category || "").trim(),
+        description: String(form.description || "").trim(),
+        classTitle: String(form.classTitle || "").trim(),
+        scheduledDate: form.scheduledDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        meetingLink: String(form.meetUrl || "").trim(),
+        thumbnailFile: form.thumbnailFile,
+      };
+
+      if (editingSessionId) {
+        await updateTrainerSession(editingSessionId, payload);
+      } else {
+        await createTrainerSession(payload);
+      }
+      const successMessage = editingSessionId
+        ? "Live class updated successfully."
+        : "Live class created successfully.";
+      setForm(initialForm);
+      setFormErrors({});
+      setEditingSessionId("");
+      setMessage(successMessage);
+      toast.success(successMessage);
+      setActiveTab("classes");
+      await loadTrainerClasses({ silent: true });
+    } catch (err) {
+      const errorMessage = err?.message || "Unable to create live class.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEditingSession = (liveClass) => {
+    setEditingSessionId(liveClass.id);
+    setForm({
+      courseTitle: liveClass.courseTitle || liveClass.courseName || "",
+      category: liveClass.category || liveClass.tab || "Trainer Courses",
+      description: liveClass.description || "",
+      classTitle: liveClass.classTitle || liveClass.title || "",
+      scheduledDate: liveClass.scheduledDate || "",
+      startTime: liveClass.startTime || "",
+      endTime: liveClass.endTime || "",
+      meetUrl: liveClass.meetingLink || liveClass.meetUrl || "",
+      price: "499",
+      thumbnailPreview: liveClass.thumbnail || "",
+      thumbnailFile: null,
     });
-    setLiveClasses(getTrainerLiveClasses());
+    setMessage("");
+    setError("");
+    setFormErrors({});
+    setActiveTab("create");
+  };
+
+  const cancelEditing = () => {
+    setEditingSessionId("");
     setForm(initialForm);
-    setMessage("Live class published. Students can now see it in Courses, Categories, and Live Classes.");
-    setActiveTab("classes");
+    setMessage("");
+    setError("");
+    setFormErrors({});
+  };
+
+  const openSessionDialog = (sessionId, action) => {
+    if (!sessionId) return;
+    if (action === "cancel") {
+      setConfirmDialog({
+        open: true,
+        action,
+        sessionId,
+        title: "Cancel live class",
+        message: "Share a short reason. This status will be saved to the live session.",
+        reason: "",
+      });
+      return;
+    }
+    if (action === "delete") {
+      setConfirmDialog({
+        open: true,
+        action,
+        sessionId,
+        title: "Delete live class",
+        message: "This will permanently delete the live class from the database.",
+        reason: "",
+      });
+    }
+  };
+
+  const updateSessionStatus = async (sessionId, action, reason = "") => {
+    if (!sessionId) return;
+    setActionId(`${action}:${sessionId}`);
+    setError("");
+    setMessage("");
+    try {
+      if (action === "publish") {
+        await publishTrainerSession(sessionId);
+        setMessage("Live class published successfully.");
+        toast.success("Live class published successfully.");
+      } else if (action === "cancel") {
+        if (!reason || !reason.trim()) return;
+        await cancelTrainerSession(sessionId, reason.trim());
+        setMessage("Live class cancelled successfully.");
+        toast.success("Live class cancelled successfully.");
+      } else if (action === "delete") {
+        await deleteTrainerSession(sessionId);
+        setMessage("Live class deleted successfully.");
+        toast.success("Live class deleted successfully.");
+      }
+      await loadTrainerClasses({ silent: true });
+    } catch (err) {
+      const errorMessage = err?.message || "Unable to update live class.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setActionId("");
+    }
+  };
+
+  const closeSessionDialog = () => {
+    setConfirmDialog(emptyConfirmDialog);
+  };
+
+  const confirmSessionDialog = async () => {
+    if (!confirmDialog.open) return;
+    if (confirmDialog.action === "cancel" && !confirmDialog.reason.trim()) {
+      setError("Please enter a cancellation reason.");
+      toast.error("Please enter a cancellation reason.");
+      return;
+    }
+    const { sessionId, action, reason } = confirmDialog;
+    closeSessionDialog();
+    await updateSessionStatus(sessionId, action, reason);
   };
 
   const logout = async () => {
@@ -194,8 +513,83 @@ export default function TrainerDashboardPage() {
     </button>
   );
 
+  const fieldClass = (name, extra = "") =>
+    [
+      extra,
+      "border",
+      formErrors[name]
+        ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+        : "border-slate-200 focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5",
+    ].join(" ");
+
   return (
     <main className="h-dvh overflow-hidden bg-[#f4f7f6] text-slate-950">
+      <ToastContainer
+        position="top-right"
+        autoClose={3200}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="colored"
+      />
+      {confirmDialog.open ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-950">{confirmDialog.title}</h2>
+                <p className="mt-1 text-sm text-slate-500 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeSessionDialog}
+                className="w-9 h-9 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 inline-flex items-center justify-center"
+                aria-label="Close dialog"
+              >
+                <FiX />
+              </button>
+            </div>
+            {confirmDialog.action === "cancel" ? (
+              <div className="px-5 py-4">
+                <label className="block">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
+                    Cancellation reason
+                  </span>
+                  <textarea
+                    value={confirmDialog.reason}
+                    onChange={(e) =>
+                      setConfirmDialog((prev) => ({ ...prev, reason: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Example: Trainer is unavailable today."
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5 resize-none"
+                  />
+                </label>
+              </div>
+            ) : null}
+            <div className="px-5 py-4 bg-slate-50 flex flex-col sm:flex-row justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeSessionDialog}
+                className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-extrabold text-slate-600"
+              >
+                Keep class
+              </button>
+              <button
+                type="button"
+                onClick={confirmSessionDialog}
+                className={[
+                  "h-10 px-5 rounded-xl text-sm font-extrabold text-white",
+                  confirmDialog.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-amber-600 hover:bg-amber-700",
+                ].join(" ")}
+              >
+                {confirmDialog.action === "delete" ? "Delete class" : "Cancel class"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div
         className={[
           "grid h-full min-h-0 grid-cols-1 transition-[grid-template-columns] duration-300",
@@ -315,7 +709,7 @@ export default function TrainerDashboardPage() {
                 <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
                     ["Published classes", trainerClasses.length, FiVideo],
-                    ["Student visibility", "Courses + Categories", FiUsers],
+                    ["Live API status", loadingClasses ? "Syncing" : "Connected", FiUsers],
                     ["Next class", nextClass ? formatClassTime(nextClass.scheduledAt) : "Not scheduled", FiClock],
                   ].map(([label, value, Icon]) => (
                     <div key={label} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
@@ -369,15 +763,34 @@ export default function TrainerDashboardPage() {
                       <FiUploadCloud className="text-xl" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-extrabold">Create live class</h2>
+                      <h2 className="text-xl font-extrabold">
+                        {editingSessionId ? "Edit live class" : "Create live class"}
+                      </h2>
                       <p className="text-sm text-slate-500">
-                        Upload a thumbnail and class details for the student course pages.
+                        {editingSessionId
+                          ? "Update the class details that students will see."
+                          : "Upload a thumbnail and class details for the student course pages."}
                       </p>
                     </div>
                   </div>
+                  {editingSessionId ? (
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      className="h-10 px-4 rounded-xl border border-slate-200 text-sm font-extrabold text-slate-600 hover:border-red-200 hover:text-red-700 transition-colors"
+                    >
+                      Cancel edit
+                    </button>
+                  ) : null}
                   {message ? (
                     <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
                       {message}
+                    </div>
+                  ) : null}
+                  {error ? (
+                    <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 flex items-start gap-2">
+                      <FiAlertCircle className="mt-0.5 flex-shrink-0" />
+                      <span>{error}</span>
                     </div>
                   ) : null}
                 </div>
@@ -385,8 +798,8 @@ export default function TrainerDashboardPage() {
                 <div className="mt-6 grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:sticky xl:top-0">
                     <div className="aspect-[16/10] rounded-xl overflow-hidden bg-white border border-slate-200">
-                      {form.thumbnail ? (
-                        <img src={form.thumbnail} alt="Class thumbnail preview" className="w-full h-full object-cover" />
+                      {form.thumbnailPreview ? (
+                        <img src={form.thumbnailPreview} alt="Class thumbnail preview" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-emerald-950 via-teal-800 to-cyan-600 flex flex-col items-center justify-center text-white">
                           <FiImage className="text-4xl opacity-80" />
@@ -407,37 +820,57 @@ export default function TrainerDashboardPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label className="sm:col-span-2">
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Course title</span>
-                      <input name="courseTitle" value={form.courseTitle} onChange={handleChange} placeholder="Example: React Live Masterclass" className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <select name="courseTitle" value={form.courseTitle} onChange={handleChange} className={fieldClass("courseTitle", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none bg-white")}>
+                        <option value="">Select course title</option>
+                        {courseTitleOptions.map((title) => (
+                          <option key={title} value={title}>
+                            {title}
+                          </option>
+                        ))}
+                      </select>
+                      {formErrors.courseTitle ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.courseTitle}</p> : null}
                     </label>
 
                     <label>
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Category</span>
-                      <input name="category" value={form.category} onChange={handleChange} placeholder="Web Development" className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <select name="category" value={form.category} onChange={handleChange} className={fieldClass("category", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none bg-white")}>
+                        {categoryOptions.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                      {formErrors.category ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.category}</p> : null}
                     </label>
 
                     <label className="sm:col-span-2">
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Course description</span>
-                      <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="What will students learn in this class?" className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5 resize-none" />
+                      <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="What will students learn in this class?" className={fieldClass("description", "mt-1 w-full rounded-xl px-4 py-3 text-sm outline-none resize-none")} />
+                      {formErrors.description ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.description}</p> : null}
                     </label>
 
                     <label className="sm:col-span-2">
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Live class title</span>
-                      <input name="classTitle" value={form.classTitle} onChange={handleChange} placeholder="Example: Hooks and state management" className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <input name="classTitle" value={form.classTitle} onChange={handleChange} placeholder="Example: React Hooks and State Management" className={fieldClass("classTitle", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none")} />
+                      {formErrors.classTitle ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.classTitle}</p> : null}
                     </label>
 
                     <label>
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Date</span>
-                      <input name="scheduledDate" type="date" value={form.scheduledDate} onChange={handleChange} className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <input name="scheduledDate" type="date" value={form.scheduledDate} onChange={handleChange} className={fieldClass("scheduledDate", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none")} />
+                      {formErrors.scheduledDate ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.scheduledDate}</p> : null}
                     </label>
 
                     <label>
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Start time</span>
-                      <input name="startTime" type="time" value={form.startTime} onChange={handleChange} className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <input name="startTime" type="time" value={form.startTime} onChange={handleChange} className={fieldClass("startTime", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none")} />
+                      {formErrors.startTime ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.startTime}</p> : null}
                     </label>
 
                     <label>
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">End time</span>
-                      <input name="endTime" type="time" value={form.endTime} onChange={handleChange} className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <input name="endTime" type="time" value={form.endTime} onChange={handleChange} className={fieldClass("endTime", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none")} />
+                      {formErrors.endTime ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.endTime}</p> : null}
                     </label>
 
                     {form.startTime && form.endTime ? (
@@ -448,14 +881,29 @@ export default function TrainerDashboardPage() {
 
                     <label>
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">Meeting link</span>
-                      <input name="meetUrl" type="url" value={form.meetUrl} onChange={handleChange} placeholder="https://meet.google.com/..." className="mt-1 w-full h-11 rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5" />
+                      <input name="meetUrl" type="url" value={form.meetUrl} onChange={handleChange} placeholder="https://meet.google.com/..." className={fieldClass("meetUrl", "mt-1 w-full h-11 rounded-xl px-4 text-sm outline-none")} />
+                      {formErrors.meetUrl ? <p className="mt-1 text-xs font-semibold text-red-600">{formErrors.meetUrl}</p> : null}
                     </label>
                   </div>
                 </div>
 
-                <button type="submit" className="mt-6 w-full h-12 rounded-xl bg-[#00342b] text-white text-sm font-extrabold inline-flex items-center justify-center gap-2 hover:bg-[#004d40] transition-colors">
-                  <FiCheckCircle className="text-lg" />
-                  Publish for students
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="mt-6 w-full h-12 rounded-xl bg-[#00342b] text-white text-sm font-extrabold inline-flex items-center justify-center gap-2 hover:bg-[#004d40] transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {submitting ? (
+                    <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : (
+                    <FiCheckCircle className="text-lg" />
+                  )}
+                  {submitting
+                    ? editingSessionId
+                      ? "Updating live class..."
+                      : "Creating live class..."
+                    : editingSessionId
+                      ? "Update live class"
+                      : "Create live class"}
                 </button>
               </form>
             ) : null}
@@ -473,6 +921,14 @@ export default function TrainerDashboardPage() {
                     <FiPlusCircle />
                     New class
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => loadTrainerClasses()}
+                    className="h-11 px-5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-extrabold inline-flex items-center justify-center gap-2 hover:border-[#006b58] transition-colors"
+                  >
+                    <FiRefreshCw className={loadingClasses ? "animate-spin" : ""} />
+                    Refresh
+                  </button>
                 </div>
 
                 {message ? (
@@ -480,9 +936,21 @@ export default function TrainerDashboardPage() {
                     {message}
                   </div>
                 ) : null}
+                {error ? (
+                  <div className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 flex items-start gap-2">
+                    <FiAlertCircle className="mt-0.5 flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                ) : null}
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {trainerClasses.length === 0 ? (
+                  {loadingClasses ? (
+                    <div className="md:col-span-2 xl:col-span-3 rounded-2xl bg-slate-50 border border-slate-100 p-8 text-center">
+                      <span className="mx-auto block w-8 h-8 rounded-full border-2 border-slate-200 border-t-[#00342b] animate-spin" />
+                      <div className="mt-3 text-lg font-extrabold">Loading live classes</div>
+                      <p className="mt-1 text-sm text-slate-500">Fetching your trainer sessions securely.</p>
+                    </div>
+                  ) : trainerClasses.length === 0 ? (
                     <div className="md:col-span-2 xl:col-span-3 rounded-2xl bg-slate-50 border border-slate-100 p-8 text-center">
                       <FiVideo className="mx-auto text-4xl text-slate-300" />
                       <div className="mt-3 text-lg font-extrabold">No classes uploaded yet</div>
@@ -500,12 +968,30 @@ export default function TrainerDashboardPage() {
                           />
                         </div>
                         <div className="p-4">
-                          <div className="text-[11px] font-extrabold uppercase tracking-widest text-[#006b58]">
-                            {liveClass.courseName}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-extrabold uppercase tracking-widest text-[#006b58] truncate">
+                                {liveClass.courseName}
+                              </div>
+                              <h3 className="mt-1 text-base font-extrabold text-slate-950 line-clamp-2">
+                                {liveClass.title}
+                              </h3>
+                            </div>
+                            <span
+                              className={[
+                                "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider",
+                                getDisplayStatus(liveClass) === "completed"
+                                  ? "bg-slate-100 text-slate-700 border border-slate-200"
+                                  : getDisplayStatus(liveClass) === "published"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                  : getDisplayStatus(liveClass) === "cancelled"
+                                    ? "bg-red-50 text-red-700 border border-red-100"
+                                    : "bg-amber-50 text-amber-700 border border-amber-100",
+                              ].join(" ")}
+                            >
+                              {getDisplayStatus(liveClass)}
+                            </span>
                           </div>
-                          <h3 className="mt-1 text-base font-extrabold text-slate-950 line-clamp-2">
-                            {liveClass.title}
-                          </h3>
                           <p className="mt-2 text-sm text-slate-500 line-clamp-2">
                             {liveClass.description}
                           </p>
@@ -518,6 +1004,47 @@ export default function TrainerDashboardPage() {
                               <FiCalendar />
                               {liveClass.durationMinutes} minutes
                             </span>
+                          </div>
+                          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEditingSession(liveClass)}
+                              className="h-9 rounded-lg bg-slate-50 text-slate-700 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 hover:bg-slate-100"
+                              title="Edit live class"
+                            >
+                              <FiEdit3 />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionId === `publish:${liveClass.id}` || liveClass.status === "published"}
+                              onClick={() => updateSessionStatus(liveClass.id, "publish")}
+                              className="h-9 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Publish live class"
+                            >
+                              <FiSend />
+                              Publish
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionId === `cancel:${liveClass.id}` || liveClass.status === "cancelled"}
+                              onClick={() => openSessionDialog(liveClass.id, "cancel")}
+                              className="h-9 rounded-lg bg-amber-50 text-amber-700 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Cancel live class"
+                            >
+                              <FiXCircle />
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionId === `delete:${liveClass.id}`}
+                              onClick={() => openSessionDialog(liveClass.id, "delete")}
+                              className="h-9 rounded-lg bg-red-50 text-red-700 text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Delete live class"
+                            >
+                              <FiTrash2 />
+                              Delete
+                            </button>
                           </div>
                         </div>
                       </article>

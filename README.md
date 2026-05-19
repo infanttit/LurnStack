@@ -12,9 +12,10 @@ React (Create React App) + TailwindCSS single-page app with feature-based module
 
 This React app uses browser routes. On a VPS, the web server must fallback
 unknown frontend routes to `index.html`, otherwise refreshing `/courses`,
-`/login`, or another React route will show a server 404. Apache builds include
-`public/.htaccess`; for Nginx/aapanel use the rule in
-`docs/aapanel-spa-routing.md`.
+`/login`, `/signup`, `/dashboard`, or another React route will show a server
+404. Apache builds include `public/.htaccess`. Nginx/aaPanel must use the
+`try_files` rule in `docs/aapanel-spa-routing.md`; the same snippet is copied
+into the build as `nginx-spa-fallback.conf`.
 
 ## Quick start
 
@@ -35,6 +36,16 @@ Build the frontend with:
 Upload or point the `lurnstack.com` document root to the generated `build`
 folder. Make sure the SPA fallback rule is enabled, otherwise refresh on
 frontend routes will show 404.
+
+For Nginx/aaPanel, the required frontend rule is:
+
+```nginx
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
+
+Keep `api.lurnstack.com` separate from the frontend site.
 
 ## Architecture (high level)
 

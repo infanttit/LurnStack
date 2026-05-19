@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import loginImage from "../../assets/Images/Signup.jpeg";
+import brandLogo from "../../assets/Logo/Logo3.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
@@ -35,15 +36,14 @@ const FacebookIcon = () => (
 
 /* ─── Logo ───────────────────────────────────────────────────── */
 const Logo = ({ dark = false }) => (
-  <div className="flex items-center gap-2">
-    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${dark ? "bg-[#004d3d]" : "bg-white/10 border border-white/20"}`}>
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-      </svg>
-    </div>
-    <span className={`text-lg font-bold tracking-tight ${dark ? "text-[#004d3d]" : "text-white"}`}>LurnStack</span>
-  </div>
+  <Link to="/" className="inline-flex items-center" aria-label="LurnStack home">
+    <img
+      src={brandLogo}
+      alt="LurnStack"
+      className={dark ? "h-14 w-auto object-contain" : "h-16 w-auto object-contain"}
+      loading="eager"
+    />
+  </Link>
 );
 
 /* ─── Global Styles ──────────────────────────────────────────── */
@@ -113,13 +113,13 @@ export default function LoginPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      await signIn({
+      const nextUser = await signIn({
         email: normalizeEmail(form.email),
         password: form.password,
         remember: form.remember,
         role: accountType,
       });
-      navigate(accountType === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo, {
+      navigate(nextUser?.role === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo, {
         replace: true,
       });
     } catch (err) {
@@ -174,7 +174,7 @@ export default function LoginPage() {
               {/* Tabs */}
               <div className="flex border-b border-slate-200 mb-4 anim-2">
                 <Link to="/login" className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]">Login</Link>
-                <Link to="/signup" className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Sign Up</Link>
+                <Link to="/signup" state={{ from: redirectTo }} className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Sign Up</Link>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4 anim-2 rounded-xl bg-slate-50 p-1 border border-slate-100">
@@ -208,7 +208,7 @@ export default function LoginPage() {
                 <div>
                   <label htmlFor="email" className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1">Email Address</label>
                   <input
-                    id="email" type="email" name="email" placeholder="name@company.com"
+                    id="email" type="email" name="email" placeholder="Enter email address"
                     value={form.email} onChange={handleChange}
                     className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
                       ${errors.email ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"}`}
@@ -224,7 +224,7 @@ export default function LoginPage() {
                   <label htmlFor="password" className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1">Password</label>
                   <div className="relative">
                     <input
-                      id="password" type={showPassword ? "text" : "password"} name="password" placeholder="••••••••"
+                      id="password" type={showPassword ? "text" : "password"} name="password" placeholder="Enter password"
                       value={form.password} onChange={handleChange}
                       className={`w-full h-11 px-4 pr-12 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
                         ${errors.password ? "border-red-400 focus:ring-red-100" : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"}`}
@@ -241,13 +241,6 @@ export default function LoginPage() {
                     </div>
                   )}
                 </div>
-
-                {accountType === "trainer" ? (
-                  <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] leading-relaxed text-emerald-900">
-                    <span className="font-extrabold">Trainer demo:</span>{" "}
-                    trainer@lurnstack.com / Trainer@123
-                  </div>
-                ) : null}
 
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
