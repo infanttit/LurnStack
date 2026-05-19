@@ -8,6 +8,14 @@ React (Create React App) + TailwindCSS single-page app with feature-based module
 - Admin: `https://admin.lurnstack.com`
 - Backend API: `https://api.lurnstack.com`
 
+## VPS/aapanel routing
+
+This React app uses browser routes. On a VPS, the web server must fallback
+unknown frontend routes to `index.html`, otherwise refreshing `/courses`,
+`/login`, or another React route will show a server 404. Apache builds include
+`public/.htaccess`; for Nginx/aapanel use the rule in
+`docs/aapanel-spa-routing.md`.
+
 ## Quick start
 
 1) Create `.env.local` (or copy from `.env.example`):
@@ -17,6 +25,16 @@ React (Create React App) + TailwindCSS single-page app with feature-based module
 2) Run:
 
 - `npm start`
+
+## VPS/aapanel build
+
+Build the frontend with:
+
+- `npm run build`
+
+Upload or point the `lurnstack.com` document root to the generated `build`
+folder. Make sure the SPA fallback rule is enabled, otherwise refresh on
+frontend routes will show 404.
 
 ## Architecture (high level)
 
