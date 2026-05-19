@@ -8,10 +8,9 @@ import FilterSidebar from "../components/FilterSidebar";
 import FeaturedBanner from "../components/FeaturedBanner";
 import CoursesTabSection from "../components/CoursesTabSection";
 import catImages from "../../assets/Images/categories/categories";
-import {
-  getTrainerCourses,
-  getTrainerLiveClassesByCourse,
-} from "../../trainers/model/trainerContentStorage";
+import { getStudentSessions } from "../../courses/api/studentSessionsApi";
+import { getAllCourses } from "../../courses/data/courseCatalog";
+import { useAuth } from "../../auth";
 
 // eslint-disable-next-line no-unused-vars
 const ALL_COURSES = [
@@ -354,6 +353,177 @@ const cardVariants = {
 };
 const SORT_OPTIONS = ["Most Popular", "Highest Rated", "Newest", "Price: Low to High"];
 
+const guestCategories = [
+  {
+    title: "Web Development",
+    image: catImages["popular-webdev"],
+    count: "42 live lessons",
+    focus: "React, APIs, deployment",
+    description: "Build production-ready web apps with frontend, backend, and hosting workflows.",
+  },
+  {
+    title: "Data & Analytics",
+    image: catImages["data-analytics"],
+    count: "28 sessions",
+    focus: "SQL, Python, dashboards",
+    description: "Turn raw data into business-ready insights with practical analyst workflows.",
+  },
+  {
+    title: "Cloud & DevOps",
+    image: catImages["advanced-strategy"],
+    count: "31 sessions",
+    focus: "AWS, Docker, VPS",
+    description: "Learn reliable deployment, server operations, and cloud infrastructure basics.",
+  },
+  {
+    title: "AI & Automation",
+    image: catImages["global-economic"],
+    count: "36 sessions",
+    focus: "LLMs, agents, workflows",
+    description: "Use modern AI tools to build faster products and automate everyday tasks.",
+  },
+  {
+    title: "Design Systems",
+    image: catImages["design-systems"],
+    count: "18 workshops",
+    focus: "UI, UX, Figma",
+    description: "Create polished interfaces with reusable systems and product thinking.",
+  },
+  {
+    title: "Business Growth",
+    image: catImages["leadership-digital"],
+    count: "24 sessions",
+    focus: "Strategy, marketing, teams",
+    description: "Sharpen leadership, go-to-market, and operating decisions for real teams.",
+  },
+];
+
+const guestTracks = [
+  "Full stack project path",
+  "Career-ready frontend path",
+  "Database and backend path",
+  "Cloud deployment path",
+];
+
+function GuestCategoriesPage() {
+  return (
+    <div className="min-h-screen bg-white">
+      <section className="border-b border-gray-100 bg-[#f7fbf9]">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center rounded-full border border-emerald-100 bg-white px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-[#006b58]">
+              Explore categories
+            </div>
+            <h1 className="mt-4 text-3xl sm:text-5xl font-extrabold leading-tight text-gray-950">
+              Find the right learning path before you sign in.
+            </h1>
+            <p className="mt-4 text-sm sm:text-base leading-relaxed text-gray-600 max-w-2xl">
+              Browse professional learning categories, compare focus areas, and register when you are ready to add a session or join a live class.
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <Link
+                to="/signup"
+                className="h-11 px-6 rounded-lg bg-[#004d3d] text-white text-sm font-extrabold inline-flex items-center justify-center hover:bg-[#00392d] transition-colors"
+              >
+                Register to continue
+              </Link>
+              <Link
+                to="/login"
+                className="h-11 px-6 rounded-lg border border-gray-200 bg-white text-gray-950 text-sm font-extrabold inline-flex items-center justify-center hover:border-[#004d3d] transition-colors"
+              >
+                Log in
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h2 className="text-2xl font-extrabold text-gray-950">Popular categories</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Curated tracks for practical, live instructor-led learning.
+            </p>
+          </div>
+          <span className="text-xs font-extrabold uppercase tracking-widest text-[#006b58]">
+            Preview mode
+          </span>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {guestCategories.map((category) => (
+            <article
+              key={category.title}
+              className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md hover:border-emerald-200 transition-all"
+            >
+              <div className="aspect-[16/8] bg-gray-100 overflow-hidden">
+                <img src={category.image} alt={category.title} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-base font-extrabold text-gray-950">{category.title}</h3>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#006b58]">
+                    {category.count}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-semibold text-gray-600">{category.focus}</p>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">{category.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        <div className="rounded-lg border border-gray-200 bg-gray-950 text-white overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 p-5 sm:p-7">
+            <div>
+              <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-300">
+                How it works
+              </div>
+              <h2 className="mt-3 text-2xl sm:text-3xl font-extrabold">
+                Browse freely. Continue after login.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/70 max-w-2xl">
+                You can inspect categories before creating an account. Adding a card, joining a class, and saving progress are unlocked after login or registration.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {guestTracks.map((track, index) => (
+                <div key={track} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 flex items-center gap-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-950 text-xs font-black">
+                    {index + 1}
+                  </span>
+                  <span className="text-sm font-bold">{track}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function getGuestCourses() {
+  return getAllCourses()
+    .slice(0, 12)
+    .map((course) => ({
+      ...course,
+      category: course.category || course.tab || "Popular Courses",
+      topic: course.topic || course.tab || "Development",
+      instructorName: course.instructorName || course.instructor || "LurnStack Faculty",
+      rating: course.rating || 4.7,
+      ratingCount: Number(course.ratingCount) || 0,
+      price: Number(String(course.price || "").replace(/[^0-9.]/g, "")) || 499,
+      priceType: course.priceType || "Paid",
+      popularity: course.popularity || 1000,
+      dateAdded: course.dateAdded || new Date().toISOString(),
+      createdByTrainer: false,
+    }));
+}
+
 const Categories = () => {
   const [activeFilters, setActiveFilters] = useState([]);
   const [sortBy, setSortBy] = useState("Most Popular");
@@ -362,42 +532,35 @@ const Categories = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const trainerCourses = useMemo(
-    () =>
-      getTrainerCourses().map((course) => {
-        const liveClass = getTrainerLiveClassesByCourse(course.id)[0] || null;
-        return {
-        id: course.id,
-        thumbnail: course.thumbnail,
-        category: course.tab || "Trainer Courses",
-        title: course.title,
-        rating: course.rating || 4.8,
-        ratingCount: 0,
-        instructorName: course.instructor,
-        price: Number(String(course.price || "").replace(/[^0-9.]/g, "")) || 499,
-        originalPrice: null,
-        lastUpdated: course.updated || "Trainer upload",
-        description: course.description,
-        badge: course.badge || "Live",
-        totalHours: course.hours || "Live class",
-        level: course.level || "All Levels",
-        priceType: "Paid",
-        topic: course.tab || "Trainer Courses",
-        popularity: 999999,
-        dateAdded: course.createdAt || new Date().toISOString(),
-        takeaways: course.bullets || [],
-        createdByTrainer: true,
-        liveClass,
-      };
-      }),
-    []
+  const [allCourses, setAllCourses] = useState([]);
+  const [loadError, setLoadError] = useState("");
+  const { isAuthenticated } = useAuth();
+  const featuredCourse = useMemo(
+    () => [...allCourses].sort((a, b) => (b.popularity || 0) - (a.popularity || 0))[0] || null,
+    [allCourses]
   );
-  const allCourses = useMemo(() => trainerCourses, [trainerCourses]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(t);
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(getGuestCourses());
+    loader
+      .then((sessions) => {
+        if (!cancelled) setAllCourses(sessions);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setAllCourses(getGuestCourses());
+          setLoadError(isAuthenticated ? err?.message || "Unable to load sessions." : "");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const toggleFilter = useCallback((filter) => {
     setActiveFilters((prev) => (prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]));
@@ -445,10 +608,14 @@ const Categories = () => {
     return result;
   }, [activeFilters, sortBy, activeCategory, searchQuery, allCourses]);
 
+  if (!isAuthenticated) {
+    return <GuestCategoriesPage />;
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-        <nav className="text-[12px] text-gray-500 flex items-center gap-2">
+      <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-2">
+        <nav className="hidden sm:flex text-[12px] text-gray-500 items-center gap-2">
           <Link to="/" className="hover:text-black transition-colors">Home</Link>
           <span className="text-gray-300">/</span>
           <span className="text-black font-semibold">Categories</span>
@@ -456,35 +623,46 @@ const Categories = () => {
       </div>
 
       {/* Section 1: Hero Banner */}
-      <div className="w-full">
-        <FeaturedBanner />
+      <div className="w-full max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">
+        <FeaturedBanner course={featuredCourse} />
       </div>
 
       <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Gap between Banner and Grid */}
-        <div className="h-12" />
+        <div className="h-3 sm:h-8 lg:h-12" />
 
         {/* Section 2: Main Course Grid with Filters */}
-        <div className="flex flex-col lg:flex-row gap-12 relative">
+        <div className="flex flex-col lg:flex-row gap-6 xl:gap-10 relative">
           <div className="hidden lg:block w-64 xl:w-72 flex-shrink-0">
             <div className="sticky top-24">
               <FilterSidebar activeFilters={activeFilters} toggleFilter={toggleFilter} onClear={clearFilters} />
             </div>
           </div>
 
-          <div className="lg:hidden flex items-center justify-between mb-4">
+          <div className="lg:hidden flex flex-col gap-3 mb-4">
+            <div className="relative w-full">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search sessions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded focus:ring-1 focus:ring-black focus:border-black"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => setMobileFiltersOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded font-bold text-sm"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded font-bold text-sm flex-shrink-0"
             >
               <FaFilter className="text-xs" /> Filter
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-bold text-gray-500 uppercase">Sort by</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="text-sm font-bold border-none bg-transparent focus:ring-0 cursor-pointer"
+                className="min-w-0 max-w-[150px] text-sm font-bold border-none bg-transparent focus:ring-0 cursor-pointer"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o} value={o}>
@@ -493,9 +671,15 @@ const Categories = () => {
                 ))}
               </select>
             </div>
+            </div>
           </div>
 
           <main className="flex-1 min-w-0">
+            {loadError ? (
+              <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {loadError}
+              </div>
+            ) : null}
             <div className="hidden lg:flex items-center justify-between mb-6">
               <div className="relative w-full max-w-md">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

@@ -25,11 +25,11 @@ export function AuthProvider({ children }) {
       isAuthenticated: !!user,
       userRole: user?.role || "student",
       isTrainer: user?.role === "trainer",
-      signUp: async ({ fullName, email, password, role = "student" }) => {
+      signUp: async ({ fullName, email, phoneNumber, password, role = "student" }) => {
         const next =
           role === "trainer"
-            ? await registerTrainer({ fullName, email, password, persist: true })
-            : await registerUser({ fullName, email, password, persist: true });
+            ? await registerTrainer({ fullName, email, phoneNumber, password, persist: true })
+            : await registerUser({ fullName, email, phoneNumber, password, persist: true });
         setUser(next || null);
         return next || null;
       },

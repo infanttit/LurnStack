@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import CourseCard from "./CourseCard";
-import {
-  getTrainerCourses,
-  getTrainerLiveClassesByCourse,
-} from "../../trainers/model/trainerContentStorage";
+import { getStudentSessions } from "../../courses/api/studentSessionsApi";
+import { getAllCourses } from "../../courses/data/courseCatalog";
+import { useAuth } from "../../auth";
 
-const TABS = ["New"];
+const TABS = ["Most Popular"];
 
 const containerVariants = {
   hidden: {},
@@ -19,34 +18,50 @@ const cardVariants = {
 
 const CoursesTabSection = () => {
   const [activeTab, setActiveTab] = useState("Most Popular");
-  const trainerCourses = getTrainerCourses().map((course) => ({
-    id: course.id,
-    thumbnail: course.thumbnail,
-    category: course.tab || "Trainer Courses",
-    title: course.title,
-    rating: course.rating || 4.8,
-    ratingCount: 0,
-    instructorName: course.instructor,
-    price: Number(String(course.price || "").replace(/[^0-9.]/g, "")) || 499,
-    originalPrice: null,
-    badge: course.badge || "Live",
-    totalHours: course.hours || "Live class",
-    level: course.level || "All Levels",
-    priceType: "Paid",
-    topic: course.tab || "Trainer Courses",
-    popularity: 999999,
-    dateAdded: course.createdAt || new Date().toISOString(),
-    description: course.description,
-    takeaways: course.bullets || [],
-    createdByTrainer: true,
-    liveClass: getTrainerLiveClassesByCourse(course.id)[0] || null,
-  }));
-  const activeCourses = trainerCourses;
+  const [activeCourses, setActiveCourses] = useState([]);
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    let cancelled = false;
+    const guestCourses = () =>
+      getAllCourses()
+        .slice(0, 8)
+        .map((course) => ({
+          ...course,
+          category: course.category || course.tab || "Popular Courses",
+          topic: course.topic || course.tab || "Development",
+          instructorName: course.instructorName || course.instructor || "LurnStack Faculty",
+          rating: course.rating || 4.7,
+          ratingCount: Number(course.ratingCount) || 0,
+          price: Number(String(course.price || "").replace(/[^0-9.]/g, "")) || 499,
+          priceType: course.priceType || "Paid",
+          popularity: course.popularity || 1000,
+          dateAdded: course.dateAdded || new Date().toISOString(),
+          createdByTrainer: false,
+        }));
+    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(guestCourses());
+    loader
+      .then((sessions) => {
+        if (!cancelled) {
+          setActiveCourses(
+            [...sessions]
+              .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+              .slice(0, 8)
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setActiveCourses(isAuthenticated ? [] : guestCourses());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   return (
     <div className="mb-12">
 
-      <div className="flex items-center border-b border-gray-200 mb-6 overflow-x-auto">
+      <div className="flex items-center border-b border-gray-200 mb-4 sm:mb-6 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab}

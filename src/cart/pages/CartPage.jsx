@@ -155,7 +155,9 @@ export default function CartPage() {
                       {/* Meta: hours · lectures · level */}
                       <p className="mt-1 text-xs text-on-surface-variant">
                         {[
-                          item.totalHours && `${item.totalHours} total hours`,
+                          item.sessionId
+                            ? `${item.totalHours || 60} min live class`
+                            : item.totalHours && `${item.totalHours} total hours`,
                           item.lectures && `${item.lectures} lectures`,
                           item.level,
                         ]
@@ -165,6 +167,7 @@ export default function CartPage() {
 
                       {/* Badges */}
                       <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {item.sessionId && <Badge label="Live Session" variant="updated" />}
                         {item.updatedRecently && <Badge label="Updated Recently" variant="updated" />}
                         {item.isPremium !== false && <Badge label="Premium" />}
                       </div>

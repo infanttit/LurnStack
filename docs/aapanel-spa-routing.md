@@ -14,10 +14,10 @@ Apache/aapanel must allow `.htaccess` overrides for the site. If refresh still
 shows 404, enable rewrite support and allow overrides for the frontend document
 root.
 
-## Nginx
+## Nginx / aaPanel
 
-If the aapanel site uses Nginx, add this inside the `server` block for
-`lurnstack.com`:
+If the aaPanel site uses Nginx, `.htaccess` is ignored. Add this inside the
+`server` block for the frontend site `lurnstack.com`:
 
 ```nginx
 location / {
@@ -25,5 +25,59 @@ location / {
 }
 ```
 
+The same snippet is also included in `public/nginx-spa-fallback.conf`, so after
+`npm run build` it is available as `build/nginx-spa-fallback.conf` for copying
+into aaPanel.
+
+### aaPanel steps
+
+1. Open aaPanel.
+2. Go to **Website**.
+3. Click the config/settings option for `lurnstack.com`.
+4. Open the Nginx configuration for that site.
+5. Inside the `server { ... }` block, add or replace the frontend `location /`
+   rule with:
+
+```nginx
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
+
+6. Save the config.
+7. Reload or restart Nginx from aaPanel.
+
+After this, refreshing these frontend routes should load correctly:
+
+- `https://lurnstack.com/login`
+- `https://lurnstack.com/signup`
+- `https://lurnstack.com/dashboard`
+- `https://lurnstack.com/live-classes`
+- `https://lurnstack.com/courses`
+- `https://lurnstack.com/cart`
+- `https://lurnstack.com/checkout`
+
 Keep backend/API proxy rules separate on `api.lurnstack.com`. Do not proxy
 frontend routes like `/courses` to the backend.
+
+## Full Nginx Example
+
+Use the correct `root` path for your aaPanel site. It must point to the built
+React app folder that contains `index.html`, `static/`, `asset-manifest.json`,
+and `.htaccess`.
+
+```nginx
+server {
+    listen 80;
+    server_name lurnstack.com www.lurnstack.com;
+    root /www/wwwroot/lurnstack.com/build;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+If your aaPanel document root is already set to the generated build folder, keep
+that existing root and only add the `location /` fallback.

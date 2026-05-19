@@ -10,6 +10,7 @@ import SearchPage from "../../pages/SearchPage";
 import CartPage from "../../cart/pages/CartPage";
 import CheckoutPage from "../../cart/pages/Checkoutpage .jsx";
 import RequireAuth from "../../auth/components/RequireAuth";
+import { useAuth } from "../../auth";
 import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage";
 import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
@@ -20,6 +21,14 @@ import { PATHS, categoryHashPath } from "./paths";
 function CategoryRedirect() {
   const { categoryId } = useParams();
   return <Navigate to={categoryHashPath(categoryId)} replace />;
+}
+
+function TrainerWebsiteRedirect({ children }) {
+  const { bootstrapped, isTrainer } = useAuth();
+  if (bootstrapped && isTrainer) {
+    return <Navigate to={PATHS.TRAINER_DASHBOARD} replace />;
+  }
+  return children;
 }
 
 export default function AppRouter() {
@@ -33,7 +42,13 @@ export default function AppRouter() {
           </RequireAuth>
         )}
       />
-      <Route element={<AppShell />}>
+      <Route
+        element={(
+          <TrainerWebsiteRedirect>
+            <AppShell />
+          </TrainerWebsiteRedirect>
+        )}
+      >
         <Route path={PATHS.HOME} element={<LandingPage />} />
         <Route
           path={PATHS.DASHBOARD}

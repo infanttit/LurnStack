@@ -6,7 +6,7 @@ import NavbarSearch from "./navbar/NavbarSearch";
 import { useCart } from "../../cart";
 import { PATHS } from "../../app/router/paths";
 import { useAuth } from "../../auth";
-import logo from "../../assets/Logo/Logo2.png";
+import logo from "../../assets/Logo/Logo3.png";
 
 function initials(name) {
   const parts = String(name || "")
@@ -190,18 +190,12 @@ export default function SiteNavbar() {
                   ) : null}
                 </div>
               ) : (
-                <div className="hidden sm:flex items-center gap-3">
-                  <NavLink
-                    to={PATHS.LOGIN}
-                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200"
-                  >
-                    Log In
-                  </NavLink>
+                <div className="hidden sm:flex items-center">
                   <NavLink
                     to={PATHS.SIGNUP}
                     className="font-label-sm text-label-sm px-8 py-3 bg-white text-emerald-800 rounded-full hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200"
                   >
-                    Sign Up
+                    Get Started
                   </NavLink>
                 </div>
               )}
@@ -295,22 +289,13 @@ export default function SiteNavbar() {
                 </button>
               </>
             ) : (
-              <>
-                <NavLink
-                  to={PATHS.LOGIN}
-                  onClick={closeMobileMenu}
-                  className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-                >
-                  Log In
-                </NavLink>
-                <NavLink
-                  to={PATHS.SIGNUP}
-                  onClick={closeMobileMenu}
-                  className="font-label-sm text-label-sm px-8 py-3 bg-white text-emerald-800 rounded-full hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center"
-                >
-                  Sign Up
-                </NavLink>
-              </>
+              <NavLink
+                to={PATHS.SIGNUP}
+                onClick={closeMobileMenu}
+                className="font-label-sm text-label-sm px-8 py-3 bg-white text-emerald-800 rounded-full hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center"
+              >
+                Get Started
+              </NavLink>
             )}
           </div>
         </div>

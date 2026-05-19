@@ -2,15 +2,6 @@ import { loginApi, registerApi } from "../api/authApi";
 
 const USER_KEY = "lurnstack:auth:user:v1";
 const TOKEN_KEY = "lurnstack:auth:token:v1";
-const TRAINER_ACCOUNTS_KEY = "lurnstack:trainer-accounts:v1";
-const TRAINER_TOKEN_PREFIX = "trainer-local-token";
-
-const DEFAULT_TRAINER = {
-  fullName: "LurnStack Trainer",
-  email: "trainer@lurnstack.com",
-  password: "Trainer@123",
-  role: "trainer",
-};
 
 function getWebStorage(type) {
   if (typeof window === "undefined") return null;
@@ -54,31 +45,34 @@ function loadToken() {
   return String(raw);
 }
 
-function loadTrainerAccounts() {
-  const storage = getWebStorage("local");
-  const parsed = safeJsonParse(storage?.getItem(TRAINER_ACCOUNTS_KEY));
-  const accounts = parsed && typeof parsed === "object" ? parsed : {};
-  return {
-    [DEFAULT_TRAINER.email]: DEFAULT_TRAINER,
-    ...accounts,
-  };
-}
-
-function saveTrainerAccount(account) {
-  const storage = getWebStorage("local");
-  if (!storage) return;
-  const accounts = loadTrainerAccounts();
-  accounts[account.email] = account;
-  delete accounts[DEFAULT_TRAINER.email];
-  storage.setItem(TRAINER_ACCOUNTS_KEY, JSON.stringify(accounts));
+function normalizeRole(role) {
+  const value = String(role || "").trim().toLowerCase();
+  return value === "trainer" ? "trainer" : "student";
 }
 
 function toPublicUser(user) {
   if (!user || typeof user !== "object") return null;
   const fullName = user.fullName || user.FULL_NAME || user.name || "";
   const email = user.email || user.EMAIL_ADDRESS || "";
-  const { password, ...rest } = user;
-  return { ...rest, fullName, email, role: user.role || "student" };
+  const phoneNumber = user.phoneNumber || user.PHONE_NUMBER || "";
+  const { password, PASSWORD, token, ...rest } = user;
+  return { ...rest, fullName, email, phoneNumber, role: normalizeRole(user.role) };
+}
+
+function ensureExpectedRole(user, expectedRole) {
+  const normalizedExpectedRole = normalizeRole(expectedRole);
+  if (user?.role === normalizedExpectedRole) return;
+  throw new Error(`Please use a ${normalizedExpectedRole} account to continue.`);
+}
+
+async function loginAndPersist({ email, password, persist, expectedRole }) {
+  const result = await loginApi({ email, password });
+  if (!result.token) throw new Error("Login succeeded but no session token was returned.");
+  const user = toPublicUser(result.user);
+  ensureExpectedRole(user, expectedRole);
+  saveToken(result.token, { persist });
+  saveUser(user, { persist });
+  return user;
 }
 
 export function getAuthToken() {
@@ -92,50 +86,54 @@ export function getCurrentUser() {
   return user;
 }
 
-export async function registerUser({ fullName, email, password, persist = true }) {
-  const result = await registerApi({ fullName, email, password });
-  if (result.token) saveToken(result.token, { persist });
-  const user = toPublicUser(result.user);
-  saveUser(user, { persist });
-  return user;
+export async function registerUser({ fullName, email, phoneNumber, password, persist = true }) {
+  const result = await registerApi({
+    fullName,
+    email,
+    phoneNumber,
+    password,
+    role: "student",
+  });
+  if (result.token) {
+    const user = {
+      ...toPublicUser(result.user),
+      phoneNumber: String(phoneNumber || "").trim(),
+    };
+    ensureExpectedRole(user, "student");
+    saveToken(result.token, { persist });
+    saveUser(user, { persist });
+    return user;
+  }
+  return loginAndPersist({ email, password, persist, expectedRole: "student" });
 }
 
 export async function authenticateUser({ email, password, persist = true }) {
-  const result = await loginApi({ email, password });
-  saveToken(result.token, { persist });
-  const user = toPublicUser(result.user);
-  saveUser(user, { persist });
-  return user;
+  return loginAndPersist({ email, password, persist, expectedRole: "student" });
 }
 
-export async function registerTrainer({ fullName, email, password, persist = true }) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const accounts = loadTrainerAccounts();
-  if (accounts[normalizedEmail]) {
-    throw new Error("A trainer account already exists with this email.");
-  }
-  const user = {
-    fullName: String(fullName || "").trim(),
-    email: normalizedEmail,
-    password: String(password || ""),
+export async function registerTrainer({ fullName, email, phoneNumber, password, persist = true }) {
+  const result = await registerApi({
+    fullName,
+    email,
+    phoneNumber,
+    password,
     role: "trainer",
-  };
-  saveTrainerAccount(user);
-  saveToken(`${TRAINER_TOKEN_PREFIX}:${normalizedEmail}`, { persist });
-  saveUser(toPublicUser(user), { persist });
-  return toPublicUser(user);
+  });
+  if (result.token) {
+    const user = {
+      ...toPublicUser(result.user),
+      phoneNumber: String(phoneNumber || "").trim(),
+    };
+    ensureExpectedRole(user, "trainer");
+    saveToken(result.token, { persist });
+    saveUser(user, { persist });
+    return user;
+  }
+  return loginAndPersist({ email, password, persist, expectedRole: "trainer" });
 }
 
 export async function authenticateTrainer({ email, password, persist = true }) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const accounts = loadTrainerAccounts();
-  const trainer = accounts[normalizedEmail];
-  if (!trainer || trainer.password !== String(password || "")) {
-    throw new Error("Invalid trainer credentials.");
-  }
-  saveToken(`${TRAINER_TOKEN_PREFIX}:${normalizedEmail}`, { persist });
-  saveUser(toPublicUser(trainer), { persist });
-  return toPublicUser(trainer);
+  return loginAndPersist({ email, password, persist, expectedRole: "trainer" });
 }
 
 export function logoutUser() {

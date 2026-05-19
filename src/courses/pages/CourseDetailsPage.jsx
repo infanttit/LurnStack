@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useRef } from "react";
+import { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
 import {
@@ -9,7 +9,16 @@ import {
   HiChevronUp,
 } from "react-icons/hi2";
 import { useCart, emitCartFlyFromElement, parseINRPriceToPaise } from "../../cart";
+import { useAuth } from "../../auth";
+import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { getCourseById, getCourseLiveClasses } from "../data/courseCatalog";
+import {
+  addStudentSessionCard,
+  getStudentSessionById,
+  joinStudentSession,
+} from "../api/studentSessionsApi";
+import useNow from "../../live-classes/hooks/useNow";
+import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -17,6 +26,34 @@ import demoVideo from "../../assets/Videos/Hero.mp4";
 // ── Helpers ────────────────────────────────────────────────────────────────
  
 // ── Mock course content sections ───────────────────────────────────────────
+function toCartItem(course) {
+  return {
+    id: String(course.id),
+    title: course.title,
+    instructor: course.instructor,
+    thumbnail: course.thumbnail,
+    thumbnailBg: course.thumbnailBg,
+    unitPricePaise: parseINRPriceToPaise(course.price),
+    displayPrice: course.price,
+    oldPrice: course.oldPrice || null,
+    qty: 1,
+    rating: Number(course.rating) || 4.8,
+    ratingCount: Number(course.ratingCount) || 0,
+    totalHours: course.totalHours || course.liveClass?.durationMinutes,
+    level: course.level || "All Levels",
+    isPremium: !course.createdByTrainer,
+    sessionId: course.createdByTrainer ? String(course.id) : undefined,
+  };
+}
+
+function isCourseSessionCompleted(course) {
+  const liveClass = course?.liveClass;
+  const scheduledAt = new Date(liveClass?.scheduledAt || "").getTime();
+  const durationMinutes = Number(liveClass?.durationMinutes) || 0;
+  if (!Number.isFinite(scheduledAt) || !durationMinutes) return false;
+  return Date.now() > scheduledAt + durationMinutes * 60 * 1000;
+}
+
 const MOCK_SECTIONS = [
   {
     id: 1,
@@ -336,34 +373,77 @@ export default function CourseDetailsPage() {
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
+  const { isAuthenticated } = useAuth();
+  const now = useNow(1000);
   const [activeTab, setActiveTab] = useState("Overview");
   const [isSubscribed] = useState(false); // Set to true after subscription
+  const [remoteCourse, setRemoteCourse] = useState(null);
+  const [sessionAction, setSessionAction] = useState("");
+  const [authPrompt, setAuthPrompt] = useState(null);
   const liveClasses = useMemo(() => getCourseLiveClasses(courseId), [courseId]);
 
   const course = useMemo(() => {
     const fromState = location?.state?.course;
     if (fromState && String(fromState.id) === String(courseId)) return fromState;
-    return getCourseById(courseId);
-  }, [courseId, location?.state]);
+    return remoteCourse || getCourseById(courseId);
+  }, [courseId, location?.state, remoteCourse]);
+  const isInCart = useMemo(
+    () => items.some((item) => String(item.sessionId || item.id) === String(course?.id || "")),
+    [course?.id, items]
+  );
+
+  useEffect(() => {
+    if (course || !courseId) return;
+    let cancelled = false;
+    getStudentSessionById(courseId)
+      .then((session) => {
+        if (!cancelled) setRemoteCourse(session);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [course, courseId]);
 
   const addToCart = useCallback(
-    (fromEl) => {
+    async (fromEl) => {
       if (!course) return;
-      addItem({
-        id: String(course.id),
-        title: course.title,
-        instructor: course.instructor,
-        thumbnail: course.thumbnail,
-        thumbnailBg: course.thumbnailBg,
-        unitPricePaise: parseINRPriceToPaise(course.price),
-        displayPrice: course.price,
-        oldPrice: course.oldPrice || null,
-        qty: 1,
-      });
+      if (course.createdByTrainer && isCourseSessionCompleted(course)) {
+        setAuthPrompt({
+          title: "Session completed",
+          message: "This live session has already completed and can no longer be added.",
+        });
+        return;
+      }
+      if (!isAuthenticated) {
+        setAuthPrompt({
+          title: "Log in to add this course",
+          message: "Register or log in to add this class to your cart and continue.",
+        });
+        return;
+      }
+      if (isInCart) return;
+      if (course.createdByTrainer) {
+        setSessionAction("card");
+        addItem(toCartItem(course));
+        emitCartFlyFromElement(fromEl, course.thumbnail, course.title);
+        if (course.isAddedToCard) {
+          setSessionAction("");
+          return;
+        }
+        try {
+          await addStudentSessionCard(course.id);
+          setRemoteCourse((prev) => (prev ? { ...prev, isAddedToCard: true } : prev));
+        } finally {
+          setSessionAction("");
+        }
+        return;
+      }
+      addItem(toCartItem(course));
       emitCartFlyFromElement(fromEl);
     },
-    [addItem, course]
+    [addItem, course, isAuthenticated, isInCart]
   );
 
   if (!course) {
@@ -385,7 +465,24 @@ export default function CourseDetailsPage() {
   }
 
   if (course.createdByTrainer) {
-    const liveClass = liveClasses[0] || null;
+    const liveClass = course.liveClass || liveClasses[0] || null;
+    const sessionCompleted = isCourseSessionCompleted({ ...course, liveClass });
+    const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
+    const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
+    const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+    const joinOpensMs = startMs - 5 * 60 * 1000;
+    const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled;
+    const sessionStatusText = !startMs
+      ? "Schedule pending"
+      : isCancelled
+        ? "Class cancelled"
+        : now > endMs
+          ? "This class session has ended."
+          : now < joinOpensMs
+            ? `Join opens 5 minutes before class - ${formatDuration(joinOpensMs - now)} left`
+            : now < startMs
+              ? `Join is open - starts in ${formatDuration(startMs - now)}`
+              : "Live now";
     const scheduledAt = liveClass?.scheduledAt ? new Date(liveClass.scheduledAt) : null;
     const when =
       scheduledAt && !Number.isNaN(scheduledAt.getTime())
@@ -401,6 +498,7 @@ export default function CourseDetailsPage() {
         : "Schedule not available";
 
     return (
+      <>
       <main className="min-h-screen bg-[#f4f7f6]">
         <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
           <button
@@ -483,34 +581,91 @@ export default function CourseDetailsPage() {
                     {liveClass?.meetUrl || "Meeting link will be available soon"}
                   </div>
                 </div>
+                {isCancelled && cancellationReason ? (
+                  <div className="rounded-xl bg-red-50 border border-red-100 p-4">
+                    <div className="text-[11px] font-extrabold uppercase tracking-widest text-red-500">
+                      Cancellation reason
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-red-700">
+                      {cancellationReason}
+                    </div>
+                  </div>
+                ) : null}
+                {!isCancelled ? (
+                  <div className={[
+                    "rounded-xl border p-4",
+                    sessionCompleted
+                      ? "bg-slate-50 border-slate-200"
+                      : canJoin
+                        ? "bg-emerald-50 border-emerald-100"
+                        : "bg-amber-50 border-amber-100",
+                  ].join(" ")}>
+                    <div className={[
+                      "text-[11px] font-extrabold uppercase tracking-widest",
+                      sessionCompleted ? "text-slate-500" : canJoin ? "text-emerald-700" : "text-amber-700",
+                    ].join(" ")}>
+                      Session access
+                    </div>
+                    <div className={[
+                      "mt-1 text-sm font-semibold",
+                      sessionCompleted ? "text-slate-700" : canJoin ? "text-emerald-800" : "text-amber-800",
+                    ].join(" ")}>
+                      {sessionStatusText}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3">
                 <button
                   type="button"
-                  onClick={() => liveClass?.meetUrl && window.open(liveClass.meetUrl, "_blank", "noopener,noreferrer")}
-                  disabled={!liveClass?.meetUrl}
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      setAuthPrompt({
+                        title: "Log in to join this class",
+                        message: "Register or log in first. After authentication, you can continue with this session.",
+                      });
+                      return;
+                    }
+                    if (!liveClass?.id || !canJoin) return;
+                    setSessionAction("join");
+                    try {
+                      const result = await joinStudentSession(liveClass.id);
+                      if (result?.meetingLink) window.open(result.meetingLink, "_blank", "noopener,noreferrer");
+                    } finally {
+                      setSessionAction("");
+                    }
+                  }}
+                  disabled={!liveClass?.id || sessionAction === "join" || !canJoin}
                   className={[
                     "h-12 rounded-xl text-sm font-extrabold transition-colors",
-                    liveClass?.meetUrl
+                    liveClass?.id && canJoin
                       ? "bg-[#00342b] text-white hover:bg-[#004d40]"
                       : "bg-slate-100 text-slate-400 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  Join class
+                  {sessionAction === "join" ? "Joining..." : canJoin ? "Join class" : sessionCompleted ? "Session ended" : "Join opens soon"}
                 </button>
                 <button
                   type="button"
                   onClick={(e) => addToCart(e?.currentTarget)}
-                  className="h-12 rounded-xl border border-slate-200 text-slate-900 text-sm font-extrabold hover:bg-slate-50 transition-colors"
+                  disabled={sessionAction === "card" || isInCart || sessionCompleted}
+                  className="h-12 rounded-xl border border-slate-200 text-slate-900 text-sm font-extrabold hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Add class card
+                  {sessionCompleted ? "Session completed" : isInCart ? "In shopping cart" : sessionAction === "card" ? "Adding..." : "Add to cart"}
                 </button>
               </div>
             </aside>
           </div>
         </section>
       </main>
+      <AuthRequiredModal
+        open={!!authPrompt}
+        title={authPrompt?.title}
+        message={authPrompt?.message}
+        onClose={() => setAuthPrompt(null)}
+      />
+      </>
     );
   }
 
@@ -691,9 +846,10 @@ export default function CourseDetailsPage() {
                         <button
                           type="button"
                           onClick={(e) => addToCart(e?.currentTarget)}
-                          className="w-full bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-[13px] py-2.5 rounded-lg transition-colors"
+                          disabled={isInCart}
+                          className="w-full bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-[13px] py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          Subscribe — {course.price}
+                          {isInCart ? "In shopping cart" : `Subscribe - ${course.price}`}
                         </button>
                       </div>
                     )}
@@ -730,6 +886,12 @@ export default function CourseDetailsPage() {
           </div>
         </div>
       </div>
+      <AuthRequiredModal
+        open={!!authPrompt}
+        title={authPrompt?.title}
+        message={authPrompt?.message}
+        onClose={() => setAuthPrompt(null)}
+      />
     </main>
   );
 }
