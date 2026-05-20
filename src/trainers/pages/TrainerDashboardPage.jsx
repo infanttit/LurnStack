@@ -78,6 +78,11 @@ const courseTitleOptionsByCategory = {
     "Full Stack Web Development Masterclass",
     "React Hooks and State Management",
     "Professional Web Development Bootcamp",
+    "SQL",
+    " PLSQL",
+    "Python",
+    "Java",
+    "Frontend Development",
   ],
   "Web Development": [
     "Master React JS",
@@ -983,10 +988,10 @@ export default function TrainerDashboardPage() {
                                 getDisplayStatus(liveClass) === "completed"
                                   ? "bg-slate-100 text-slate-700 border border-slate-200"
                                   : getDisplayStatus(liveClass) === "published"
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                                  : getDisplayStatus(liveClass) === "cancelled"
-                                    ? "bg-red-50 text-red-700 border border-red-100"
-                                    : "bg-amber-50 text-amber-700 border border-amber-100",
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                    : getDisplayStatus(liveClass) === "cancelled"
+                                      ? "bg-red-50 text-red-700 border border-red-100"
+                                      : "bg-amber-50 text-amber-700 border border-amber-100",
                               ].join(" ")}
                             >
                               {getDisplayStatus(liveClass)}
