@@ -27,7 +27,8 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
   const now = useNow(1000);
   const { startMs, endMs } = getLiveTiming(
     liveClass?.scheduledAt,
-    liveClass?.durationMinutes
+    liveClass?.durationMinutes,
+    liveClass?.endsAt
   );
 
   const joinOpensMs = startMs - 5 * 60 * 1000;
@@ -133,11 +134,11 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
             <button
               type="button"
-              disabled={!canJoin || !liveClass?.meetUrl}
+              disabled={!canJoin}
               onClick={() => onJoin?.(liveClass)}
               className={[
                 "h-10 w-full sm:w-auto justify-center px-5 rounded-xl font-extrabold text-sm inline-flex items-center gap-2 transition-colors",
-                !canJoin || !liveClass?.meetUrl
+                !canJoin
                   ? "bg-surface-variant text-on-surface-variant cursor-not-allowed"
                   : "bg-primary text-on-primary hover:bg-primary/90",
               ].join(" ")}

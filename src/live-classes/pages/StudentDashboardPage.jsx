@@ -7,6 +7,7 @@ import SmartImage from "../../shared/components/SmartImage";
 import LiveClassCard from "../components/LiveClassCard";
 import SkeletonCard from "../components/SkeletonCard";
 import { fetchDashboardData, joinLiveClass } from "../model/liveClassesSlice";
+import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 function EmptyState({ title, body }) {
   return (
@@ -91,11 +92,13 @@ export default function StudentDashboardPage() {
   const handleJoin = async (liveClass) => {
     const classId = liveClass?.id;
     if (!classId) return;
+    const meetingWindow = openPendingMeetingWindow();
     try {
       const result = await dispatch(joinLiveClass({ classId })).unwrap();
       const meetUrl = result?.meetUrl || liveClass?.meetUrl;
-      if (meetUrl) window.open(meetUrl, "_blank", "noopener,noreferrer");
+      openMeetingLink(meetingWindow, meetUrl);
     } catch {
+      openMeetingLink(meetingWindow, liveClass?.meetUrl || "");
       // Error is displayed via slice state.
     }
   };

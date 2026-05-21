@@ -4,6 +4,7 @@ import {
   getLiveClassById,
   getLiveClasses,
 } from "../api/liveClassesApi";
+import { getLiveTiming } from "../lib/time";
 
 export const fetchDashboardData = createAsyncThunk(
   "liveClasses/fetchDashboardData",
@@ -15,11 +16,9 @@ export const fetchDashboardData = createAsyncThunk(
     const completedClasses = [];
 
     for (const lc of classes) {
-      const start = new Date(lc?.scheduledAt || "").getTime();
-      if (!Number.isFinite(start) || start <= 0) continue;
-      const durationMinutes = Number(lc?.durationMinutes) || 0;
-      const end = start + Math.max(0, durationMinutes) * 60 * 1000;
-      if (end >= now) upcomingClasses.push(lc);
+      const { startMs, endMs } = getLiveTiming(lc?.scheduledAt, lc?.durationMinutes, lc?.endsAt);
+      if (!startMs) continue;
+      if (endMs >= now) upcomingClasses.push(lc);
       else completedClasses.push(lc);
     }
 

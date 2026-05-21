@@ -2,6 +2,7 @@
   "name": "lurn-stack",
   "version": "0.1.0",
   "private": true,
+  "proxy": "https://api.lurnstack.com",
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.3",
     "@testing-library/dom": "^10.4.1",

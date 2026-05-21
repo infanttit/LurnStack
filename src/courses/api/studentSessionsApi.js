@@ -1,6 +1,7 @@
 import { axiosClient } from "../../shared/api/axiosClient";
-import { getAxiosErrorMessage } from "../../shared/api/axiosError";
+import { getAxiosErrorMessage, getAxiosErrorStatus } from "../../shared/api/axiosError";
 import { env } from "../../shared/config/env";
+import { getDurationMinutes, toKolkataIso, toMs } from "../../live-classes/lib/time";
 
 function unwrap(res) {
   const data = res?.data;
@@ -8,6 +9,51 @@ function unwrap(res) {
   if (data?.success === true) return data;
   if (data && typeof data === "object" && "data" in data) return data;
   throw new Error(data?.message || "Request failed");
+}
+
+function getMeetingLink(payload) {
+  const data = payload?.data || {};
+  const session = data?.session || data?.liveClass || data?.class || {};
+  if (typeof data === "string") return data;
+  return (
+    payload?.meetingLink ||
+    payload?.meetUrl ||
+    payload?.meetLink ||
+    payload?.meeting_link ||
+    payload?.meeting_url ||
+    payload?.meet_url ||
+    payload?.joinLink ||
+    payload?.joinUrl ||
+    payload?.liveClassLink ||
+    payload?.classLink ||
+    payload?.googleMeetLink ||
+    payload?.zoomLink ||
+    data?.meetingLink ||
+    data?.meetUrl ||
+    data?.meetLink ||
+    data?.meeting_link ||
+    data?.meeting_url ||
+    data?.meet_url ||
+    data?.joinLink ||
+    data?.joinUrl ||
+    data?.liveClassLink ||
+    data?.classLink ||
+    data?.googleMeetLink ||
+    data?.zoomLink ||
+    session?.meetingLink ||
+    session?.meetUrl ||
+    session?.meetLink ||
+    session?.meeting_link ||
+    session?.meeting_url ||
+    session?.meet_url ||
+    session?.joinLink ||
+    session?.joinUrl ||
+    session?.liveClassLink ||
+    session?.classLink ||
+    session?.googleMeetLink ||
+    session?.zoomLink ||
+    ""
+  );
 }
 
 function toAbsoluteAssetUrl(path) {
@@ -26,6 +72,24 @@ function normalizeSession(raw = {}) {
     raw.cancelled_reason ||
     raw.reason ||
     "";
+  const scheduledAt =
+    toKolkataIso(raw.scheduledDate || raw.scheduled_date || raw.date, raw.startTime || raw.start_time) ||
+    raw.scheduledAt ||
+    raw.scheduled_at ||
+    "";
+  const endsAt =
+    toKolkataIso(raw.scheduledDate || raw.scheduled_date || raw.date, raw.endTime || raw.end_time) ||
+    raw.endsAt ||
+    raw.ends_at ||
+    "";
+  const timeDuration = getDurationMinutes(raw.startTime || raw.start_time, raw.endTime || raw.end_time);
+  const isoDuration =
+    toMs(endsAt) > toMs(scheduledAt)
+      ? Math.round((toMs(endsAt) - toMs(scheduledAt)) / 60000)
+      : 0;
+  const durationMinutes = timeDuration || isoDuration || Number(raw.durationMinutes) || 60;
+  const meetingLink = getMeetingLink(raw);
+
   return {
     id: raw.id,
     thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
@@ -43,13 +107,13 @@ function normalizeSession(raw = {}) {
     ratingCount: "Live session",
     price: "₹0.00",
     oldPrice: null,
-    hours: `${Number(raw.durationMinutes) || 60} min live class`,
-    totalHours: Number(raw.durationMinutes) || 60,
+    hours: `${durationMinutes} min live class`,
+    totalHours: durationMinutes,
     level: "All Levels",
     priceType: "Free",
     topic: raw.category || "Trainer Courses",
     popularity: 999999,
-    dateAdded: raw.scheduledAt || new Date().toISOString(),
+    dateAdded: scheduledAt || new Date().toISOString(),
     updated: raw.scheduledDate || "Published",
     createdByTrainer: true,
     isAddedToCard: !!raw.isAddedToCard,
@@ -62,10 +126,10 @@ function normalizeSession(raw = {}) {
       title: raw.classTitle || "",
       instructorName: raw.trainerName || raw.trainer?.name || "Trainer",
       description: raw.description || "",
-      scheduledAt: raw.scheduledAt || "",
-      endsAt: raw.endsAt || "",
-      durationMinutes: Number(raw.durationMinutes) || 60,
-      meetUrl: raw.meetingLink || "",
+      scheduledAt,
+      endsAt,
+      durationMinutes,
+      meetUrl: meetingLink,
       thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
       status: raw.status || "",
       cancellationReason,
@@ -110,9 +174,13 @@ export async function getStudentSessionCards() {
         category: card.category,
         trainerName: card.trainerName,
         thumbnail: card.thumbnail,
+        scheduledDate: card.scheduledDate,
+        startTime: card.startTime,
+        endTime: card.endTime,
         scheduledAt: card.scheduledAt,
         endsAt: card.endsAt,
         durationMinutes: card.durationMinutes,
+        meetingLink: card.meetingLink || card.meetUrl || card.meetLink,
         status: card.status,
         cancellationReason: card.cancellationReason || card.cancelReason || card.reason || "",
         isAddedToCard: true,
@@ -150,17 +218,40 @@ export async function addStudentSessionCard(sessionId) {
 }
 
 export async function joinStudentSession(sessionId) {
+  const loadMeetingLinkFromDetails = async () => {
+    try {
+      const detailRes = await axiosClient.get(`/api/student/sessions/${encodeURIComponent(sessionId)}`);
+      const detailPayload = unwrap(detailRes);
+      const detail = normalizeSession(detailPayload.data || {});
+      return detail?.liveClass?.meetUrl || getMeetingLink(detailPayload);
+    } catch {
+      return "";
+    }
+  };
+
   try {
     const res = await axiosClient.post(
       `/api/student/sessions/${encodeURIComponent(sessionId)}/join`
     );
     const payload = unwrap(res);
+    const meetingLink = getMeetingLink(payload) || (await loadMeetingLinkFromDetails());
     return {
       message: payload.message || "",
-      meetingLink: payload.data?.meetingLink || "",
+      meetingLink,
       joinedAt: payload.data?.joinedAt || "",
     };
   } catch (err) {
+    const status = getAxiosErrorStatus(err);
+    const message = getAxiosErrorMessage(err, "Unable to join session.");
+    if (status === 400 && /(already|joined|registered|booked)/i.test(message)) {
+      const meetingLink = getMeetingLink(err?.response?.data) || (await loadMeetingLinkFromDetails());
+      return {
+        message,
+        meetingLink,
+        joinedAt: err?.response?.data?.data?.joinedAt || "",
+        alreadyJoined: true,
+      };
+    }
     throw new Error(getAxiosErrorMessage(err, "Unable to join session."));
   }
 }

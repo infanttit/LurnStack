@@ -9,12 +9,7 @@ export default function RequireAuth({ children, role }) {
   if (isAuthenticated && (!role || userRole === role)) return children;
 
   if (isAuthenticated && role && userRole !== role) {
-    return (
-      <Navigate
-        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : PATHS.HOME}
-        replace
-      />
-    );
+    return <Navigate to={PATHS.HOME} replace />;
   }
 
   return (

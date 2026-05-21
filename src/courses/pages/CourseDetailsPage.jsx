@@ -19,6 +19,7 @@ import {
 } from "../api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
+import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -48,10 +49,8 @@ function toCartItem(course) {
 
 function isCourseSessionCompleted(course) {
   const liveClass = course?.liveClass;
-  const scheduledAt = new Date(liveClass?.scheduledAt || "").getTime();
-  const durationMinutes = Number(liveClass?.durationMinutes) || 0;
-  if (!Number.isFinite(scheduledAt) || !durationMinutes) return false;
-  return Date.now() > scheduledAt + durationMinutes * 60 * 1000;
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  return startMs > 0 && Date.now() > endMs;
 }
 
 const MOCK_SECTIONS = [
@@ -469,7 +468,7 @@ export default function CourseDetailsPage() {
     const sessionCompleted = isCourseSessionCompleted({ ...course, liveClass });
     const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
-    const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+    const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
     const joinOpensMs = startMs - 5 * 60 * 1000;
     const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled;
     const sessionStatusText = !startMs
@@ -628,10 +627,13 @@ export default function CourseDetailsPage() {
                       return;
                     }
                     if (!liveClass?.id || !canJoin) return;
+                    const meetingWindow = openPendingMeetingWindow();
                     setSessionAction("join");
                     try {
                       const result = await joinStudentSession(liveClass.id);
-                      if (result?.meetingLink) window.open(result.meetingLink, "_blank", "noopener,noreferrer");
+                      openMeetingLink(meetingWindow, result?.meetingLink || liveClass?.meetUrl || course?.meetUrl || "");
+                    } catch {
+                      openMeetingLink(meetingWindow, liveClass?.meetUrl || course?.meetUrl || "");
                     } finally {
                       setSessionAction("");
                     }

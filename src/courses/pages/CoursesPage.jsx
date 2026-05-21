@@ -2,17 +2,16 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiCalendar, FiClock, FiFilter, FiSearch, FiUsers } from "react-icons/fi";
 import { HiMiniStar } from "react-icons/hi2";
-import { useCart, emitCartFlyFromElement, parseINRPriceToPaise } from "../../cart";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import {
-  addStudentSessionCard,
   getStudentSessions,
   joinStudentSession,
 } from "../api/studentSessionsApi";
 import { getAllCourses } from "../data/courseCatalog";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
+import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 function StarRating({ rating }) {
   return (
@@ -41,7 +40,7 @@ function formatLiveWhen(iso) {
 }
 
 function liveTimerLabel(liveClass, now) {
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
   if (!startMs) return "Schedule pending";
   const joinOpensMs = startMs - 5 * 60 * 1000;
   if (now > endMs) return "This class session has ended";
@@ -51,28 +50,8 @@ function liveTimerLabel(liveClass, now) {
 }
 
 function isSessionCompleted(liveClass, now = Date.now()) {
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
   return startMs > 0 && now > endMs;
-}
-
-function toCartItem(course) {
-  return {
-    id: String(course.id),
-    title: course.title,
-    instructor: course.instructor,
-    thumbnail: course.thumbnail,
-    thumbnailBg: course.thumbnailBg,
-    unitPricePaise: parseINRPriceToPaise(course.price),
-    displayPrice: course.price,
-    oldPrice: course.oldPrice || null,
-    qty: 1,
-    rating: Number(course.rating) || 4.8,
-    ratingCount: Number(course.ratingCount) || 0,
-    totalHours: course.totalHours || course.liveClass?.durationMinutes,
-    level: course.level || "All Levels",
-    isPremium: false,
-    sessionId: course.createdByTrainer ? String(course.id) : undefined,
-  };
 }
 
 function getGuestCourses() {
@@ -91,13 +70,12 @@ function getGuestCourses() {
     }));
 }
 
-function CourseGridCard({ course, liveClass, onAddToCart, onViewDetails, onJoinClass, actionId, now }) {
+function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionId, now }) {
   const isTrainerCourse = !!course.createdByTrainer;
   const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
   const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
-  const addingCard = actionId === `card:${course.id}`;
   const joining = actionId === `join:${course.id}`;
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isCompleted = isSessionCompleted(liveClass, now);
   const canJoin = isTrainerCourse && startMs > 0 && now >= joinOpensMs && now <= endMs;
@@ -174,15 +152,7 @@ function CourseGridCard({ course, liveClass, onAddToCart, onViewDetails, onJoinC
           )}
         </div>
 
-        <div className={["mt-3 grid gap-2", isTrainerCourse ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"].join(" ")}>
-          <button
-            type="button"
-            disabled={addingCard || course.isInCart || isCompleted}
-            onClick={onAddToCart}
-            className="h-9 bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-[12px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isCompleted ? "Completed" : course.isInCart ? "In cart" : addingCard ? "Adding..." : "Add card"}
-          </button>
+        <div className={["mt-3 grid gap-2", isTrainerCourse ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"].join(" ")}>
           {isTrainerCourse ? (
             <button
               type="button"
@@ -190,7 +160,7 @@ function CourseGridCard({ course, liveClass, onAddToCart, onViewDetails, onJoinC
               onClick={onJoinClass}
               className="h-9 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[12px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {course.isJoined ? "Joined" : joining ? "Joining..." : canJoin ? "Join" : "Locked"}
+              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : "Locked"}
             </button>
           ) : null}
           <button
@@ -198,8 +168,8 @@ function CourseGridCard({ course, liveClass, onAddToCart, onViewDetails, onJoinC
             onClick={onViewDetails}
             className="h-9 border border-gray-300 hover:bg-gray-50 text-gray-900 font-extrabold text-[12px] rounded-md transition-colors"
           >
-            View details
-          </button>
+              View details
+            </button>
         </div>
       </div>
     </div>
@@ -243,11 +213,9 @@ export default function CoursesPage() {
       return matchesSearch && matchesTime;
     });
   }, [courses, searchQuery, timeFilter]);
-  const { addItem, items } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const now = useNow(1000);
-  const cartIds = useMemo(() => new Set(items.map((item) => String(item.sessionId || item.id))), [items]);
   const [authPrompt, setAuthPrompt] = useState(null);
 
   useEffect(() => {
@@ -278,56 +246,6 @@ export default function CoursesPage() {
     if (tabs.length && !tabs.includes(activeTab)) setActiveTab(tabs[0]);
   }, [activeTab, tabs]);
 
-  const addCourseToCart = useCallback(
-    async (course, fromEl) => {
-      if (course.createdByTrainer && isSessionCompleted(course.liveClass)) {
-        setError("This session is completed and can no longer be added.");
-        return;
-      }
-      if (!isAuthenticated) {
-        setAuthPrompt({
-          title: "Log in to add this session",
-          message: "Register or log in to add this class to your cart and continue learning.",
-        });
-        return;
-      }
-      if (course.createdByTrainer) {
-        setActionId(`card:${course.id}`);
-        setError("");
-        addItem(toCartItem(course));
-        emitCartFlyFromElement(fromEl, course.thumbnail, course.title);
-        if (course.isAddedToCard) {
-          setSessions((prev) =>
-            prev.map((item) =>
-              String(item.id) === String(course.id) ? { ...item, isAddedToCard: true } : item
-            )
-          );
-          setMessage("Added to shopping cart.");
-          setActionId("");
-          return;
-        }
-        try {
-          await addStudentSessionCard(course.id);
-          setSessions((prev) =>
-            prev.map((item) =>
-              String(item.id) === String(course.id) ? { ...item, isAddedToCard: true } : item
-            )
-          );
-          setMessage("Added to shopping cart.");
-        } catch (err) {
-          setMessage("Added to shopping cart.");
-          setError(err?.message || "Saved locally. Backend card sync failed, please try again.");
-        } finally {
-          setActionId("");
-        }
-        return;
-      }
-      addItem(toCartItem(course));
-      emitCartFlyFromElement(fromEl);
-    },
-    [addItem, isAuthenticated]
-  );
-
   const joinTrainerClass = useCallback(async (course) => {
     if (!isAuthenticated) {
       setAuthPrompt({
@@ -336,7 +254,7 @@ export default function CoursesPage() {
       });
       return;
     }
-    const { startMs, endMs } = getLiveTiming(course.liveClass?.scheduledAt, course.liveClass?.durationMinutes);
+    const { startMs, endMs } = getLiveTiming(course.liveClass?.scheduledAt, course.liveClass?.durationMinutes, course.liveClass?.endsAt);
     const joinOpensMs = startMs - 5 * 60 * 1000;
     const current = Date.now();
     if (current > endMs) {
@@ -347,6 +265,7 @@ export default function CoursesPage() {
       setError("Join opens 5 minutes before the class starts.");
       return;
     }
+    const meetingWindow = openPendingMeetingWindow();
     setActionId(`join:${course.id}`);
     setError("");
     try {
@@ -356,10 +275,20 @@ export default function CoursesPage() {
           String(item.id) === String(course.id) ? { ...item, isJoined: true } : item
         )
       );
-      if (result?.meetingLink) window.open(result.meetingLink, "_blank", "noopener,noreferrer");
-      else setMessage("Session joined successfully.");
+      const meetingLink = result?.meetingLink || course.liveClass?.meetUrl || course.meetUrl || "";
+      if (openMeetingLink(meetingWindow, meetingLink)) {
+        setMessage("Opening live class.");
+      } else {
+        setError("Session joined, but the meeting link was not returned. Please open View details and try again.");
+      }
     } catch (err) {
-      setError(err?.message || "Unable to join session.");
+      const fallbackLink = course.liveClass?.meetUrl || course.meetUrl || "";
+      if (openMeetingLink(meetingWindow, fallbackLink)) {
+        setError("Attendance sync failed, but the live class link has been opened.");
+      } else {
+        meetingWindow?.close?.();
+        setError(err?.message || "Unable to join session.");
+      }
     } finally {
       setActionId("");
     }
@@ -477,9 +406,8 @@ export default function CoursesPage() {
           {filteredCourses.map((course) => (
             <CourseGridCard
               key={course.id}
-              course={{ ...course, isInCart: cartIds.has(String(course.id)) }}
+              course={course}
               liveClass={course.liveClass}
-              onAddToCart={(e) => addCourseToCart(course, e?.currentTarget)}
               onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
               onJoinClass={() => joinTrainerClass(course)}
               actionId={actionId}
