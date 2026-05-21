@@ -1,5 +1,6 @@
 import { axiosClient } from "../../shared/api/axiosClient";
 import { getAxiosErrorMessage } from "../../shared/api/axiosError";
+import { getDurationMinutes, toKolkataIso, toMs } from "../lib/time";
 
 function unwrap(res) {
   const data = res?.data;
@@ -10,6 +11,51 @@ function unwrap(res) {
   if (data?.success === true) return data;
   if (data && typeof data === "object" && "data" in data) return data;
   throw new Error(data?.message || "Request failed");
+}
+
+function getMeetingLink(payload) {
+  const data = payload?.data || {};
+  const session = data?.session || data?.liveClass || data?.class || {};
+  if (typeof data === "string") return data;
+  return (
+    payload?.meetLink ||
+    payload?.meetUrl ||
+    payload?.meetingLink ||
+    payload?.meeting_link ||
+    payload?.meeting_url ||
+    payload?.meet_url ||
+    payload?.joinLink ||
+    payload?.joinUrl ||
+    payload?.liveClassLink ||
+    payload?.classLink ||
+    payload?.googleMeetLink ||
+    payload?.zoomLink ||
+    data?.meetLink ||
+    data?.meetUrl ||
+    data?.meetingLink ||
+    data?.meeting_link ||
+    data?.meeting_url ||
+    data?.meet_url ||
+    data?.joinLink ||
+    data?.joinUrl ||
+    data?.liveClassLink ||
+    data?.classLink ||
+    data?.googleMeetLink ||
+    data?.zoomLink ||
+    session?.meetLink ||
+    session?.meetUrl ||
+    session?.meetingLink ||
+    session?.meeting_link ||
+    session?.meeting_url ||
+    session?.meet_url ||
+    session?.joinLink ||
+    session?.joinUrl ||
+    session?.liveClassLink ||
+    session?.classLink ||
+    session?.googleMeetLink ||
+    session?.zoomLink ||
+    ""
+  );
 }
 
 function parseDurationMinutes(duration) {
@@ -27,53 +73,29 @@ function parseDurationMinutes(duration) {
   return Math.round(value);
 }
 
-function parseTimeTo24h(time) {
-  const raw = String(time || "").trim().toUpperCase();
-  const match = raw.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(AM|PM)?$/);
-  if (!match) return null;
-
-  let hours = Number(match[1]);
-  const minutes = Number(match[2] || "0");
-  const meridiem = match[3] || "";
-
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-  if (minutes < 0 || minutes > 59) return null;
-
-  if (meridiem) {
-    if (hours < 1 || hours > 12) return null;
-    if (meridiem === "AM") {
-      if (hours === 12) hours = 0;
-    } else if (meridiem === "PM") {
-      if (hours !== 12) hours += 12;
-    }
-  } else {
-    if (hours < 0 || hours > 23) return null;
-  }
-
-  const hh = String(hours).padStart(2, "0");
-  const mm = String(minutes).padStart(2, "0");
-  return `${hh}:${mm}:00`;
-}
-
-function toKolkataIso(date, time) {
-  const d = String(date || "").trim();
-  // If backend already provides a full ISO timestamp, pass it through.
-  if (d.includes("T")) return d;
-  const t24 = parseTimeTo24h(time);
-  if (!d || !t24) return "";
-  return `${d}T${t24}+05:30`;
-}
-
 function normalizeLiveClass(dto) {
   const raw = dto || {};
   const id = raw?.id ?? raw?._id ?? raw?.classId ?? raw?.class_id ?? null;
   const scheduledAt =
+    toKolkataIso(raw?.scheduledDate || raw?.scheduled_date || raw?.date, raw?.startTime || raw?.start_time || raw?.time) ||
     raw?.scheduledAt ||
     raw?.scheduled_at ||
     raw?.scheduleAt ||
     raw?.schedule_at ||
-    toKolkataIso(raw?.date, raw?.time);
+    "";
+  const endsAt =
+    toKolkataIso(raw?.scheduledDate || raw?.scheduled_date || raw?.date, raw?.endTime || raw?.end_time) ||
+    raw?.endsAt ||
+    raw?.ends_at ||
+    "";
+  const timeDuration = getDurationMinutes(raw?.startTime || raw?.start_time, raw?.endTime || raw?.end_time);
+  const isoDuration =
+    toMs(endsAt) > toMs(scheduledAt)
+      ? Math.round((toMs(endsAt) - toMs(scheduledAt)) / 60000)
+      : 0;
   const durationMinutes =
+    timeDuration ||
+    isoDuration ||
     Number(raw?.durationMinutes) ||
     Number(raw?.duration_minutes) ||
     parseDurationMinutes(raw?.duration);
@@ -84,9 +106,9 @@ function normalizeLiveClass(dto) {
     instructorName: raw?.instructor || raw?.instructorName || raw?.instructor_name || "",
     description: raw?.description || "",
     scheduledAt,
-    endsAt: raw?.endsAt || "",
+    endsAt,
     durationMinutes,
-    meetUrl: raw?.meetLink || raw?.meetUrl || raw?.meetingLink || raw?.meeting_url || "",
+    meetUrl: getMeetingLink(raw),
     thumbnail: raw?.thumbnail || "",
     status: raw?.status || "",
     raw,
@@ -132,7 +154,7 @@ export async function joinClass(classId) {
     const payload = unwrap(res);
     return {
       message: payload.message || "",
-      meetUrl: payload.meetLink || payload.meetUrl || payload.data?.meetingLink || "",
+      meetUrl: getMeetingLink(payload),
       joinedAt: payload.data?.joinedAt || "",
       bookingId: payload.data?.bookingId || "",
     };

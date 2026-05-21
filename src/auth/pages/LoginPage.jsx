@@ -68,7 +68,6 @@ export default function LoginPage() {
   const { signIn, isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [accountType, setAccountType] = useState("student");
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -83,7 +82,7 @@ export default function LoginPage() {
   if (isAuthenticated) {
     return (
       <Navigate
-        to={userRole === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo}
+        to={userRole === "student" ? redirectTo : PATHS.HOME}
         replace
       />
     );
@@ -113,13 +112,13 @@ export default function LoginPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      const nextUser = await signIn({
+      await signIn({
         email: normalizeEmail(form.email),
         password: form.password,
         remember: form.remember,
-        role: accountType,
+        role: "student",
       });
-      navigate(nextUser?.role === "trainer" ? PATHS.TRAINER_DASHBOARD : redirectTo, {
+      navigate(redirectTo, {
         replace: true,
       });
     } catch (err) {
@@ -175,28 +174,6 @@ export default function LoginPage() {
               <div className="flex border-b border-slate-200 mb-4 anim-2">
                 <Link to="/login" className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]">Login</Link>
                 <Link to="/signup" state={{ from: redirectTo }} className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Sign Up</Link>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 mb-4 anim-2 rounded-xl bg-slate-50 p-1 border border-slate-100">
-                {["student", "trainer"].map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => {
-                      setAccountType(type);
-                      setErrors({});
-                      setFormError("");
-                    }}
-                    className={[
-                      "h-9 rounded-lg text-[12px] font-extrabold capitalize transition-all",
-                      accountType === type
-                        ? "bg-white text-[#004d3d] shadow-sm"
-                        : "text-slate-500 hover:text-slate-700",
-                    ].join(" ")}
-                  >
-                    {type}
-                  </button>
-                ))}
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">

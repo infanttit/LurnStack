@@ -3,14 +3,12 @@ import { FaCheck } from "react-icons/fa";
 import { HiMiniStar } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useCart } from "../../cart/model/CartContext";
-import { emitCartFlyFromElement } from "../../cart";
-import { parseINRPriceToPaise } from "../../cart/lib/cartUtils";
-import { addStudentSessionCard, joinStudentSession } from "../../courses/api/studentSessionsApi";
+import { joinStudentSession } from "../../courses/api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
+import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 function StarRating({ rating }) {
   return (
@@ -40,36 +38,6 @@ function formatLiveWhen(iso) {
   });
 }
 
-function toCartItem({
-  id,
-  title,
-  instructorName,
-  thumbnail,
-  priceLabel,
-  originalLabel,
-  totalHours,
-  level,
-  createdByTrainer,
-  liveClass,
-}) {
-  return {
-    id: String(id),
-    title,
-    instructor: instructorName,
-    thumbnail,
-    unitPricePaise: parseINRPriceToPaise(priceLabel),
-    displayPrice: priceLabel,
-    oldPrice: originalLabel || null,
-    qty: 1,
-    rating: 4.8,
-    ratingCount: 0,
-    totalHours: totalHours || liveClass?.durationMinutes,
-    level: level || "All Levels",
-    isPremium: !createdByTrainer,
-    sessionId: createdByTrainer ? String(id) : undefined,
-  };
-}
-
 /**
  * CourseCard Component
  * High-fidelity Udemy-style interactive course card.
@@ -90,8 +58,7 @@ export default function CourseCard({
   description,
   takeaways: customTakeaways,
   createdByTrainer = false,
-  liveClass = null,
-  isAddedToCard = false
+  liveClass = null
 }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -99,16 +66,12 @@ export default function CourseCard({
   const [previewSide, setPreviewSide] = useState("right");
   const [canHover, setCanHover] = useState(true);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
-  const [actionLabel, setActionLabel] = useState("");
   const cardRef = useRef(null);
   const timerRef = useRef(null);
-  const addBtnRef = useRef(null);
-  const { addItem, items } = useCart();
   const { isAuthenticated } = useAuth();
   const [authPrompt, setAuthPrompt] = useState(null);
-  const isInCart = items.some((item) => String(item.sessionId || item.id) === String(id));
   const now = useNow(1000);
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = startMs > 0 && now >= startMs && now <= endMs;
   const isEnded = startMs > 0 && now > endMs;
@@ -177,64 +140,6 @@ export default function CourseCard({
     return `₹${p.toLocaleString()}`;
   }, [originalPrice]);
 
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (createdByTrainer && isEnded) return;
-    if (!isAuthenticated) {
-      setAuthPrompt({
-        title: "Log in to add this session",
-        message: "Register or log in to add this class to your shopping cart and continue.",
-      });
-      return;
-    }
-    if (isInCart) return;
-    if (createdByTrainer) {
-      setActionLabel("Adding...");
-      addItem(
-        toCartItem({
-          id,
-          title,
-          instructorName,
-          thumbnail,
-          priceLabel,
-          originalLabel,
-          totalHours,
-          level,
-          createdByTrainer,
-          liveClass,
-        })
-      );
-      emitCartFlyFromElement(addBtnRef.current || cardRef.current, thumbnail, title);
-      if (isAddedToCard) {
-        setActionLabel("Added");
-        return;
-      }
-      try {
-        await addStudentSessionCard(id);
-        setActionLabel("Added");
-      } catch {
-        setActionLabel("Added");
-      }
-      return;
-    }
-    addItem(
-      toCartItem({
-        id,
-        title,
-        instructorName,
-        thumbnail,
-        priceLabel,
-        originalLabel,
-        totalHours,
-        level,
-        createdByTrainer,
-        liveClass,
-      })
-    );
-    emitCartFlyFromElement(addBtnRef.current || cardRef.current, thumbnail, title);
-  };
-
   const handleViewDetails = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -258,14 +163,18 @@ export default function CourseCard({
     if (createdByTrainer && !canJoin) {
       return;
     }
+    const meetingWindow = openPendingMeetingWindow();
     try {
       const result = await joinStudentSession(id);
-      if (result?.meetingLink) {
-        window.open(result.meetingLink, "_blank", "noopener,noreferrer");
+      const meetingLink = result?.meetingLink || liveClass?.meetUrl || "";
+      if (openMeetingLink(meetingWindow, meetingLink)) {
         return;
       }
     } catch {
-      // Keep details navigation as a graceful fallback.
+      if (openMeetingLink(meetingWindow, liveClass?.meetUrl || "")) {
+        return;
+      }
+      meetingWindow?.close?.();
     }
     navigate(`/courses/${encodeURIComponent(String(id))}`);
   };
@@ -356,16 +265,7 @@ export default function CourseCard({
           </div>
 
           {/* Mobile actions */}
-          <div className={["grid gap-2 mt-3 sm:hidden", createdByTrainer ? "grid-cols-2" : "grid-cols-2"].join(" ")}>
-            <button
-              ref={addBtnRef}
-              type="button"
-              onClick={handleAddToCart}
-              disabled={isEnded || isInCart || actionLabel === "Adding..."}
-              className="w-full h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isEnded ? "Completed" : isInCart ? "In cart" : actionLabel || "Add"}
-            </button>
+          <div className={["grid gap-2 mt-3 sm:hidden", createdByTrainer ? "grid-cols-2" : "grid-cols-1"].join(" ")}>
             {createdByTrainer ? (
               <button
                 type="button"
@@ -381,7 +281,6 @@ export default function CourseCard({
               onClick={handleViewDetails}
               className={[
                 "w-full h-9 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]",
-                createdByTrainer ? "col-span-2" : "",
               ].join(" ")}
             >
               View details
@@ -475,16 +374,7 @@ export default function CourseCard({
                 ))}
               </ul>
 
-              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[360px]:grid-cols-3" : "grid-cols-2"].join(" ")}>
-                <button
-                  ref={addBtnRef}
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={isEnded || isInCart || actionLabel === "Adding..."}
-                  className="w-full h-8 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isEnded ? "Completed" : isInCart ? "In cart" : actionLabel || "Add"}
-                </button>
+              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[360px]:grid-cols-2" : "grid-cols-1"].join(" ")}>
                 {createdByTrainer ? (
                   <button
                     type="button"
@@ -610,19 +500,7 @@ export default function CourseCard({
                 ))}
               </ul>
 
-              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[420px]:grid-cols-3" : "grid-cols-2"].join(" ")}>
-                <button
-                  ref={addBtnRef}
-                  type="button"
-                  onClick={(e) => {
-                    handleAddToCart(e);
-                    setMobilePreviewOpen(false);
-                  }}
-                  disabled={isEnded || isInCart || actionLabel === "Adding..."}
-                  className="w-full h-10 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isEnded ? "Completed" : isInCart ? "In cart" : "Add to cart"}
-                </button>
+              <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[420px]:grid-cols-2" : "grid-cols-1"].join(" ")}>
                 {createdByTrainer ? (
                   <button
                     type="button"

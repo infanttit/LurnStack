@@ -7,6 +7,7 @@ import SmartImage from "../../shared/components/SmartImage";
 import useNow from "../hooks/useNow";
 import { formatDuration, getLiveTiming } from "../lib/time";
 import { fetchLiveClassDetails, joinLiveClass } from "../model/liveClassesSlice";
+import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 function formatISTDateTime(iso) {
   const d = new Date(iso);
@@ -60,7 +61,7 @@ export default function LiveClassDetailsPage() {
   }, [classId, dispatch]);
 
   const joined = joinedByClassId?.[String(classId)];
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes);
+  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = now >= startMs && now <= endMs;
   const isEnded = now > endMs;
@@ -71,11 +72,13 @@ export default function LiveClassDetailsPage() {
 
   const handleJoin = async () => {
     if (!classId) return;
+    const meetingWindow = openPendingMeetingWindow();
     try {
       const result = await dispatch(joinLiveClass({ classId })).unwrap();
       const meetUrl = result?.meetUrl || liveClass?.meetUrl;
-      if (meetUrl) window.open(meetUrl, "_blank", "noopener,noreferrer");
+      openMeetingLink(meetingWindow, meetUrl);
     } catch {
+      openMeetingLink(meetingWindow, liveClass?.meetUrl || "");
       // Error is already stored in redux slice (detailsError/error).
     }
   };
@@ -191,11 +194,11 @@ export default function LiveClassDetailsPage() {
                 <div className="mt-5 flex items-center gap-3 flex-wrap">
                   <button
                     type="button"
-                    disabled={!canJoin || !liveClass?.meetUrl}
+                    disabled={!canJoin}
                     onClick={handleJoin}
                     className={[
                       "h-11 px-6 rounded-xl font-extrabold text-sm inline-flex items-center gap-2 transition-colors",
-                      !canJoin || !liveClass?.meetUrl
+                      !canJoin
                         ? "bg-surface-variant text-on-surface-variant cursor-not-allowed"
                         : "bg-primary text-on-primary hover:bg-primary/90",
                     ].join(" ")}

@@ -25,7 +25,7 @@ export default function SiteNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { itemCount } = useCart();
-  const { user, isAuthenticated, isTrainer, signOut } = useAuth();
+  const { user, isAuthenticated, signOut } = useAuth();
 
   const isCheckout = location?.pathname === PATHS.CHECKOUT;
 
@@ -109,9 +109,7 @@ export default function SiteNavbar() {
 
               <div className="hidden md:flex items-center gap-8">
                 <NavItem to={PATHS.COURSES}>Courses</NavItem>
-                {isTrainer ? (
-                  <NavItem to={PATHS.TRAINER_DASHBOARD}>Trainer Dashboard</NavItem>
-                ) : isAuthenticated ? (
+                {isAuthenticated ? (
                   <NavItem to={PATHS.LIVE_CLASSES}>Live Classes</NavItem>
                 ) : null}
                 <NavItem to={PATHS.CATEGORIES}>Categories</NavItem>
@@ -242,11 +240,7 @@ export default function SiteNavbar() {
           <NavItem to={PATHS.COURSES} onClick={closeMobileMenu}>
             Courses
           </NavItem>
-          {isTrainer ? (
-            <NavItem to={PATHS.TRAINER_DASHBOARD} onClick={closeMobileMenu}>
-              Trainer Dashboard
-            </NavItem>
-          ) : isAuthenticated ? (
+          {isAuthenticated ? (
             <NavItem to={PATHS.LIVE_CLASSES} onClick={closeMobileMenu}>
               Live Classes
             </NavItem>

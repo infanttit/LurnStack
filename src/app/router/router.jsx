@@ -10,12 +10,10 @@ import SearchPage from "../../pages/SearchPage";
 import CartPage from "../../cart/pages/CartPage";
 import CheckoutPage from "../../cart/pages/Checkoutpage .jsx";
 import RequireAuth from "../../auth/components/RequireAuth";
-import { useAuth } from "../../auth";
 import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage";
 import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
-import TrainerDashboardPage from "../../trainers/pages/TrainerDashboardPage";
 import { PATHS, categoryHashPath } from "./paths";
 
 function CategoryRedirect() {
@@ -23,37 +21,15 @@ function CategoryRedirect() {
   return <Navigate to={categoryHashPath(categoryId)} replace />;
 }
 
-function TrainerWebsiteRedirect({ children }) {
-  const { bootstrapped, isTrainer } = useAuth();
-  if (bootstrapped && isTrainer) {
-    return <Navigate to={PATHS.TRAINER_DASHBOARD} replace />;
-  }
-  return children;
-}
-
 export default function AppRouter() {
   return (
     <Routes>
-      <Route
-        path={PATHS.TRAINER_DASHBOARD}
-        element={(
-          <RequireAuth role="trainer">
-            <TrainerDashboardPage />
-          </RequireAuth>
-        )}
-      />
-      <Route
-        element={(
-          <TrainerWebsiteRedirect>
-            <AppShell />
-          </TrainerWebsiteRedirect>
-        )}
-      >
+      <Route element={<AppShell />}>
         <Route path={PATHS.HOME} element={<LandingPage />} />
         <Route
           path={PATHS.DASHBOARD}
           element={(
-            <RequireAuth>
+            <RequireAuth role="student">
               <StudentDashboardPage />
             </RequireAuth>
           )}
@@ -61,7 +37,7 @@ export default function AppRouter() {
         <Route
           path={PATHS.LIVE_CLASSES}
           element={(
-            <RequireAuth>
+            <RequireAuth role="student">
               <StudentDashboardPage />
             </RequireAuth>
           )}
@@ -69,7 +45,7 @@ export default function AppRouter() {
         <Route
           path={PATHS.LIVE_CLASS_DETAILS}
           element={(
-            <RequireAuth>
+            <RequireAuth role="student">
               <LiveClassDetailsPage />
             </RequireAuth>
           )}
@@ -83,7 +59,7 @@ export default function AppRouter() {
         <Route
           path={PATHS.CHECKOUT}
           element={(
-            <RequireAuth>
+            <RequireAuth role="student">
               <CheckoutPage />
             </RequireAuth>
           )}
@@ -98,6 +74,7 @@ export default function AppRouter() {
         <Route path={PATHS.SIGNUP} element={<SignupPage />} />
         <Route path={PATHS.PROFILE} element={<ProfilePage />} />
       </Route>
+      <Route path="*" element={<Navigate to={PATHS.HOME} replace />} />
     </Routes>
   );
 }
