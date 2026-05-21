@@ -1,4 +1,4 @@
-import { FiCalendar, FiClock, FiVideo } from "react-icons/fi";
+import { FiCalendar, FiClock, FiTag, FiVideo } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { PATHS } from "../../app/router/paths";
 import SmartImage from "../../shared/components/SmartImage";
@@ -34,7 +34,8 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = now >= startMs && now <= endMs;
   const isEnded = now > endMs;
-  const canJoin = now >= joinOpensMs && now <= endMs;
+  const pricePending = liveClass?.pricePending || liveClass?.priceInPaise == null;
+  const canJoin = !pricePending && now >= joinOpensMs && now <= endMs;
 
   const { date, time } = formatISTDateTime(liveClass?.scheduledAt);
   const endsAt = formatISTDateTime(new Date(endMs).toISOString())?.time;
@@ -76,6 +77,17 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
             </div>
 
             <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
+              {pricePending ? (
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800">
+                  Price Pending
+                </span>
+              ) : liveClass?.priceLabel ? (
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-primary/10 text-primary inline-flex items-center gap-1.5">
+                  <FiTag className="text-[12px]" />
+                  {liveClass.priceLabel}
+                </span>
+              ) : null}
+
               {isLiveNow ? (
                 <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 inline-flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
@@ -99,11 +111,24 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
             </span>
             <span className="inline-flex items-center gap-1.5 min-w-0">
               <FiClock className="text-[14px]" /> {time || "-"}
-              {endsAt ? `–${endsAt}` : ""} IST • {liveClass?.durationMinutes || 0} min
+              {endsAt ? `-${endsAt}` : ""} IST - {liveClass?.durationMinutes || 0} min
+            </span>
+            <span
+              className={[
+                "inline-flex items-center gap-1.5 min-w-0 font-extrabold",
+                pricePending ? "text-amber-700" : "text-on-surface",
+              ].join(" ")}
+            >
+              <FiTag className="text-[14px]" />
+              {pricePending ? "Coming soon" : liveClass?.priceLabel || "Free"}
             </span>
           </div>
 
-          {!isEnded ? (
+          {pricePending ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-800">
+              Enrollment is not open yet. The admin has not set the price for this class.
+            </div>
+          ) : !isEnded ? (
             <div className="mt-3 text-[12px] text-on-surface-variant">
               {isLiveNow ? (
                 <>
@@ -144,7 +169,7 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
               ].join(" ")}
             >
               <FiVideo className="text-[16px]" />
-              {isLiveNow ? "Join live" : "Join"}
+              {pricePending ? "Price pending" : isLiveNow ? "Join live" : "Join"}
             </button>
 
             <Link

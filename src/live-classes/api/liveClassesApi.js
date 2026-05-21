@@ -73,9 +73,34 @@ function parseDurationMinutes(duration) {
   return Math.round(value);
 }
 
+function normalizePriceInPaise(raw = {}) {
+  const value =
+    raw?.priceInPaise ??
+    raw?.price_in_paise ??
+    raw?.amountPaise ??
+    raw?.amount_paise ??
+    raw?.pricePaise ??
+    raw?.price_paise ??
+    raw?.price;
+  if (value == null || value === "") return null;
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return Math.round(amount);
+}
+
+function formatINRFromPaise(amountPaise) {
+  if (amountPaise == null) return "";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: amountPaise % 100 === 0 ? 0 : 2,
+  }).format(amountPaise / 100);
+}
+
 function normalizeLiveClass(dto) {
   const raw = dto || {};
   const id = raw?.id ?? raw?._id ?? raw?.classId ?? raw?.class_id ?? null;
+  const priceInPaise = normalizePriceInPaise(raw);
   const scheduledAt =
     toKolkataIso(raw?.scheduledDate || raw?.scheduled_date || raw?.date, raw?.startTime || raw?.start_time || raw?.time) ||
     raw?.scheduledAt ||
@@ -111,8 +136,28 @@ function normalizeLiveClass(dto) {
     meetUrl: getMeetingLink(raw),
     thumbnail: raw?.thumbnail || "",
     status: raw?.status || "",
+    priceInPaise,
+    priceLabel: formatINRFromPaise(priceInPaise),
+    pricePending: priceInPaise == null,
     raw,
   };
+}
+
+function isTrainerSessionRecord(raw = {}) {
+  const source = String(raw?.source || raw?.type || raw?.sessionType || "").trim().toLowerCase();
+  return (
+    raw?.createdByTrainer === true ||
+    raw?.isTrainerSession === true ||
+    source === "trainer" ||
+    source === "trainer_session" ||
+    raw?.trainerId != null ||
+    raw?.trainer_id != null ||
+    raw?.trainerName != null ||
+    raw?.trainer_name != null ||
+    raw?.trainerEmail != null ||
+    raw?.trainer_email != null ||
+    raw?.trainer != null
+  );
 }
 
 function sortByScheduleAsc(a, b) {
@@ -124,7 +169,9 @@ export async function getLiveClasses() {
     const res = await axiosClient.get("/api/student/live-classes");
     const payload = unwrap(res);
     const list = Array.isArray(payload.data) ? payload.data : [];
-    return list.map(normalizeLiveClass)
+    return list
+      .filter((item) => !isTrainerSessionRecord(item))
+      .map(normalizeLiveClass)
       .filter((x) => x?.id != null)
       .sort(sortByScheduleAsc);
   } catch (err) {

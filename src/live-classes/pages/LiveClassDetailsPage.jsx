@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft, FiCalendar, FiClock, FiVideo } from "react-icons/fi";
+import { FiArrowLeft, FiCalendar, FiClock, FiTag, FiVideo } from "react-icons/fi";
 import { PATHS } from "../../app/router/paths";
 import SmartImage from "../../shared/components/SmartImage";
 import useNow from "../hooks/useNow";
@@ -40,6 +40,7 @@ export default function LiveClassDetailsPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const now = useNow(1000);
+  const [actionNotice, setActionNotice] = useState("");
 
   const {
     detailsById,
@@ -61,17 +62,27 @@ export default function LiveClassDetailsPage() {
   }, [classId, dispatch]);
 
   const joined = joinedByClassId?.[String(classId)];
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  const { startMs, endMs } = getLiveTiming(
+    liveClass?.scheduledAt,
+    liveClass?.durationMinutes,
+    liveClass?.endsAt
+  );
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = now >= startMs && now <= endMs;
   const isEnded = now > endMs;
-  const canJoin = now >= joinOpensMs && now <= endMs;
+  const pricePending = liveClass?.pricePending || liveClass?.priceInPaise == null;
+  const canJoin = !pricePending && now >= joinOpensMs && now <= endMs;
 
   const { date, time } = formatISTDateTime(liveClass?.scheduledAt);
   const endsAt = formatISTDateTime(new Date(endMs).toISOString())?.time;
 
   const handleJoin = async () => {
     if (!classId) return;
+    if (pricePending) {
+      setActionNotice("This class is not yet open for enrollment");
+      return;
+    }
+    setActionNotice("");
     const meetingWindow = openPendingMeetingWindow();
     try {
       const result = await dispatch(joinLiveClass({ classId })).unwrap();
@@ -115,6 +126,12 @@ export default function LiveClassDetailsPage() {
             </div>
           ) : null}
 
+          {actionNotice ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+              {actionNotice}
+            </div>
+          ) : null}
+
           <Card>
             <div className="p-6 flex gap-6 flex-col sm:flex-row">
               <div className="w-full sm:w-64 aspect-[16/10] rounded-2xl overflow-hidden bg-surface-variant flex-shrink-0">
@@ -128,7 +145,7 @@ export default function LiveClassDetailsPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-semibold text-on-surface-variant truncate">
-                  {detailsLoading && !liveClass ? "Loading..." : liveClass?.courseName || "—"}
+                  {detailsLoading && !liveClass ? "Loading..." : liveClass?.courseName || "-"}
                 </div>
                 <h1 className="mt-1 text-xl sm:text-2xl font-extrabold text-on-surface leading-snug">
                   {detailsLoading && !liveClass ? "Loading..." : liveClass?.title || "Live class"}
@@ -136,7 +153,7 @@ export default function LiveClassDetailsPage() {
                 <div className="mt-2 text-sm text-on-surface-variant">
                   Instructor:{" "}
                   <span className="font-semibold text-on-surface">
-                    {liveClass?.instructorName || "—"}
+                    {liveClass?.instructorName || "-"}
                   </span>
                 </div>
 
@@ -146,14 +163,23 @@ export default function LiveClassDetailsPage() {
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <FiClock className="text-[16px]" /> {time}
-                    {endsAt ? `–${endsAt}` : ""} IST
+                    {endsAt ? `-${endsAt}` : ""} IST
+                  </span>
+                  <span
+                    className={[
+                      "inline-flex items-center gap-1.5 font-extrabold",
+                      pricePending ? "text-amber-700" : "text-on-surface",
+                    ].join(" ")}
+                  >
+                    <FiTag className="text-[16px]" />
+                    {pricePending ? "Coming soon" : liveClass?.priceLabel || "Free"}
                   </span>
                 </div>
 
                 <div className="mt-2 text-sm text-on-surface-variant">
                   Duration:{" "}
                   <span className="font-semibold text-on-surface">
-                    {liveClass?.durationMinutes ? `${liveClass.durationMinutes} min` : "—"}
+                    {liveClass?.durationMinutes ? `${liveClass.durationMinutes} min` : "-"}
                   </span>
                 </div>
 
@@ -163,7 +189,11 @@ export default function LiveClassDetailsPage() {
                   </p>
                 ) : null}
 
-                {!isEnded ? (
+                {pricePending ? (
+                  <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                    Enrollment is not open yet. The admin has not set the price for this class.
+                  </div>
+                ) : !isEnded ? (
                   <div className="mt-5 text-sm text-on-surface-variant">
                     {isLiveNow ? (
                       <>
@@ -204,7 +234,7 @@ export default function LiveClassDetailsPage() {
                     ].join(" ")}
                   >
                     <FiVideo className="text-[18px]" />
-                    {isLiveNow ? "Join live" : "Join class"}
+                    {pricePending ? "Price pending" : isLiveNow ? "Join live" : "Join class"}
                   </button>
 
                   {joined?.joinedAt ? (
@@ -222,6 +252,18 @@ export default function LiveClassDetailsPage() {
         </section>
 
         <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
+          <Card>
+            <div className="p-5">
+              <div className="text-sm font-extrabold text-on-surface">Enrollment</div>
+              <div className="mt-3 rounded-xl border border-outline-variant px-4 py-3">
+                <div className="text-xs font-semibold text-on-surface-variant">Class price</div>
+                <div className={pricePending ? "mt-1 text-lg font-extrabold text-amber-700" : "mt-1 text-lg font-extrabold text-on-surface"}>
+                  {pricePending ? "Price pending" : liveClass?.priceLabel || "Free"}
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card>
             <div className="p-5">
               <div className="text-sm font-extrabold text-on-surface">Notes</div>
