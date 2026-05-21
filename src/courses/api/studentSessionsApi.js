@@ -64,6 +64,32 @@ function toAbsoluteAssetUrl(path) {
   return `${baseUrl}/${value.replace(/^\/+/, "")}`;
 }
 
+function toAmountPaise(raw = {}) {
+  const paise =
+    raw.amountPaise ??
+    raw.amount_paise ??
+    raw.pricePaise ??
+    raw.price_paise ??
+    raw.sessionPricePaise ??
+    raw.session_price_paise;
+  const paiseNumber = Number(paise);
+  if (Number.isFinite(paiseNumber) && paiseNumber >= 0) return Math.round(paiseNumber);
+
+  const rupees = raw.amount ?? raw.price ?? raw.sessionPrice ?? raw.session_price;
+  const rupeeNumber = Number(String(rupees ?? "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(rupeeNumber) && rupeeNumber > 0 ? Math.round(rupeeNumber * 100) : 0;
+}
+
+function formatINRFromPaise(amountPaise) {
+  const amount = Number(amountPaise || 0);
+  if (!amount) return "Free";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: amount % 100 === 0 ? 0 : 2,
+  }).format(amount / 100);
+}
+
 function normalizeSession(raw = {}) {
   const category =
     raw.category ||
@@ -98,6 +124,17 @@ function normalizeSession(raw = {}) {
       : 0;
   const durationMinutes = timeDuration || isoDuration || Number(raw.durationMinutes) || 60;
   const meetingLink = getMeetingLink(raw);
+  const amountPaise = toAmountPaise(raw);
+  const bookingStatus = raw.bookingStatus || raw.booking_status || raw.booking?.status || "";
+  const paymentStatus = raw.paymentStatus || raw.payment_status || raw.payment?.status || "";
+  const isPaid =
+    raw.isPaid === true ||
+    raw.paid === true ||
+    bookingStatus === "paid" ||
+    paymentStatus === "captured" ||
+    paymentStatus === "paid";
+  const paymentRequired = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
+  const currency = raw.currency || "INR";
 
   return {
     id: raw.id,
@@ -114,8 +151,14 @@ function normalizeSession(raw = {}) {
     badgeColor: "bg-emerald-100 text-emerald-900",
     rating: 4.8,
     ratingCount: "Live session",
-    price: "₹0.00",
     oldPrice: null,
+    amountPaise,
+    currency,
+    paymentRequired: !!paymentRequired,
+    isPaid,
+    bookingStatus,
+    paymentStatus,
+    price: formatINRFromPaise(amountPaise),
     hours: `${durationMinutes} min live class`,
     totalHours: durationMinutes,
     level: "All Levels",
@@ -148,8 +191,30 @@ function normalizeSession(raw = {}) {
       cancellationReason,
       isAddedToCard: !!raw.isAddedToCard,
       isJoined: !!raw.isJoined,
+      amountPaise,
+      currency,
+      paymentRequired: !!paymentRequired,
+      isPaid,
+      bookingStatus,
+      paymentStatus,
     },
     raw,
+  };
+}
+
+function normalizeBookingPayload(payload = {}) {
+  const source = payload.data || payload || {};
+  return {
+    bookingId: source.bookingId || source.booking_id || source.id || "",
+    razorpayOrderId: source.razorpayOrderId || source.razorpay_order_id || source.orderId || source.order_id || "",
+    amountPaise: toAmountPaise(source),
+    currency: source.currency || "INR",
+    keyId: source.keyId || source.key_id || source.razorpayKeyId || source.razorpay_key_id || "",
+    student: {
+      name: source.student?.name || source.studentName || source.name || "",
+      email: source.student?.email || source.studentEmail || source.email || "",
+      phone: source.student?.phone || source.studentPhone || source.phone || "",
+    },
   };
 }
 
@@ -227,6 +292,47 @@ export async function addStudentSessionCard(sessionId) {
       };
     }
     throw new Error(getAxiosErrorMessage(err, "Unable to add session card."));
+  }
+}
+
+export async function createStudentSessionBooking(sessionId, { sessionDate = "" } = {}) {
+  try {
+    const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(sessionId)}/bookings`, {
+      sessionDate,
+    });
+    return normalizeBookingPayload(unwrap(res));
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to start payment. Please try again."));
+  }
+}
+
+export async function verifyRazorpayPayment({
+  bookingId,
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature,
+}) {
+  try {
+    const res = await axiosClient.post("/api/student/payments/razorpay/verify", {
+      bookingId,
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+    });
+    const payload = unwrap(res);
+    return payload.data || payload;
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Payment verification failed. Please contact support if amount was deducted."));
+  }
+}
+
+export async function getStudentPayments() {
+  try {
+    const res = await axiosClient.get("/api/student/payments");
+    const payload = unwrap(res);
+    return Array.isArray(payload.data) ? payload.data : [];
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to load payment history."));
   }
 }
 

@@ -3,13 +3,18 @@ import { FaCheck } from "react-icons/fa";
 import { HiMiniStar } from "react-icons/hi2";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { joinStudentSession } from "../../courses/api/studentSessionsApi";
+import {
+  createStudentSessionBooking,
+  joinStudentSession,
+  verifyRazorpayPayment,
+} from "../../courses/api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
+import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 
 function StarRating({ rating }) {
   return (
@@ -39,6 +44,16 @@ function formatLiveWhen(iso) {
   });
 }
 
+function formatINRFromPaise(amountPaise) {
+  const amount = Number(amountPaise || 0);
+  if (!amount) return "Free";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: amount % 100 === 0 ? 0 : 2,
+  }).format(amount / 100);
+}
+
 /**
  * CourseCard Component
  * High-fidelity Udemy-style interactive course card.
@@ -59,7 +74,11 @@ export default function CourseCard({
   description,
   takeaways: customTakeaways,
   createdByTrainer = false,
-  liveClass = null
+  liveClass = null,
+  amountPaise = 0,
+  currency = "INR",
+  paymentRequired = false,
+  isPaid = false
 }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -71,6 +90,8 @@ export default function CourseCard({
   const timerRef = useRef(null);
   const { isAuthenticated } = useAuth();
   const [authPrompt, setAuthPrompt] = useState(null);
+  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [paymentAction, setPaymentAction] = useState("");
   const now = useNow(1000);
   const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
   const { startMs, endMs } = occurrence;
@@ -80,7 +101,9 @@ export default function CourseCard({
   const isCancelled = String(liveClass?.status || "").toLowerCase() === "cancelled";
   const unavailable = isSessionUnavailable(liveClass);
   const cancellationReason = liveClass?.cancellationReason || "";
-  const canJoin = createdByTrainer && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
+  const effectivePaid = isPaid || paymentVerified;
+  const needsPayment = createdByTrainer && paymentRequired && !effectivePaid;
+  const canJoin = createdByTrainer && !needsPayment && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
   const timerLabel = !startMs
     ? "Schedule pending"
     : isCancelled
@@ -132,10 +155,11 @@ export default function CourseCard({
   };
 
   const priceLabel = useMemo(() => {
+    if (createdByTrainer && amountPaise > 0) return formatINRFromPaise(amountPaise);
     if (price === 0) return "Free";
     const p = typeof price === "number" ? price * 80 : 499;
     return `₹${p.toLocaleString()}`;
-  }, [price]);
+  }, [amountPaise, createdByTrainer, price]);
 
   const originalLabel = useMemo(() => {
     if (!originalPrice) return null;
@@ -153,6 +177,47 @@ export default function CourseCard({
     setMobilePreviewOpen(true);
   };
 
+  const handlePayForClass = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      setAuthPrompt({
+        title: "Log in to pay for this class",
+        message: "Register or log in first. After payment verification, you can join when the session opens.",
+      });
+      return;
+    }
+    if (!createdByTrainer || !needsPayment || isEnded || unavailable) return;
+
+    setPaymentAction("pay");
+    try {
+      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+      const booking = await createStudentSessionBooking(id, { sessionDate });
+      const payment = await openRazorpayCheckout({
+        keyId: booking.keyId,
+        amountPaise: booking.amountPaise || amountPaise,
+        currency: booking.currency || currency || "INR",
+        razorpayOrderId: booking.razorpayOrderId,
+        sessionTitle: title,
+        student: booking.student,
+      });
+      await verifyRazorpayPayment({
+        bookingId: booking.bookingId,
+        razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+        razorpayPaymentId: payment.razorpay_payment_id,
+        razorpaySignature: payment.razorpay_signature,
+      });
+      setPaymentVerified(true);
+    } catch (err) {
+      setAuthPrompt({
+        title: "Payment not completed",
+        message: err?.message || "Please try the payment again.",
+      });
+    } finally {
+      setPaymentAction("");
+    }
+  };
+
   const handleJoinClass = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -161,6 +226,10 @@ export default function CourseCard({
         title: "Log in to join this class",
         message: "Register or log in first. After authentication, you can continue with this session.",
       });
+      return;
+    }
+    if (createdByTrainer && needsPayment) {
+      await handlePayForClass(e);
       return;
     }
     if (createdByTrainer && !canJoin) {
@@ -273,10 +342,10 @@ export default function CourseCard({
               <button
                 type="button"
                 onClick={handleJoinClass}
-                disabled={!canJoin}
+                disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
                 className="w-full h-9 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {canJoin ? "Join" : "Locked"}
+                {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : effectivePaid ? "Paid" : "Locked"}
               </button>
             ) : null}
             <button
@@ -382,10 +451,10 @@ export default function CourseCard({
                   <button
                     type="button"
                     onClick={handleJoinClass}
-                    disabled={!canJoin}
+                    disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
                     className="w-full h-8 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {canJoin ? "Join" : "Locked"}
+                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : effectivePaid ? "Paid" : "Locked"}
                   </button>
                 ) : null}
                 <button
@@ -508,10 +577,10 @@ export default function CourseCard({
                   <button
                     type="button"
                     onClick={handleJoinClass}
-                    disabled={!canJoin}
+                    disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
                     className="w-full h-10 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {canJoin ? "Join" : "Locked"}
+                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : effectivePaid ? "Paid" : "Locked"}
                   </button>
                 ) : null}
                 <button

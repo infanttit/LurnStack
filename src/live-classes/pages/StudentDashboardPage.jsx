@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { FiArrowRight, FiBell, FiClock, FiRefreshCcw } from "react-icons/fi";
@@ -36,6 +36,7 @@ function SectionCard({ title, right, children }) {
 
 export default function StudentDashboardPage() {
   const dispatch = useDispatch();
+  const [actionNotice, setActionNotice] = useState("");
   const {
     enrolledCourses,
     upcomingClasses,
@@ -92,6 +93,11 @@ export default function StudentDashboardPage() {
   const handleJoin = async (liveClass) => {
     const classId = liveClass?.id;
     if (!classId) return;
+    if (liveClass?.pricePending || liveClass?.priceInPaise == null) {
+      setActionNotice("This class is not yet open for enrollment");
+      return;
+    }
+    setActionNotice("");
     const meetingWindow = openPendingMeetingWindow();
     try {
       const result = await dispatch(joinLiveClass({ classId })).unwrap();
@@ -147,6 +153,12 @@ export default function StudentDashboardPage() {
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
               {error}
+            </div>
+          ) : null}
+
+          {actionNotice ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+              {actionNotice}
             </div>
           ) : null}
 

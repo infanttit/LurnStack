@@ -5,14 +5,17 @@ import { HiMiniStar } from "react-icons/hi2";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import {
+  createStudentSessionBooking,
   getStudentSessions,
   joinStudentSession,
+  verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
 import { getAllCourses } from "../data/courseCatalog";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
+import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 
 function StarRating({ rating }) {
   return (
@@ -71,7 +74,7 @@ function getGuestCourses() {
     }));
 }
 
-function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionId, now }) {
+function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayForClass, actionId, now }) {
   const isTrainerCourse = !!course.createdByTrainer;
   const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
   const unavailable = isSessionUnavailable(liveClass);
@@ -81,7 +84,10 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionI
   const { startMs, endMs } = occurrence;
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isCompleted = isSessionCompleted(liveClass, now);
-  const canJoin = isTrainerCourse && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
+  const needsPayment = isTrainerCourse && course.paymentRequired && !course.isPaid;
+  const paymentReady = !course.paymentRequired || course.isPaid;
+  const paying = actionId === `pay:${course.id}`;
+  const canJoin = isTrainerCourse && paymentReady && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
   const accessNotice = isCancelled
     ? ""
     : isCompleted
@@ -156,14 +162,23 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionI
         </div>
 
         <div className={["mt-3 grid gap-2", isTrainerCourse ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"].join(" ")}>
-          {isTrainerCourse ? (
+          {isTrainerCourse && needsPayment ? (
+            <button
+              type="button"
+              disabled={paying || isCompleted || unavailable}
+              onClick={onPayForClass}
+              className="h-9 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[12px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {paying ? "Opening..." : "Pay to Join"}
+            </button>
+          ) : isTrainerCourse ? (
             <button
               type="button"
               disabled={joining || !canJoin}
               onClick={onJoinClass}
               className="h-9 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[12px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : "Locked"}
+              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : course.isPaid ? "Paid" : "Locked"}
             </button>
           ) : null}
           <button
@@ -301,6 +316,68 @@ export default function CoursesPage() {
     }
   }, [isAuthenticated]);
 
+  const payForTrainerClass = useCallback(async (course) => {
+    if (!isAuthenticated) {
+      setAuthPrompt({
+        title: "Log in to pay for this class",
+        message: "Register or log in first. After payment verification, you can join when the session opens.",
+      });
+      return;
+    }
+    const current = Date.now();
+    if (isSessionUnavailable(course.liveClass)) {
+      setError("This class session is not available.");
+      return;
+    }
+    const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: true });
+    if (occurrence.endMs && current > occurrence.endMs) {
+      setError("Today's session has already completed.");
+      return;
+    }
+
+    setActionId(`pay:${course.id}`);
+    setError("");
+    try {
+      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+      const booking = await createStudentSessionBooking(course.id, { sessionDate });
+      const payment = await openRazorpayCheckout({
+        keyId: booking.keyId,
+        amountPaise: booking.amountPaise || course.amountPaise,
+        currency: booking.currency || course.currency || "INR",
+        razorpayOrderId: booking.razorpayOrderId,
+        sessionTitle: course.title,
+        student: booking.student,
+      });
+      await verifyRazorpayPayment({
+        bookingId: booking.bookingId,
+        razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+        razorpayPaymentId: payment.razorpay_payment_id,
+        razorpaySignature: payment.razorpay_signature,
+      });
+      setSessions((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(course.id)
+            ? {
+                ...item,
+                isPaid: true,
+                bookingStatus: "paid",
+                liveClass: {
+                  ...item.liveClass,
+                  isPaid: true,
+                  bookingStatus: "paid",
+                },
+              }
+            : item
+        )
+      );
+      setMessage("Payment verified. You can join when the class access window opens.");
+    } catch (err) {
+      setError(err?.message || "Payment could not be completed.");
+    } finally {
+      setActionId("");
+    }
+  }, [isAuthenticated]);
+
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-14">
       <section className="rounded-2xl bg-[#00342b] text-white overflow-hidden shadow-sm">
@@ -417,6 +494,7 @@ export default function CoursesPage() {
               liveClass={course.liveClass}
               onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
               onJoinClass={() => joinTrainerClass(course)}
+              onPayForClass={() => payForTrainerClass(course)}
               actionId={actionId}
               now={now}
             />

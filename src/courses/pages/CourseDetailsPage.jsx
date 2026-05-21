@@ -14,13 +14,16 @@ import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { getCourseById, getCourseLiveClasses } from "../data/courseCatalog";
 import {
   addStudentSessionCard,
+  createStudentSessionBooking,
   getStudentSessionById,
   joinStudentSession,
+  verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
+import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -381,6 +384,7 @@ export default function CourseDetailsPage() {
   const [remoteCourse, setRemoteCourse] = useState(null);
   const [sessionAction, setSessionAction] = useState("");
   const [authPrompt, setAuthPrompt] = useState(null);
+  const [paymentVerified, setPaymentVerified] = useState(false);
   const liveClasses = useMemo(() => getCourseLiveClasses(courseId), [courseId]);
 
   const course = useMemo(() => {
@@ -473,11 +477,15 @@ export default function CourseDetailsPage() {
     const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
     const { startMs, endMs } = occurrence;
     const joinOpensMs = startMs - 5 * 60 * 1000;
-    const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled && !unavailable;
+    const effectivePaid = course.isPaid || paymentVerified;
+    const needsPayment = course.paymentRequired && !effectivePaid;
+    const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
     const sessionStatusText = !startMs
       ? "Schedule pending"
       : isCancelled
         ? "Class cancelled"
+        : needsPayment
+          ? "Payment required before joining."
         : now > endMs
           ? "Today's session completed."
           : now < joinOpensMs
@@ -498,6 +506,48 @@ export default function CourseDetailsPage() {
             minute: "2-digit",
           })
         : "Schedule not available";
+    const payForSession = async () => {
+      if (!isAuthenticated) {
+        setAuthPrompt({
+          title: "Log in to pay for this class",
+          message: "Register or log in first. After payment verification, you can join when the session opens.",
+        });
+        return;
+      }
+      if (!liveClass?.id || !needsPayment || sessionCompleted || unavailable) return;
+
+      setSessionAction("pay");
+      try {
+        const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+        const booking = await createStudentSessionBooking(liveClass.id, { sessionDate });
+        const payment = await openRazorpayCheckout({
+          keyId: booking.keyId,
+          amountPaise: booking.amountPaise || course.amountPaise,
+          currency: booking.currency || course.currency || "INR",
+          razorpayOrderId: booking.razorpayOrderId,
+          sessionTitle: course.title,
+          student: booking.student,
+        });
+        await verifyRazorpayPayment({
+          bookingId: booking.bookingId,
+          razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+          razorpayPaymentId: payment.razorpay_payment_id,
+          razorpaySignature: payment.razorpay_signature,
+        });
+        setPaymentVerified(true);
+        setAuthPrompt({
+          title: "Payment verified",
+          message: "You can join when the class access window opens.",
+        });
+      } catch (err) {
+        setAuthPrompt({
+          title: "Payment not completed",
+          message: err?.message || "Please try the payment again.",
+        });
+      } finally {
+        setSessionAction("");
+      }
+    };
 
     return (
       <>
@@ -577,6 +627,20 @@ export default function CourseDetailsPage() {
                 </div>
                 <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
                   <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Payment
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <span className="font-extrabold text-slate-900">{course.price || "Free"}</span>
+                    <span className={[
+                      "rounded-full px-2.5 py-1 text-[11px] font-extrabold",
+                      needsPayment ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800",
+                    ].join(" ")}>
+                      {needsPayment ? "Payment required" : course.paymentRequired ? "Paid" : "Free"}
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
                     Meeting
                   </div>
                   <div className="mt-1 font-semibold text-slate-700 break-all">
@@ -629,6 +693,10 @@ export default function CourseDetailsPage() {
                       });
                       return;
                     }
+                    if (needsPayment) {
+                      await payForSession();
+                      return;
+                    }
                     if (!liveClass?.id || !canJoin) return;
                     const meetingWindow = openPendingMeetingWindow();
                     setSessionAction("join");
@@ -641,15 +709,15 @@ export default function CourseDetailsPage() {
                       setSessionAction("");
                     }
                   }}
-                  disabled={!liveClass?.id || sessionAction === "join" || !canJoin}
+                  disabled={!liveClass?.id || sessionAction === "join" || sessionAction === "pay" || (!needsPayment && !canJoin) || sessionCompleted}
                   className={[
                     "h-12 rounded-xl text-sm font-extrabold transition-colors",
-                    liveClass?.id && canJoin
+                    liveClass?.id && (canJoin || needsPayment) && !sessionCompleted
                       ? "bg-[#00342b] text-white hover:bg-[#004d40]"
                       : "bg-slate-100 text-slate-400 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  {sessionAction === "join" ? "Joining..." : canJoin ? "Join class" : sessionCompleted ? "Completed today" : "Join opens soon"}
+                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay to Join" : canJoin ? "Join class" : sessionCompleted ? "Completed today" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
                 </button>
                 <button
                   type="button"
