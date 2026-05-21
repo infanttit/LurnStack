@@ -65,6 +65,15 @@ function toAbsoluteAssetUrl(path) {
 }
 
 function normalizeSession(raw = {}) {
+  const category =
+    raw.category ||
+    raw.courseCategory ||
+    raw.course_category ||
+    raw.categoryName ||
+    raw.category_name ||
+    raw.course?.category ||
+    raw.course?.categoryName ||
+    "Trainer Courses";
   const cancellationReason =
     raw.cancellationReason ||
     raw.cancelReason ||
@@ -94,9 +103,9 @@ function normalizeSession(raw = {}) {
     id: raw.id,
     thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
     thumbnailBg: "from-emerald-950 via-teal-800 to-cyan-600",
-    category: raw.category || "Trainer Courses",
-    tab: raw.category || "Trainer Courses",
-    title: raw.courseTitle || raw.classTitle || "Live session",
+    category,
+    tab: category,
+    title: raw.courseTitle || raw.course?.title || raw.classTitle || raw.title || "Live session",
     classTitle: raw.classTitle || "",
     instructor: raw.trainerName || raw.trainer?.name || "Trainer",
     instructorName: raw.trainerName || raw.trainer?.name || "Trainer",
@@ -111,19 +120,21 @@ function normalizeSession(raw = {}) {
     totalHours: durationMinutes,
     level: "All Levels",
     priceType: "Free",
-    topic: raw.category || "Trainer Courses",
+    topic: category,
     popularity: 999999,
     dateAdded: scheduledAt || new Date().toISOString(),
     updated: raw.scheduledDate || "Published",
     createdByTrainer: true,
     isAddedToCard: !!raw.isAddedToCard,
     isJoined: !!raw.isJoined,
+    isRecurring: raw.isRecurring ?? raw.is_recurring ?? raw.recurring ?? true,
+    recurrenceType: raw.recurrenceType || raw.recurrence_type || raw.repeatType || "daily",
     cancellationReason,
     liveClass: {
       id: raw.id,
       courseId: raw.id,
-      courseName: raw.courseTitle || "",
-      title: raw.classTitle || "",
+      courseName: raw.courseTitle || raw.course?.title || "",
+      title: raw.classTitle || raw.title || "",
       instructorName: raw.trainerName || raw.trainer?.name || "Trainer",
       description: raw.description || "",
       scheduledAt,
@@ -132,6 +143,8 @@ function normalizeSession(raw = {}) {
       meetUrl: meetingLink,
       thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
       status: raw.status || "",
+      isRecurring: raw.isRecurring ?? raw.is_recurring ?? raw.recurring ?? true,
+      recurrenceType: raw.recurrenceType || raw.recurrence_type || raw.repeatType || "daily",
       cancellationReason,
       isAddedToCard: !!raw.isAddedToCard,
       isJoined: !!raw.isJoined,

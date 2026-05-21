@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { joinStudentSession } from "../../courses/api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
-import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
+import { formatDuration } from "../../live-classes/lib/time";
+import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
@@ -71,19 +72,21 @@ export default function CourseCard({
   const { isAuthenticated } = useAuth();
   const [authPrompt, setAuthPrompt] = useState(null);
   const now = useNow(1000);
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+  const { startMs, endMs } = occurrence;
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = startMs > 0 && now >= startMs && now <= endMs;
   const isEnded = startMs > 0 && now > endMs;
   const isCancelled = String(liveClass?.status || "").toLowerCase() === "cancelled";
+  const unavailable = isSessionUnavailable(liveClass);
   const cancellationReason = liveClass?.cancellationReason || "";
-  const canJoin = createdByTrainer && startMs > 0 && now >= joinOpensMs && now <= endMs;
+  const canJoin = createdByTrainer && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
   const timerLabel = !startMs
     ? "Schedule pending"
     : isCancelled
       ? "Cancelled"
       : isEnded
-      ? "This class session has ended"
+      ? "Today's session completed"
       : isLiveNow
         ? "Live now"
         : now < joinOpensMs
@@ -92,7 +95,7 @@ export default function CourseCard({
   const accessNotice = isCancelled
     ? ""
     : isEnded
-      ? "This class session has ended."
+      ? "Today's session completed."
       : createdByTrainer && startMs > 0 && now < joinOpensMs
         ? "You can join from 5 minutes before the class starts."
         : createdByTrainer && canJoin
@@ -226,7 +229,7 @@ export default function CourseCard({
               "self-start text-[10px] font-bold px-1.5 py-[2px] rounded-sm",
               isEnded ? "bg-slate-100 text-slate-700" : "bg-[#eceb98] text-[#3d3c0a]",
             ].join(" ")}>
-              {isEnded ? "Completed" : badge}
+              {isEnded ? "Completed today" : badge}
             </span>
           )}
 
@@ -239,7 +242,7 @@ export default function CourseCard({
                 {liveClass.title}
               </div>
               <div className="mt-1 text-[10px] text-gray-500 line-clamp-1">
-                {formatLiveWhen(liveClass.scheduledAt)} IST
+                {formatLiveWhen(occurrence.scheduledAt)} IST
               </div>
               <div className="mt-1 text-[10px] font-extrabold text-emerald-800">
                 {timerLabel}
@@ -347,7 +350,7 @@ export default function CourseCard({
                     {liveClass.title}
                   </div>
                   <div className="mt-1 text-[11px] text-gray-500">
-                    {formatLiveWhen(liveClass.scheduledAt)} IST
+                    {formatLiveWhen(occurrence.scheduledAt)} IST
                   </div>
                   <div className="mt-1 text-[11px] font-extrabold text-emerald-800">
                     {timerLabel}
@@ -473,7 +476,7 @@ export default function CourseCard({
                     {liveClass.title}
                   </div>
                   <div className="mt-1 text-[11px] text-gray-500">
-                    {formatLiveWhen(liveClass.scheduledAt)} IST
+                    {formatLiveWhen(occurrence.scheduledAt)} IST
                   </div>
                   <div className="mt-1 text-[11px] font-extrabold text-emerald-800">
                     {timerLabel}

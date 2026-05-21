@@ -10,7 +10,8 @@ import {
 } from "../api/studentSessionsApi";
 import { getAllCourses } from "../data/courseCatalog";
 import useNow from "../../live-classes/hooks/useNow";
-import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
+import { formatDuration } from "../../live-classes/lib/time";
+import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 function StarRating({ rating }) {
@@ -40,17 +41,17 @@ function formatLiveWhen(iso) {
 }
 
 function liveTimerLabel(liveClass, now) {
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
   if (!startMs) return "Schedule pending";
   const joinOpensMs = startMs - 5 * 60 * 1000;
-  if (now > endMs) return "This class session has ended";
+  if (now > endMs) return "Today's session completed";
   if (now >= startMs && now <= endMs) return "Live now";
   if (now < joinOpensMs) return `Join opens 5 minutes before class - ${formatDuration(joinOpensMs - now)} left`;
   return `Starts in ${formatDuration(startMs - now)}`;
 }
 
 function isSessionCompleted(liveClass, now = Date.now()) {
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
   return startMs > 0 && now > endMs;
 }
 
@@ -73,16 +74,18 @@ function getGuestCourses() {
 function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionId, now }) {
   const isTrainerCourse = !!course.createdByTrainer;
   const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
+  const unavailable = isSessionUnavailable(liveClass);
   const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
   const joining = actionId === `join:${course.id}`;
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+  const { startMs, endMs } = occurrence;
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isCompleted = isSessionCompleted(liveClass, now);
-  const canJoin = isTrainerCourse && startMs > 0 && now >= joinOpensMs && now <= endMs;
+  const canJoin = isTrainerCourse && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
   const accessNotice = isCancelled
     ? ""
     : isCompleted
-      ? "This class session has ended."
+      ? "Today's session completed."
       : isTrainerCourse && startMs > 0 && now < joinOpensMs
         ? "You can join from 5 minutes before the class starts."
         : isTrainerCourse && canJoin
@@ -114,7 +117,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionI
               {liveClass.title}
             </div>
             <div className="mt-1 text-[11px] text-gray-500">
-              {formatLiveWhen(liveClass.scheduledAt)} IST • {liveClass.durationMinutes} min
+              {formatLiveWhen(occurrence.scheduledAt)} IST • {liveClass.durationMinutes} min
             </div>
             <div className="mt-1 text-[11px] font-bold text-emerald-800">
               {isCancelled ? "Cancelled" : liveTimerLabel(liveClass, now)}
@@ -147,7 +150,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, actionI
           </div>
           {course.badge && (
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-sm ${isCompleted ? "bg-slate-100 text-slate-700" : course.badgeColor}`}>
-              {isCompleted ? "Completed" : course.badge}
+              {isCompleted ? "Completed today" : course.badge}
             </span>
           )}
         </div>
@@ -198,7 +201,7 @@ export default function CoursesPage() {
     const now = Date.now();
     return courses.filter((course) => {
       const liveClass = course.liveClass;
-      const startsAt = new Date(liveClass?.scheduledAt || "").getTime();
+      const startsAt = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true }).startMs;
       const matchesSearch =
         !q ||
         course.title.toLowerCase().includes(q) ||
@@ -254,11 +257,15 @@ export default function CoursesPage() {
       });
       return;
     }
-    const { startMs, endMs } = getLiveTiming(course.liveClass?.scheduledAt, course.liveClass?.durationMinutes, course.liveClass?.endsAt);
-    const joinOpensMs = startMs - 5 * 60 * 1000;
     const current = Date.now();
+    if (isSessionUnavailable(course.liveClass)) {
+      setError("This class session is not available.");
+      return;
+    }
+    const { startMs, endMs } = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: true });
+    const joinOpensMs = startMs - 5 * 60 * 1000;
     if (current > endMs) {
-      setError("This class session has ended.");
+      setError("Today's session has already completed.");
       return;
     }
     if (current < joinOpensMs) {

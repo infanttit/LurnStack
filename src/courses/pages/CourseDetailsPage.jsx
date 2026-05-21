@@ -18,7 +18,8 @@ import {
   joinStudentSession,
 } from "../api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
-import { formatDuration, getLiveTiming } from "../../live-classes/lib/time";
+import { formatDuration } from "../../live-classes/lib/time";
+import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 
 // ── Video path ─────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ function toCartItem(course) {
 
 function isCourseSessionCompleted(course) {
   const liveClass = course?.liveClass;
-  const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, Date.now(), { defaultRecurring: true });
   return startMs > 0 && Date.now() > endMs;
 }
 
@@ -410,8 +411,8 @@ export default function CourseDetailsPage() {
       if (!course) return;
       if (course.createdByTrainer && isCourseSessionCompleted(course)) {
         setAuthPrompt({
-          title: "Session completed",
-          message: "This live session has already completed and can no longer be added.",
+          title: "Completed today",
+          message: "Today's live session has already completed. It will be available again on the next scheduled day.",
         });
         return;
       }
@@ -467,22 +468,24 @@ export default function CourseDetailsPage() {
     const liveClass = course.liveClass || liveClasses[0] || null;
     const sessionCompleted = isCourseSessionCompleted({ ...course, liveClass });
     const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
+    const unavailable = isSessionUnavailable(liveClass);
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
-    const { startMs, endMs } = getLiveTiming(liveClass?.scheduledAt, liveClass?.durationMinutes, liveClass?.endsAt);
+    const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+    const { startMs, endMs } = occurrence;
     const joinOpensMs = startMs - 5 * 60 * 1000;
-    const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled;
+    const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled && !unavailable;
     const sessionStatusText = !startMs
       ? "Schedule pending"
       : isCancelled
         ? "Class cancelled"
         : now > endMs
-          ? "This class session has ended."
+          ? "Today's session completed."
           : now < joinOpensMs
             ? `Join opens 5 minutes before class - ${formatDuration(joinOpensMs - now)} left`
             : now < startMs
               ? `Join is open - starts in ${formatDuration(startMs - now)}`
               : "Live now";
-    const scheduledAt = liveClass?.scheduledAt ? new Date(liveClass.scheduledAt) : null;
+    const scheduledAt = occurrence.scheduledAt ? new Date(occurrence.scheduledAt) : null;
     const when =
       scheduledAt && !Number.isNaN(scheduledAt.getTime())
         ? scheduledAt.toLocaleString("en-IN", {
@@ -646,7 +649,7 @@ export default function CourseDetailsPage() {
                       : "bg-slate-100 text-slate-400 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  {sessionAction === "join" ? "Joining..." : canJoin ? "Join class" : sessionCompleted ? "Session ended" : "Join opens soon"}
+                  {sessionAction === "join" ? "Joining..." : canJoin ? "Join class" : sessionCompleted ? "Completed today" : "Join opens soon"}
                 </button>
                 <button
                   type="button"
@@ -654,7 +657,7 @@ export default function CourseDetailsPage() {
                   disabled={sessionAction === "card" || isInCart || sessionCompleted}
                   className="h-12 rounded-xl border border-slate-200 text-slate-900 text-sm font-extrabold hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {sessionCompleted ? "Session completed" : isInCart ? "In shopping cart" : sessionAction === "card" ? "Adding..." : "Add to cart"}
+                  {sessionCompleted ? "Completed today" : isInCart ? "In shopping cart" : sessionAction === "card" ? "Adding..." : "Add to cart"}
                 </button>
               </div>
             </aside>
@@ -781,7 +784,9 @@ export default function CourseDetailsPage() {
                           TRAINER LIVE CLASSES
                         </h3>
                         <div className="space-y-3">
-                          {liveClasses.map((liveClass) => (
+                          {liveClasses.map((liveClass) => {
+                            const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+                            return (
                             <div
                               key={liveClass.id}
                               className="rounded-xl border border-emerald-100 bg-emerald-50 p-4"
@@ -790,7 +795,7 @@ export default function CourseDetailsPage() {
                                 {liveClass.title}
                               </div>
                               <div className="mt-1 text-[12px] text-gray-600">
-                                {new Date(liveClass.scheduledAt).toLocaleString("en-IN", {
+                                {new Date(occurrence.scheduledAt).toLocaleString("en-IN", {
                                   timeZone: "Asia/Kolkata",
                                   weekday: "short",
                                   day: "2-digit",
@@ -804,7 +809,8 @@ export default function CourseDetailsPage() {
                                 Instructor: {liveClass.instructorName}
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     ) : null}
