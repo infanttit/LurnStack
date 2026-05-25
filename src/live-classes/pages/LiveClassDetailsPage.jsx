@@ -8,6 +8,7 @@ import useNow from "../hooks/useNow";
 import { formatDuration, getLiveTiming } from "../lib/time";
 import { fetchLiveClassDetails, joinLiveClass } from "../model/liveClassesSlice";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
+import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
 
 function formatISTDateTime(iso) {
   const d = new Date(iso);
@@ -62,6 +63,13 @@ export default function LiveClassDetailsPage() {
   }, [classId, dispatch]);
 
   const joined = joinedByClassId?.[String(classId)];
+  const joinedStatus = joined?.attendanceStatus || joined?.status || "";
+  const attendanceBadgeClass =
+    joinedStatus === "late"
+      ? "bg-amber-100 text-amber-800"
+      : joinedStatus === "absent"
+        ? "bg-red-100 text-red-700"
+        : "bg-emerald-100 text-emerald-800";
   const { startMs, endMs } = getLiveTiming(
     liveClass?.scheduledAt,
     liveClass?.durationMinutes,
@@ -239,10 +247,15 @@ export default function LiveClassDetailsPage() {
 
                   {joined?.joinedAt ? (
                     <div className="text-sm text-on-surface-variant">
-                      Attendance:{" "}
-                      <span className="font-semibold text-on-surface">
-                        {joined.attendanceStatus || "present"}
+                      Attendance{" "}
+                      <span className={["ml-1 rounded-full px-2.5 py-1 text-xs font-extrabold", attendanceBadgeClass].join(" ")}>
+                        {formatAttendanceStatus(joinedStatus || "present")}
                       </span>
+                      {joined.joinCount ? (
+                        <span className="ml-2 text-xs font-semibold text-on-surface-variant">
+                          Join count: {joined.joinCount}
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

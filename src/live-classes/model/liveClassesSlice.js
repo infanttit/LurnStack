@@ -98,11 +98,14 @@ const liveClassesSlice = createSlice({
         state.error = "";
       })
       .addCase(joinLiveClass.fulfilled, (state, action) => {
-        const { classId, joinedAt, attendanceStatus, meetUrl } = action.payload || {};
+        const { classId, joinedAt, attendanceStatus, meetUrl, attendance } = action.payload || {};
         if (!classId) return;
         state.joinedByClassId[classId] = {
-          joinedAt: joinedAt || new Date().toISOString(),
-          attendanceStatus: attendanceStatus || "present",
+          joinedAt: attendance?.firstJoinedAt || joinedAt || new Date().toISOString(),
+          lastJoinedAt: attendance?.lastJoinedAt || joinedAt || new Date().toISOString(),
+          joinCount: attendance?.joinCount || 1,
+          attendanceStatus: attendance?.attendanceStatus || attendance?.status || attendanceStatus || "present",
+          occurrenceDate: attendance?.occurrenceDate || "",
           meetUrl: meetUrl || "",
         };
       })

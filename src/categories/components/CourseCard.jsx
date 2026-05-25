@@ -15,6 +15,8 @@ import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
+import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
+import { startAttendanceHeartbeat } from "../../courses/utils/attendanceHeartbeat";
 
 function StarRating({ rating }) {
   return (
@@ -78,7 +80,9 @@ export default function CourseCard({
   amountPaise = 0,
   currency = "INR",
   paymentRequired = false,
-  isPaid = false
+  isPaid = false,
+  attendance = null,
+  attendanceStatus = ""
 }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
@@ -92,10 +96,10 @@ export default function CourseCard({
   const [authPrompt, setAuthPrompt] = useState(null);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [paymentAction, setPaymentAction] = useState("");
+  const [joinedAttendance, setJoinedAttendance] = useState(attendance || null);
   const now = useNow(1000);
-  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
   const { startMs, endMs } = occurrence;
-  const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = startMs > 0 && now >= startMs && now <= endMs;
   const isEnded = startMs > 0 && now > endMs;
   const isCancelled = String(liveClass?.status || "").toLowerCase() === "cancelled";
@@ -103,7 +107,7 @@ export default function CourseCard({
   const cancellationReason = liveClass?.cancellationReason || "";
   const effectivePaid = isPaid || paymentVerified;
   const needsPayment = createdByTrainer && paymentRequired && !effectivePaid;
-  const canJoin = createdByTrainer && !needsPayment && !unavailable && startMs > 0 && now >= joinOpensMs && now <= endMs;
+  const canJoin = createdByTrainer && !needsPayment && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
   const timerLabel = !startMs
     ? "Schedule pending"
     : isCancelled
@@ -112,18 +116,28 @@ export default function CourseCard({
       ? "Today's session completed"
       : isLiveNow
         ? "Live now"
-        : now < joinOpensMs
-          ? `Join opens 5 minutes before class - ${formatDuration(joinOpensMs - now)} left`
+        : now < startMs
+          ? `Join opens when class starts - ${formatDuration(startMs - now)} left`
           : `Starts in ${formatDuration(startMs - now)}`;
   const accessNotice = isCancelled
     ? ""
     : isEnded
       ? "Today's session completed."
-      : createdByTrainer && startMs > 0 && now < joinOpensMs
-        ? "You can join from 5 minutes before the class starts."
+      : createdByTrainer && startMs > 0 && now < startMs
+        ? "You can join when the class starts."
         : createdByTrainer && canJoin
           ? "Join is open now."
           : "";
+  const effectiveAttendance = joinedAttendance || attendance || null;
+  const effectiveAttendanceStatus = effectiveAttendance?.attendanceStatus || effectiveAttendance?.status || attendanceStatus || "";
+  const attendanceBadgeClass =
+    effectiveAttendanceStatus === "late"
+      ? "bg-amber-100 text-amber-800"
+      : effectiveAttendanceStatus === "absent"
+        ? "bg-red-100 text-red-700"
+        : effectiveAttendanceStatus === "pending"
+          ? "bg-sky-100 text-sky-800"
+          : "bg-emerald-100 text-emerald-800";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -236,14 +250,34 @@ export default function CourseCard({
       return;
     }
     const meetingWindow = openPendingMeetingWindow();
+    const startTracking = (sessionDate) =>
+      startAttendanceHeartbeat({
+        sessionId: id,
+        sessionDate,
+        scheduledAt: occurrence.scheduledAt,
+        startsAt: occurrence.scheduledAt,
+        endsAt: occurrence.endsAt,
+        meetingWindow,
+        onAttendance: setJoinedAttendance,
+      });
     try {
-      const result = await joinStudentSession(id);
+      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+      const result = await joinStudentSession(id, {
+        sessionDate,
+        scheduledAt: occurrence.scheduledAt,
+        startsAt: occurrence.scheduledAt,
+        endsAt: occurrence.endsAt,
+      });
+      setJoinedAttendance(result?.attendance || { attendanceStatus: "pending", firstJoinedAt: result?.joinedAt || "" });
       const meetingLink = result?.meetingLink || liveClass?.meetUrl || "";
       if (openMeetingLink(meetingWindow, meetingLink)) {
+        startTracking(sessionDate);
         return;
       }
     } catch {
       if (openMeetingLink(meetingWindow, liveClass?.meetUrl || "")) {
+        const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+        startTracking(sessionDate);
         return;
       }
       meetingWindow?.close?.();
@@ -261,7 +295,7 @@ export default function CourseCard({
   return (
     <div 
       ref={cardRef}
-      className={`relative border border-gray-200 bg-white rounded-sm cursor-pointer transition-all duration-200 min-w-0 ${isHovered ? "z-[1000]" : "z-0"}`}
+      className={`relative border border-gray-200 bg-white rounded-md cursor-pointer transition-all duration-200 min-w-0 ${isHovered ? "z-[1000]" : "z-0"}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{ boxShadow: isHovered ? "0 0 0 2px #059669" : undefined }}
@@ -269,7 +303,7 @@ export default function CourseCard({
       {/* ── Main List Card ── */}
       <div className="flex flex-col h-full group">
         {/* Thumbnail */}
-        <div className="w-full h-[140px] sm:h-[160px] overflow-hidden bg-gray-100 relative">
+        <div className="w-full h-[112px] sm:h-[124px] overflow-hidden bg-gray-100 relative">
           {thumbnail ? (
             <img src={thumbnail} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           ) : (
@@ -277,12 +311,19 @@ export default function CourseCard({
                <span className="text-white/20 font-black text-4xl select-none">LurnStack</span>
             </div>
           )}
+          <div className="absolute right-2 top-2 overflow-hidden rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[11px] font-black text-[#00342b] shadow-[0_14px_34px_rgba(3,52,43,0.20)] ring-1 ring-emerald-900/5 animate-priceFloat">
+            <span className="absolute inset-y-0 -left-6 w-5 rotate-12 bg-white/80 blur-[2px] animate-priceShine" />
+            <span className="relative inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
+              {priceLabel}
+            </span>
+          </div>
           {isHovered && <div className="absolute inset-0 bg-black/10 transition-opacity" />}
         </div>
         
         {/* Card body */}
-        <div className="p-3 flex flex-col gap-1.5 flex-1 min-w-0">
-          <h3 className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2 break-words">
+        <div className="p-2.5 flex flex-col gap-1.5 flex-1 min-w-0">
+          <h3 className="font-bold text-[13px] text-gray-900 leading-snug line-clamp-2 break-words">
             {title}
           </h3>
           <p className="text-[12px] text-gray-500 line-clamp-1 break-words">{instructorName}</p>
@@ -303,22 +344,27 @@ export default function CourseCard({
           )}
 
           {createdByTrainer && liveClass ? (
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-2">
-              <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800">
+            <div className="rounded-md border border-emerald-100 bg-emerald-50 px-2.5 py-2">
+              <div className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-800">
                 Live class
               </div>
-              <div className="mt-1 text-[11px] font-semibold text-gray-700 line-clamp-1">
+              <div className="mt-1 truncate text-[11px] font-bold text-gray-800">
                 {liveClass.title}
               </div>
-              <div className="mt-1 text-[10px] text-gray-500 line-clamp-1">
+              <div className="mt-1 truncate text-[10px] text-gray-500">
                 {formatLiveWhen(occurrence.scheduledAt)} IST
               </div>
-              <div className="mt-1 text-[10px] font-extrabold text-emerald-800">
+              <div className="mt-1 truncate text-[10px] font-extrabold text-emerald-800">
                 {timerLabel}
               </div>
               {accessNotice ? (
                 <div className="mt-1 text-[10px] font-semibold text-slate-600">
                   {accessNotice}
+                </div>
+              ) : null}
+              {effectiveAttendanceStatus ? (
+                <div className={["mt-2 inline-flex w-fit rounded-full px-2 py-1 text-[10px] font-extrabold", attendanceBadgeClass].join(" ")}>
+                  Attendance: {formatAttendanceStatus(effectiveAttendanceStatus)}
                 </div>
               ) : null}
               {isCancelled && cancellationReason ? (
@@ -337,7 +383,7 @@ export default function CourseCard({
           </div>
 
           {/* Mobile actions */}
-          <div className={["grid gap-2 mt-3 sm:hidden", createdByTrainer ? "grid-cols-2" : "grid-cols-1"].join(" ")}>
+          <div className={["grid gap-2 mt-auto pt-2 sm:hidden", createdByTrainer ? "grid-cols-2" : "grid-cols-1"].join(" ")}>
             {createdByTrainer ? (
               <button
                 type="button"
@@ -355,7 +401,7 @@ export default function CourseCard({
                 "w-full h-9 flex items-center justify-center border border-gray-200 hover:bg-gray-50 text-gray-900 font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99]",
               ].join(" ")}
             >
-              View details
+              See more
             </button>
           </div>
         </div>
@@ -427,6 +473,11 @@ export default function CourseCard({
                   {accessNotice ? (
                     <div className="mt-1 text-[11px] font-semibold text-slate-600">
                       {accessNotice}
+                    </div>
+                  ) : null}
+                  {effectiveAttendanceStatus ? (
+                    <div className={["mt-2 inline-flex w-fit rounded-full px-2 py-1 text-[10px] font-extrabold", attendanceBadgeClass].join(" ")}>
+                      Attendance: {formatAttendanceStatus(effectiveAttendanceStatus)}
                     </div>
                   ) : null}
                   {isCancelled && cancellationReason ? (
@@ -553,6 +604,11 @@ export default function CourseCard({
                   {accessNotice ? (
                     <div className="mt-1 text-[11px] font-semibold text-slate-600">
                       {accessNotice}
+                    </div>
+                  ) : null}
+                  {effectiveAttendanceStatus ? (
+                    <div className={["mt-2 inline-flex w-fit rounded-full px-2 py-1 text-[10px] font-extrabold", attendanceBadgeClass].join(" ")}>
+                      Attendance: {formatAttendanceStatus(effectiveAttendanceStatus)}
                     </div>
                   ) : null}
                   {isCancelled && cancellationReason ? (

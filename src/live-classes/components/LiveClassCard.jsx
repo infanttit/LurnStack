@@ -4,6 +4,7 @@ import { PATHS } from "../../app/router/paths";
 import SmartImage from "../../shared/components/SmartImage";
 import { formatDuration, getLiveTiming } from "../lib/time";
 import useNow from "../hooks/useNow";
+import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
 
 function formatISTDateTime(iso) {
   const d = new Date(iso);
@@ -41,6 +42,13 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
   const endsAt = formatISTDateTime(new Date(endMs).toISOString())?.time;
   const countdownMs = Math.max(0, startMs - now);
   const joinCountdownMs = Math.max(0, joinOpensMs - now);
+  const joinedStatus = joined?.attendanceStatus || joined?.status || "";
+  const statusClass =
+    joinedStatus === "late"
+      ? "bg-amber-100 text-amber-800"
+      : joinedStatus === "absent"
+        ? "bg-red-100 text-red-700"
+        : "bg-emerald-100 text-emerald-800";
 
   return (
     <div className="rounded-2xl bg-surface overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-outline-variant/60">
@@ -188,9 +196,9 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
 
             {joined?.joinedAt ? (
               <div className="text-[12px] text-on-surface-variant sm:ml-1">
-                Attendance:{" "}
-                <span className="font-semibold text-on-surface">
-                  {joined.attendanceStatus || "present"}
+                Attendance{" "}
+                <span className={["ml-1 rounded-full px-2 py-1 text-[11px] font-extrabold", statusClass].join(" ")}>
+                  {formatAttendanceStatus(joinedStatus || "present")}
                 </span>
               </div>
             ) : null}

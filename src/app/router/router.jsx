@@ -14,6 +14,7 @@ import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage"
 import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
+import AttendanceReportPage from "../../attendance/pages/AttendanceReportPage";
 import { PATHS, categoryHashPath } from "./paths";
 
 function CategoryRedirect() {
@@ -73,6 +74,22 @@ export default function AppRouter() {
         <Route path={PATHS.LOGIN} element={<LoginPage />} />
         <Route path={PATHS.SIGNUP} element={<SignupPage />} />
         <Route path={PATHS.PROFILE} element={<ProfilePage />} />
+        <Route
+          path={PATHS.TRAINER_ATTENDANCE}
+          element={(
+            <RequireAuth role="trainer">
+              <AttendanceReportPage mode="trainer" />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path={PATHS.ADMIN_ATTENDANCE}
+          element={(
+            <RequireAuth role="admin">
+              <AttendanceReportPage mode="admin" />
+            </RequireAuth>
+          )}
+        />
       </Route>
       <Route path="*" element={<Navigate to={PATHS.HOME} replace />} />
     </Routes>

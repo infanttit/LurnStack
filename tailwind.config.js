@@ -102,6 +102,21 @@ module.exports = {
       boxShadow: {
         "hero-card": "0 32px 64px -16px rgba(0,52,43,0.15)",
       },
+      keyframes: {
+        priceFloat: {
+          "0%, 100%": { transform: "translateY(0) scale(1)" },
+          "50%": { transform: "translateY(-3px) scale(1.035)" },
+        },
+        priceShine: {
+          "0%": { transform: "translateX(0) rotate(12deg)", opacity: "0" },
+          "35%": { opacity: ".8" },
+          "100%": { transform: "translateX(92px) rotate(12deg)", opacity: "0" },
+        },
+      },
+      animation: {
+        priceFloat: "priceFloat 2.4s ease-in-out infinite",
+        priceShine: "priceShine 2.8s ease-in-out infinite",
+      },
     },
   },
   plugins: [],
