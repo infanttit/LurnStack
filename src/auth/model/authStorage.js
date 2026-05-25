@@ -47,6 +47,7 @@ function loadToken() {
 
 function normalizeRole(role) {
   const value = String(role || "").trim().toLowerCase();
+  if (value === "admin") return "admin";
   return value === "trainer" ? "trainer" : "student";
 }
 

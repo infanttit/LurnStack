@@ -83,23 +83,11 @@ function normalizeProfile(raw) {
 }
 
 export async function getAuthProfileApi() {
-  const endpoints = ["/api/auth/me", "/api/auth/profile", "/api/user/profile", "/api/users/me"];
-  let lastError = null;
-
-  for (const endpoint of endpoints) {
-    try {
-      const res = await axiosClient.get(endpoint);
-      const data = unwrap(res);
-      return normalizeProfile(data);
-    } catch (err) {
-      const status = getAxiosErrorStatus(err);
-      if (status === 404 || status === 405) {
-        lastError = err;
-        continue;
-      }
-      throw new Error(getAxiosErrorMessage(err, "Unable to fetch profile details."));
-    }
+  try {
+    const res = await axiosClient.get("/api/auth/me");
+    const data = unwrap(res);
+    return normalizeProfile(data);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to fetch profile details."));
   }
-
-  throw new Error(getAxiosErrorMessage(lastError, "Profile endpoint is not available yet."));
 }

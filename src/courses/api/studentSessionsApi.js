@@ -2,6 +2,7 @@ import { axiosClient } from "../../shared/api/axiosClient";
 import { getAxiosErrorMessage, getAxiosErrorStatus } from "../../shared/api/axiosError";
 import { env } from "../../shared/config/env";
 import { getDurationMinutes, toKolkataIso, toMs } from "../../live-classes/lib/time";
+import { normalizeAttendance } from "./studentAttendanceApi";
 
 function unwrap(res) {
   const data = res?.data;
@@ -125,6 +126,8 @@ function normalizeSession(raw = {}) {
   const durationMinutes = timeDuration || isoDuration || Number(raw.durationMinutes) || 60;
   const meetingLink = getMeetingLink(raw);
   const amountPaise = toAmountPaise(raw);
+  const recurringValue = raw.isRecurring ?? raw.is_recurring ?? raw.recurring;
+  const recurrenceType = raw.recurrenceType || raw.recurrence_type || raw.repeatType || "";
   const bookingStatus = raw.bookingStatus || raw.booking_status || raw.booking?.status || "";
   const paymentStatus = raw.paymentStatus || raw.payment_status || raw.payment?.status || "";
   const isPaid =
@@ -170,8 +173,8 @@ function normalizeSession(raw = {}) {
     createdByTrainer: true,
     isAddedToCard: !!raw.isAddedToCard,
     isJoined: !!raw.isJoined,
-    isRecurring: raw.isRecurring ?? raw.is_recurring ?? raw.recurring ?? true,
-    recurrenceType: raw.recurrenceType || raw.recurrence_type || raw.repeatType || "daily",
+    isRecurring: recurringValue,
+    recurrenceType,
     cancellationReason,
     liveClass: {
       id: raw.id,
@@ -186,8 +189,8 @@ function normalizeSession(raw = {}) {
       meetUrl: meetingLink,
       thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
       status: raw.status || "",
-      isRecurring: raw.isRecurring ?? raw.is_recurring ?? raw.recurring ?? true,
-      recurrenceType: raw.recurrenceType || raw.recurrence_type || raw.repeatType || "daily",
+      isRecurring: recurringValue,
+      recurrenceType,
       cancellationReason,
       isAddedToCard: !!raw.isAddedToCard,
       isJoined: !!raw.isJoined,
@@ -336,41 +339,136 @@ export async function getStudentPayments() {
   }
 }
 
-export async function joinStudentSession(sessionId) {
+export async function joinStudentSession(
+  sessionId,
+  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
+) {
+  const id = String(sessionId || "").trim();
+  if (!id) throw new Error("Missing session id");
+  const requestBody = sessionDate
+    ? {
+        sessionDate,
+        occurrenceDate: sessionDate,
+        scheduledAt: scheduledAt || startsAt || "",
+        startsAt: startsAt || scheduledAt || "",
+        endsAt: endsAt || "",
+        clientJoinedAt: new Date().toISOString(),
+      }
+    : undefined;
+
   const loadMeetingLinkFromDetails = async () => {
-    try {
-      const detailRes = await axiosClient.get(`/api/student/sessions/${encodeURIComponent(sessionId)}`);
-      const detailPayload = unwrap(detailRes);
-      const detail = normalizeSession(detailPayload.data || {});
-      return detail?.liveClass?.meetUrl || getMeetingLink(detailPayload);
-    } catch {
-      return "";
+    const detailEndpoints = [
+      `/api/student/sessions/${encodeURIComponent(id)}`,
+      `/api/sessions/${encodeURIComponent(id)}`,
+    ];
+
+    for (const endpoint of detailEndpoints) {
+      try {
+        const detailRes = await axiosClient.get(endpoint);
+        const detailPayload = unwrap(detailRes);
+        const detail = normalizeSession(detailPayload.data || {});
+        return detail?.liveClass?.meetUrl || getMeetingLink(detailPayload);
+      } catch {
+        // Try the next supported backend route.
+      }
     }
+    return "";
   };
 
-  try {
-    const res = await axiosClient.post(
-      `/api/student/sessions/${encodeURIComponent(sessionId)}/join`
-    );
-    const payload = unwrap(res);
-    const meetingLink = getMeetingLink(payload) || (await loadMeetingLinkFromDetails());
-    return {
-      message: payload.message || "",
-      meetingLink,
-      joinedAt: payload.data?.joinedAt || "",
-    };
-  } catch (err) {
-    const status = getAxiosErrorStatus(err);
-    const message = getAxiosErrorMessage(err, "Unable to join session.");
-    if (status === 400 && /(already|joined|registered|booked)/i.test(message)) {
-      const meetingLink = getMeetingLink(err?.response?.data) || (await loadMeetingLinkFromDetails());
+  const joinEndpoints = [
+    `/api/student/sessions/${encodeURIComponent(id)}/join`,
+    `/api/sessions/${encodeURIComponent(id)}/join`,
+    `/api/student/join-class/${encodeURIComponent(id)}`,
+  ];
+
+  let lastErr = null;
+
+  for (const endpoint of joinEndpoints) {
+    try {
+      const res = await axiosClient.post(endpoint, requestBody);
+      const responsePayload = unwrap(res);
+      const meetingLink = getMeetingLink(responsePayload) || (await loadMeetingLinkFromDetails());
       return {
-        message,
+        message: responsePayload.message || "",
         meetingLink,
-        joinedAt: err?.response?.data?.data?.joinedAt || "",
-        alreadyJoined: true,
+        joinedAt: responsePayload.data?.joinedAt || "",
+        attendance: normalizeAttendance(responsePayload.data?.attendance || responsePayload.attendance || responsePayload.data || {}),
       };
+    } catch (err) {
+      const status = getAxiosErrorStatus(err);
+      const message = getAxiosErrorMessage(err, "Unable to join session.");
+      if (status === 400 && /(already|joined|registered|booked|booking)/i.test(message)) {
+        const meetingLink = getMeetingLink(err?.response?.data) || (await loadMeetingLinkFromDetails());
+        return {
+          message,
+          meetingLink,
+          joinedAt: err?.response?.data?.data?.joinedAt || "",
+          attendance: normalizeAttendance(
+            err?.response?.data?.data?.attendance ||
+              err?.response?.data?.attendance ||
+              err?.response?.data?.data ||
+              {}
+          ),
+          alreadyJoined: true,
+        };
+      }
+      lastErr = err;
+
+      // Route not available in this backend version; try the next supported route.
+      if (status === 404 || status === 405) continue;
+      if (status === 400 && /no active session occurrence/i.test(message)) continue;
+
+      // Network/transient issue on the newer route can still be recovered by the
+      // documented legacy route below.
+      if (!status && endpoint !== joinEndpoints[joinEndpoints.length - 1]) continue;
+
+      break;
     }
-    throw new Error(getAxiosErrorMessage(err, "Unable to join session."));
+  }
+
+  throw new Error(getAxiosErrorMessage(lastErr, "Unable to join session."));
+}
+
+export async function heartbeatStudentSession(
+  sessionId,
+  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
+) {
+  const id = String(sessionId || "").trim();
+  if (!id) return null;
+  try {
+    const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(id)}/heartbeat`, {
+      sessionDate,
+      occurrenceDate: sessionDate,
+      scheduledAt: scheduledAt || startsAt || "",
+      startsAt: startsAt || scheduledAt || "",
+      endsAt: endsAt || "",
+      clientHeartbeatAt: new Date().toISOString(),
+    });
+    const payload = unwrap(res);
+    return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
+  } catch {
+    return null;
+  }
+}
+
+export async function leaveStudentSession(
+  sessionId,
+  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
+) {
+  const id = String(sessionId || "").trim();
+  if (!id) return null;
+  try {
+    const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(id)}/leave`, {
+      sessionDate,
+      occurrenceDate: sessionDate,
+      scheduledAt: scheduledAt || startsAt || "",
+      startsAt: startsAt || scheduledAt || "",
+      endsAt: endsAt || "",
+      clientLeftAt: new Date().toISOString(),
+    });
+    const payload = unwrap(res);
+    return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
+  } catch {
+    return null;
   }
 }

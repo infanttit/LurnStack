@@ -1,6 +1,7 @@
 import { axiosClient } from "../../shared/api/axiosClient";
 import { getAxiosErrorMessage } from "../../shared/api/axiosError";
 import { getDurationMinutes, toKolkataIso, toMs } from "../lib/time";
+import { normalizeAttendance } from "../../courses/api/studentAttendanceApi";
 
 function unwrap(res) {
   const data = res?.data;
@@ -204,6 +205,7 @@ export async function joinClass(classId) {
       meetUrl: getMeetingLink(payload),
       joinedAt: payload.data?.joinedAt || "",
       bookingId: payload.data?.bookingId || "",
+      attendance: normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {}),
     };
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to join class. Please try again."));

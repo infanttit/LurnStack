@@ -25,7 +25,7 @@ export default function SiteNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { itemCount } = useCart();
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, signOut, userRole } = useAuth();
 
   const isCheckout = location?.pathname === PATHS.CHECKOUT;
 
@@ -173,6 +173,42 @@ export default function SiteNavbar() {
                       >
                         Profile
                       </button>
+                      {userRole === "student" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            navigate(PATHS.STUDENT_ATTENDANCE);
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                        >
+                          My Attendance
+                        </button>
+                      ) : null}
+                      {userRole === "trainer" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            navigate(PATHS.TRAINER_ATTENDANCE);
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                        >
+                          Attendance
+                        </button>
+                      ) : null}
+                      {userRole === "admin" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false);
+                            navigate(PATHS.ADMIN_ATTENDANCE);
+                          }}
+                          className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                        >
+                          Admin Attendance
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={async () => {
@@ -270,6 +306,33 @@ export default function SiteNavbar() {
                 >
                   Profile
                 </NavLink>
+                {userRole === "student" ? (
+                  <NavLink
+                    to={PATHS.STUDENT_ATTENDANCE}
+                    onClick={closeMobileMenu}
+                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                  >
+                    My Attendance
+                  </NavLink>
+                ) : null}
+                {userRole === "trainer" ? (
+                  <NavLink
+                    to={PATHS.TRAINER_ATTENDANCE}
+                    onClick={closeMobileMenu}
+                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                  >
+                    Attendance
+                  </NavLink>
+                ) : null}
+                {userRole === "admin" ? (
+                  <NavLink
+                    to={PATHS.ADMIN_ATTENDANCE}
+                    onClick={closeMobileMenu}
+                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                  >
+                    Admin Attendance
+                  </NavLink>
+                ) : null}
                 <button
                   type="button"
                   onClick={async () => {

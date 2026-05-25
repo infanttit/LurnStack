@@ -24,6 +24,8 @@ import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
+import { formatAttendanceStatus } from "../api/studentAttendanceApi";
+import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -53,7 +55,7 @@ function toCartItem(course) {
 
 function isCourseSessionCompleted(course) {
   const liveClass = course?.liveClass;
-  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, Date.now(), { defaultRecurring: true });
+  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, Date.now(), { defaultRecurring: false });
   return startMs > 0 && Date.now() > endMs;
 }
 
@@ -385,6 +387,7 @@ export default function CourseDetailsPage() {
   const [sessionAction, setSessionAction] = useState("");
   const [authPrompt, setAuthPrompt] = useState(null);
   const [paymentVerified, setPaymentVerified] = useState(false);
+  const [sessionAttendance, setSessionAttendance] = useState(null);
   const liveClasses = useMemo(() => getCourseLiveClasses(courseId), [courseId]);
 
   const course = useMemo(() => {
@@ -474,12 +477,26 @@ export default function CourseDetailsPage() {
     const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
     const unavailable = isSessionUnavailable(liveClass);
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
-    const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+    const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
     const { startMs, endMs } = occurrence;
-    const joinOpensMs = startMs - 5 * 60 * 1000;
     const effectivePaid = course.isPaid || paymentVerified;
     const needsPayment = course.paymentRequired && !effectivePaid;
-    const canJoin = startMs > 0 && now >= joinOpensMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
+    const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
+    const attendanceStatus =
+      sessionAttendance?.attendanceStatus ||
+      sessionAttendance?.status ||
+      course.attendance?.attendanceStatus ||
+      course.attendance?.status ||
+      course.attendanceStatus ||
+      "";
+    const attendanceBadgeClass =
+      attendanceStatus === "late"
+        ? "bg-amber-100 text-amber-800"
+        : attendanceStatus === "absent"
+          ? "bg-red-100 text-red-700"
+          : attendanceStatus === "pending"
+            ? "bg-sky-100 text-sky-800"
+            : "bg-emerald-100 text-emerald-800";
     const sessionStatusText = !startMs
       ? "Schedule pending"
       : isCancelled
@@ -488,11 +505,9 @@ export default function CourseDetailsPage() {
           ? "Payment required before joining."
         : now > endMs
           ? "Today's session completed."
-          : now < joinOpensMs
-            ? `Join opens 5 minutes before class - ${formatDuration(joinOpensMs - now)} left`
-            : now < startMs
-              ? `Join is open - starts in ${formatDuration(startMs - now)}`
-              : "Live now";
+          : now < startMs
+            ? `Join opens when class starts - ${formatDuration(startMs - now)} left`
+            : "Live now";
     const scheduledAt = occurrence.scheduledAt ? new Date(occurrence.scheduledAt) : null;
     const when =
       scheduledAt && !Number.isNaN(scheduledAt.getTime())
@@ -680,6 +695,23 @@ export default function CourseDetailsPage() {
                     </div>
                   </div>
                 ) : null}
+                {attendanceStatus ? (
+                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+                    <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                      Attendance
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className={["rounded-full px-2.5 py-1 text-[11px] font-extrabold", attendanceBadgeClass].join(" ")}>
+                        {formatAttendanceStatus(attendanceStatus)}
+                      </span>
+                      {sessionAttendance?.joinCount ? (
+                        <span className="text-xs font-semibold text-slate-500">
+                          Join count: {sessionAttendance.joinCount}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3">
@@ -700,11 +732,33 @@ export default function CourseDetailsPage() {
                     if (!liveClass?.id || !canJoin) return;
                     const meetingWindow = openPendingMeetingWindow();
                     setSessionAction("join");
+                    const startTracking = (sessionDate) =>
+                      startAttendanceHeartbeat({
+                        sessionId: liveClass.id,
+                        sessionDate,
+                        scheduledAt: occurrence.scheduledAt,
+                        startsAt: occurrence.scheduledAt,
+                        endsAt: occurrence.endsAt,
+                        meetingWindow,
+                        onAttendance: setSessionAttendance,
+                      });
                     try {
-                      const result = await joinStudentSession(liveClass.id);
-                      openMeetingLink(meetingWindow, result?.meetingLink || liveClass?.meetUrl || course?.meetUrl || "");
+                      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+                      const result = await joinStudentSession(liveClass.id, {
+                        sessionDate,
+                        scheduledAt: occurrence.scheduledAt,
+                        startsAt: occurrence.scheduledAt,
+                        endsAt: occurrence.endsAt,
+                      });
+                      setSessionAttendance(result?.attendance || { attendanceStatus: "pending", firstJoinedAt: result?.joinedAt || "" });
+                      if (openMeetingLink(meetingWindow, result?.meetingLink || liveClass?.meetUrl || course?.meetUrl || "")) {
+                        startTracking(sessionDate);
+                      }
                     } catch {
-                      openMeetingLink(meetingWindow, liveClass?.meetUrl || course?.meetUrl || "");
+                      if (openMeetingLink(meetingWindow, liveClass?.meetUrl || course?.meetUrl || "")) {
+                        const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+                        startTracking(sessionDate);
+                      }
                     } finally {
                       setSessionAction("");
                     }
@@ -853,7 +907,7 @@ export default function CourseDetailsPage() {
                         </h3>
                         <div className="space-y-3">
                           {liveClasses.map((liveClass) => {
-                            const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: true });
+                            const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
                             return (
                             <div
                               key={liveClass.id}
