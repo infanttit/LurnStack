@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiClock, FiFilter, FiSearch, FiUsers } from "react-icons/fi";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { FiChevronLeft, FiChevronRight, FiFilter, FiSearch } from "react-icons/fi";
 import { HiMiniStar } from "react-icons/hi2";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
@@ -223,12 +223,14 @@ export default function CoursesPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [actionId, setActionId] = useState("");
+  const [urlSearchParams] = useSearchParams();
+  const routeSearchQuery = urlSearchParams.get("q") || "";
   const tabs = useMemo(
     () => (sessions.length ? [...new Set(sessions.map((s) => s.tab).filter(Boolean))] : ["Trainer Courses"]),
     [sessions]
   );
   const [activeTab, setActiveTab] = useState(tabs[0]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(routeSearchQuery);
   const [timeFilter, setTimeFilter] = useState("All");
   const tabsScrollerRef = useRef(null);
   const courses = useMemo(
@@ -238,7 +240,8 @@ export default function CoursesPage() {
   const filteredCourses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const now = Date.now();
-    return courses.filter((course) => {
+    const source = q ? sessions : courses;
+    return source.filter((course) => {
       const liveClass = course.liveClass;
       const startsAt = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false }).startMs;
       const matchesSearch =
@@ -254,7 +257,7 @@ export default function CoursesPage() {
           new Date(startsAt).toDateString() === new Date().toDateString());
       return matchesSearch && matchesTime;
     });
-  }, [courses, searchQuery, timeFilter]);
+  }, [courses, searchQuery, sessions, timeFilter]);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const now = useNow(1000);
@@ -293,6 +296,10 @@ export default function CoursesPage() {
   useEffect(() => {
     if (tabs.length && !tabs.includes(activeTab)) setActiveTab(tabs[0]);
   }, [activeTab, tabs]);
+
+  useEffect(() => {
+    setSearchQuery(routeSearchQuery);
+  }, [routeSearchQuery]);
 
   const joinTrainerClass = useCallback(async (course) => {
     if (!isAuthenticated) {
@@ -455,36 +462,7 @@ export default function CoursesPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-14">
-      <section className="rounded-2xl bg-[#00342b] text-white overflow-hidden shadow-sm">
-        <div className="p-5 sm:p-7 lg:p-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-end">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest">
-              <FiUsers />
-              Live learning marketplace
-            </div>
-            <h1 className="mt-4 text-[28px] sm:text-[40px] font-extrabold leading-tight">
-              Upcoming expert-led sessions
-            </h1>
-            <p className="mt-3 text-sm sm:text-base text-white/75 max-w-2xl">
-              Browse published live classes, add sessions to your cart, review the details, and join when the access window opens.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-white/10 border border-white/10 p-4">
-              <FiCalendar className="text-lg text-white/90" />
-              <div className="mt-3 text-2xl font-extrabold">{courses.length}</div>
-              <div className="text-xs text-white/65 font-semibold">Published sessions</div>
-            </div>
-            <div className="rounded-xl bg-white/10 border border-white/10 p-4">
-              <FiClock className="text-lg text-white/90" />
-              <div className="mt-3 text-2xl font-extrabold">IST</div>
-              <div className="text-xs text-white/65 font-semibold">Asia/Kolkata timezone</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-2xl bg-white border border-gray-200 p-4 sm:p-5 shadow-sm">
+      <section className="rounded-2xl bg-white border border-gray-200 p-4 sm:p-5 shadow-sm">
         {message ? (
           <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
             {message}
@@ -504,6 +482,18 @@ export default function CoursesPage() {
               placeholder="Search sessions, skills, or experts..."
               className="w-full h-12 rounded-xl border border-gray-200 pl-11 pr-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5"
             />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  navigate("/courses", { replace: true });
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-extrabold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
             {["All", "Upcoming", "Today"].map((filter) => (
@@ -576,10 +566,26 @@ export default function CoursesPage() {
         </div>
       ) : filteredCourses.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-          <h2 className="text-xl font-extrabold text-gray-900">No sessions available yet</h2>
+          <h2 className="text-xl font-extrabold text-gray-900">
+            {searchQuery ? "No matching sessions found" : "No sessions available yet"}
+          </h2>
           <p className="mt-2 text-sm text-gray-500">
-            New expert-led sessions will appear here once they are published.
+            {searchQuery
+              ? "Clear the search or try a different keyword to see available sessions."
+              : "New expert-led sessions will appear here once they are published."}
           </p>
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                navigate("/courses", { replace: true });
+              }}
+              className="mt-5 rounded-xl bg-[#00342b] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#004d40]"
+            >
+              Show all sessions
+            </button>
+          ) : null}
         </div>
       ) : (
         <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,15 +1,19 @@
 import { Link } from "react-router-dom";
 import { HiCheckBadge } from "react-icons/hi2";
-import { FiAward, FiPlay, FiUsers, FiBookOpen, FiTrendingUp, FiArrowRight } from "react-icons/fi";
+import { FiAward, FiPlay, FiUsers, FiBookOpen, FiTrendingUp, FiArrowRight, FiCode, FiDatabase, FiCloud, FiSmartphone, FiCpu } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import heroVideoAuth from "../../assets/Videos/Hero.mp4";
-import heroVideoGuest from "../../assets/Videos/Hero1.mp4";
+import lurnStackLogo from "../../assets/Logo/Logo3.png";
+import heroLoginImage from "../../assets/Images/Hero/hero3.png";
+import heroLoginImageAlt from "../../assets/Images/Hero/hero-image1.png";
 import { useAuth } from "../../auth";
+
+const authenticatedHeroImages = [heroLoginImage, heroLoginImageAlt];
 
 export default function HeroSection() {
   const { isAuthenticated } = useAuth();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [authHeroImageIndex, setAuthHeroImageIndex] = useState(0);
 
   // Text animation - character by character
   const headingText = "Upgrade Your Skills.";
@@ -119,218 +123,361 @@ export default function HeroSection() {
     };
   }, []);
 
-  return (
-    <section className="relative bg-[#00342B] min-h-screen flex items-center">
-      <div className="absolute inset-0 w-full h-full">
-        <video
-          key={isAuthenticated ? "auth" : "guest"}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute w-full h-full object-cover"
-        >
-          <source src={isAuthenticated ? heroVideoAuth : heroVideoGuest} type="video/mp4" />
-        </video>
-        <div className={["absolute inset-0", isAuthenticated ? "bg-black/50" : "bg-black/55"].join(" ")} />
-      </div>
+  useEffect(() => {
+    if (!isAuthenticated || authenticatedHeroImages.length <= 1) return undefined;
+    const timer = window.setInterval(() => {
+      setAuthHeroImageIndex((index) => (index + 1) % authenticatedHeroImages.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [isAuthenticated]);
 
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-20">
-        <div className="max-w-3xl">
-          
-          {/* Item 1 - Badge - Fade in from left */}
-          <motion.div
-            initial={{ opacity: 0, x: -60 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-6"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-500/20 backdrop-blur-sm rounded-full border border-teal-400/30">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-xs font-medium text-teal-100 uppercase tracking-wider">
-                World-Class Academic Excellence
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Item 2 - Main Heading - Typewriter effect */}
-          <div className="mb-5">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-              <div className="text-white min-h-[4rem] md:min-h-[5rem]">
-                {displayedHeading1}
-                <span className="animate-pulse">|</span>
-              </div>
-              <div className="bg-gradient-to-r from-teal-400 via-emerald-400 to-cyan-400 bg-clip-text text-transparent min-h-[4rem] md:min-h-[5rem]">
-                {displayedHeading2}
-                {displayedHeading2.length === headingText2.length ? null : <span className="animate-pulse text-teal-400">|</span>}
-              </div>
-            </h1>
-          </div>
-
-          {/* Item 3 - Description - Typewriter effect */}
-          <div className="mb-7">
-            <p className="text-base md:text-lg text-teal-100 leading-relaxed opacity-95 max-w-2xl min-h-[6rem]">
-              {displayedDescription}
-              {displayedDescription.length === descriptionText.length ? null : <span className="animate-pulse text-teal-300">|</span>}
-            </p>
-          </div>
-
-          {/* Item 4 - Buttons - Fade in sequentially */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.5 }}
-            className="flex flex-wrap gap-3 mb-8"
-          >
+  if (!isAuthenticated) {
+    return (
+      <section className="relative flex min-h-[calc(100svh-72px)] items-center bg-white">
+        <div className="relative mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-14 lg:grid-cols-[1fr_0.9fr] lg:px-8 lg:py-20">
+          <div className="max-w-3xl">
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, x: -60 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mb-6"
             >
-              <Link
-                to="/courses"
-                className="group inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg font-medium text-sm text-white shadow-md shadow-teal-500/25 hover:shadow-teal-500/40 transition-all duration-300"
-              >
-                Start Learning
-                <FiArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Link
-                to="/plans"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm text-teal-100 border border-teal-400/40 hover:border-teal-400/70 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm"
-              >
-                View Programs
-              </Link>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                  World-Class Academic Excellence
+                </span>
+              </div>
             </motion.div>
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <button
-                onClick={() => setIsVideoPlaying(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm text-teal-100 hover:text-white transition-all duration-300 group backdrop-blur-sm"
-              >
-                <div className="w-7 h-7 rounded-full bg-teal-500/30 flex items-center justify-center group-hover:bg-teal-500/50 transition-all">
-                  <FiPlay className="w-3 h-3 ml-0.5" />
+            <div className="mb-5">
+              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                <div className="min-h-[3.5rem] text-gray-950 sm:min-h-[4.5rem] lg:min-h-[5rem]">
+                  {displayedHeading1}
+                  <span className="animate-pulse">|</span>
                 </div>
-                Watch Demo
-              </button>
-            </motion.div>
-          </motion.div>
+                <div className="min-h-[3.5rem] bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent sm:min-h-[4.5rem] lg:min-h-[5rem]">
+                  {displayedHeading2}
+                  {displayedHeading2.length === headingText2.length ? null : (
+                    <span className="animate-pulse text-emerald-600">|</span>
+                  )}
+                </div>
+              </h1>
+            </div>
 
-          {/* Item 5 - Stats Section - Animated counters */}
+            <div className="mb-7">
+              <p className="min-h-[7rem] max-w-2xl text-base leading-relaxed text-gray-600 opacity-95 sm:min-h-[6rem] md:text-lg">
+                {displayedDescription}
+                {displayedDescription.length === descriptionText.length ? null : (
+                  <span className="animate-pulse text-emerald-600">|</span>
+                )}
+              </p>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.5 }}
+              className="mb-8 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:flex-wrap"
+            >
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link
+                  to="/courses"
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-500 px-4 py-2 text-sm font-medium text-white shadow-md shadow-teal-500/25 transition-all duration-300 hover:shadow-teal-500/40 min-[420px]:w-auto"
+                >
+                  Start Learning
+                  <FiArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link
+                  to="/plans"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-800 transition-all duration-300 hover:border-emerald-500 hover:bg-emerald-50 min-[420px]:w-auto"
+                >
+                  View Programs
+                </Link>
+              </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <button
+                  onClick={() => setIsVideoPlaying(true)}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-emerald-800 transition-all duration-300 hover:bg-emerald-50 hover:text-emerald-950 min-[420px]:w-auto"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 transition-all group-hover:bg-emerald-200">
+                    <FiPlay className="ml-0.5 h-3 w-3" />
+                  </span>
+                  Watch Demo
+                </button>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.8 }}
+              className="mb-6 grid gap-4 min-[520px]:flex min-[520px]:flex-wrap min-[520px]:items-center min-[520px]:gap-5"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-8 w-8 rounded-full border-2 border-white bg-gradient-to-br from-teal-600 to-emerald-600 shadow-md"
+                    />
+                  ))}
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-teal-500 to-emerald-500 text-[10px] font-bold text-white shadow-md">
+                    +2k
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">Active Learners</p>
+                  <p className="text-lg font-bold text-gray-950">
+                    {learnersCount.toLocaleString()}+
+                  </p>
+                </div>
+              </div>
+
+              <div className="hidden h-6 w-px bg-gray-200 sm:block" />
+
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
+                  <FiBookOpen className="h-4 w-4 text-emerald-700" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">Expert-Led Courses</p>
+                  <p className="text-lg font-bold text-gray-950">{coursesCount}+</p>
+                </div>
+              </div>
+
+              <div className="hidden h-6 w-px bg-gray-200 sm:block" />
+
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
+                  <FiAward className="h-4 w-4 text-emerald-700" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-500">Success Rate</p>
+                  <p className="text-lg font-bold text-gray-950">{successRate}%</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 2.0 }}
+              className="flex flex-wrap items-center gap-3 pt-2"
+            >
+              <div className="flex items-center gap-1.5">
+                <FiTrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-[11px] text-gray-600">Top Rated Platform</span>
+              </div>
+              <div className="h-0.5 w-0.5 rounded-full bg-emerald-500" />
+              <div className="flex items-center gap-1.5">
+                <HiCheckBadge className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-[11px] text-gray-600">Certified Courses</span>
+              </div>
+              <div className="h-0.5 w-0.5 rounded-full bg-emerald-500" />
+              <div className="flex items-center gap-1.5">
+                <FiUsers className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-[11px] text-gray-600">24/7 Support</span>
+              </div>
+            </motion.div>
+          </div>
+
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.8 }}
-            className="flex flex-wrap items-center gap-5 mb-6"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.25 }}
+            className="ag-globe-col relative hidden min-h-[520px] lg:flex"
           >
-            {/* Active Learners */}
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full border-2 border-[#00342B] bg-gradient-to-br from-teal-600 to-emerald-600 shadow-md"
+            <div className="ag-globe-wrap">
+              <div className="ag-globe-ring ag-globe-ring-1"></div>
+              <div className="ag-globe-ring ag-globe-ring-2"></div>
+              <div style={{ position: "absolute", inset: "40px", borderRadius: "50%", border: "1px dashed rgba(16, 185, 129, 0.16)" }}></div>
+              <div className="ag-globe-core">
+                <svg viewBox="0 0 200 200" aria-hidden="true" style={{ width: "100%", height: "100%" }}>
+                  <ellipse cx="100" cy="100" rx="98" ry="98" fill="none" stroke="#fbd9da" strokeWidth="0.75"></ellipse>
+                  <ellipse cx="100" cy="100" rx="60" ry="98" fill="none" stroke="#fbd9da" strokeWidth="0.55"></ellipse>
+                  <ellipse cx="100" cy="100" rx="24" ry="98" fill="none" stroke="#fbd9da" strokeWidth="0.45"></ellipse>
+                  <line x1="2" y1="100" x2="198" y2="100" stroke="#fbd9da" strokeWidth="0.55"></line>
+                  <line x1="100" y1="2" x2="100" y2="198" stroke="#fbd9da" strokeWidth="0.45"></line>
+                  <ellipse cx="100" cy="100" rx="98" ry="40" fill="none" stroke="#fbd9da" strokeWidth="0.55"></ellipse>
+                  <ellipse cx="100" cy="100" rx="98" ry="70" fill="none" stroke="#fbd9da" strokeWidth="0.45"></ellipse>
+                </svg>
+                <div className="ag-globe-center">
+                  <img src={lurnStackLogo} alt="LurnStack" />
+                </div>
+              </div>
+              <svg className="ag-connection-map" viewBox="0 0 540 540" aria-hidden="true">
+                <path
+                  className="ag-connection-line ag-connection-line-main"
+                  d="M270 270 L140 160 L270 62 L405 150 L382 392 L160 378 Z"
+                />
+                <path className="ag-connection-line" d="M270 270 L140 160" />
+                <path className="ag-connection-line" d="M270 270 L405 150" />
+                <path className="ag-connection-line" d="M270 270 L160 378" />
+                <path className="ag-connection-line" d="M270 270 L382 392" />
+                <path className="ag-connection-line" d="M270 270 L270 62" />
+                <circle className="ag-moving-dot ag-moving-dot-green" r="4">
+                  <animateMotion
+                    dur="8s"
+                    repeatCount="indefinite"
+                    path="M270 270 L140 160 L270 62 L405 150 L382 392 L160 378 Z"
                   />
-                ))}
-                <div className="w-8 h-8 rounded-full border-2 border-[#00342B] bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white text-[10px] font-bold shadow-md">
-                  +2k
-                </div>
+                </circle>
+                <circle className="ag-moving-dot ag-moving-dot-blue" r="3.5">
+                  <animateMotion
+                    dur="8s"
+                    begin="1.6s"
+                    repeatCount="indefinite"
+                    path="M270 270 L140 160 L270 62 L405 150 L382 392 L160 378 Z"
+                  />
+                </circle>
+                <circle className="ag-moving-dot ag-moving-dot-purple" r="3.5">
+                  <animateMotion
+                    dur="8s"
+                    begin="3.2s"
+                    repeatCount="indefinite"
+                    path="M270 270 L140 160 L270 62 L405 150 L382 392 L160 378 Z"
+                  />
+                </circle>
+              </svg>
+              <div className="ag-course-node ag-course-node-programming">
+                <span><FiCode /></span>
+                <strong>Programming</strong>
               </div>
-              <div>
-                <p className="text-teal-200 text-[11px]">Active Learners</p>
-                <p className="font-bold text-lg text-white">
-                  {learnersCount.toLocaleString()}+
-                </p>
+              <div className="ag-course-node ag-course-node-database">
+                <span><FiDatabase /></span>
+                <strong>Database</strong>
               </div>
-            </div>
-            
-            <div className="h-6 w-[1px] bg-teal-600/50 hidden sm:block" />
-            
-            {/* Expert Courses - Counter */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-teal-500/20 backdrop-blur-sm flex items-center justify-center">
-                <FiBookOpen className="w-4 h-4 text-teal-200" />
+              <div className="ag-course-node ag-course-node-ai">
+                <span><FiCpu /></span>
+                <strong>AI</strong>
               </div>
-              <div>
-                <p className="text-teal-200 text-[11px]">Expert-Led Courses</p>
-                <p className="font-bold text-lg text-white">
-                  {coursesCount}+
-                </p>
+              <div className="ag-course-node ag-course-node-cloud">
+                <span><FiCloud /></span>
+                <strong>Cloud</strong>
               </div>
-            </div>
-
-            <div className="h-6 w-[1px] bg-teal-600/50 hidden sm:block" />
-            
-            {/* Success Rate - Counter */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-teal-500/20 backdrop-blur-sm flex items-center justify-center">
-                <FiAward className="w-4 h-4 text-teal-200" />
+              <div className="ag-course-node ag-course-node-mobile">
+                <span><FiSmartphone /></span>
+                <strong>Mobile</strong>
               </div>
-              <div>
-                <p className="text-teal-200 text-[11px]">Success Rate</p>
-                <p className="font-bold text-lg text-white">{successRate}%</p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Item 6 - Trust Badges - Fade in */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 2.0 }}
-            className="flex flex-wrap items-center gap-3 pt-2"
-          >
-            <div className="flex items-center gap-1.5">
-              <FiTrendingUp className="w-3.5 h-3.5 text-teal-300" />
-              <span className="text-teal-200 text-[11px]">Top Rated Platform</span>
-            </div>
-            <div className="w-0.5 h-0.5 rounded-full bg-teal-400" />
-            <div className="flex items-center gap-1.5">
-              <HiCheckBadge className="w-3.5 h-3.5 text-teal-300" />
-              <span className="text-teal-200 text-[11px]">Certified Courses</span>
-            </div>
-            <div className="w-0.5 h-0.5 rounded-full bg-teal-400" />
-            <div className="flex items-center gap-1.5">
-              <FiUsers className="w-3.5 h-3.5 text-teal-300" />
-              <span className="text-teal-200 text-[11px]">24/7 Support</span>
+              <div style={{ position: "absolute", width: "120px", height: "120px", borderRadius: "50%", background: "radial-gradient(circle, rgba(16, 185, 129, 0.12), transparent 70%)", pointerEvents: "none" }}></div>
             </div>
           </motion.div>
         </div>
-      </div>
 
-      {/* Video Modal */}
-      {isVideoPlaying && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={() => setIsVideoPlaying(false)}>
-          <div className="relative w-full max-w-4xl mx-4 rounded-lg overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setIsVideoPlaying(false)}
-              className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-all text-sm"
-            >
-              ✕
-            </button>
-            <div className="relative pb-[56.25%]">
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
-                title="Demo Video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+        {isVideoPlaying && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={() => setIsVideoPlaying(false)}>
+            <div className="relative mx-4 w-full max-w-4xl overflow-hidden rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setIsVideoPlaying(false)}
+                className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-sm text-white transition-all hover:bg-black/80"
+              >
+                X
+              </button>
+              <div className="relative pb-[56.25%]">
+                <iframe
+                  className="absolute inset-0 h-full w-full"
+                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
+                  title="Demo Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="relative overflow-hidden bg-white">
+      <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-[#ffe7ea] via-[#fff5f6] to-transparent" />
+      <div className="relative mx-auto grid min-h-[calc(100svh-89px)] w-full max-w-7xl items-center gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-14">
+        <motion.div
+          initial={{ opacity: 0, x: -36 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.55 }}
+          className="max-w-2xl"
+        >
+          <div className="inline-flex text-[11px] font-black uppercase tracking-[0.28em] text-rose-500">
+            Live classes made simple
+          </div>
+          <h1 className="mt-4 text-4xl font-black leading-tight text-[#19213d] sm:text-5xl lg:text-6xl">
+            Join Live Online
+            <span className="block">Learning Sessions</span>
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-gray-600 sm:text-lg">
+            Discover expert-led live classes, book upcoming sessions, and keep building practical skills with LurnStack trainers.
+          </p>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const query = new FormData(event.currentTarget).get("heroSearch");
+              const q = String(query || "").trim();
+              window.location.href = q ? `/courses?q=${encodeURIComponent(q)}` : "/courses";
+            }}
+            className="mt-8 flex max-w-md overflow-hidden rounded-sm border border-gray-100 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]"
+          >
+            <input
+              name="heroSearch"
+              type="search"
+              placeholder="What do you want to learn?"
+              className="min-w-0 flex-1 px-4 py-4 text-sm font-semibold text-gray-700 outline-none placeholder:text-gray-400"
+            />
+            <button
+              type="submit"
+              className="flex w-14 items-center justify-center bg-rose-500 text-white transition hover:bg-rose-600"
+              aria-label="Search courses"
+            >
+              <FiArrowRight className="text-xl" />
+            </button>
+          </form>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-2xl font-black text-[#19213d]">{coursesCount}+</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Sessions</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-[#19213d]">{learnersCount.toLocaleString()}+</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Learners</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-[#19213d]">{successRate}%</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Success</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 36, scale: 0.96 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.65, delay: 0.1 }}
+          className="relative flex min-h-[360px] items-end justify-center sm:min-h-[460px] lg:min-h-[560px]"
+        >
+          <div className="absolute inset-x-8 bottom-10 top-10 rounded-[48%] bg-[#ffe5e8]" />
+          <motion.img
+            key={authenticatedHeroImages[authHeroImageIndex]}
+            src={authenticatedHeroImages[authHeroImageIndex]}
+            alt="Student attending online live classes"
+            initial={{ opacity: 0, scale: 0.96, x: 18 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+            className="relative z-10 max-h-[520px] w-full max-w-[620px] object-contain"
+            loading="eager"
+          />
+        </motion.div>
+      </div>
     </section>
   );
 }

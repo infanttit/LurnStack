@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import loginImage from "../../assets/Images/Signup.jpeg";
 import brandLogo from "../../assets/Logo/Logo3.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { isStrongPassword, isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
+import { sendOtpApi, verifyOtpApi } from "../api/authApi";
 
 /* ─── Icons ─────────────────────────────────────────────────── */
 const EyeIcon = ({ open }) =>
@@ -394,6 +394,17 @@ const PHONE_LENGTH_BY_COUNTRY_CODE = {
   "+998": [9],
 };
 
+const blankOtpState = {
+  sent: false,
+  verified: false,
+  identifier: "",
+  expiresAt: "",
+  secondsLeft: 0,
+  cooldown: 0,
+  attempts: 0,
+  digits: ["", "", "", "", "", ""],
+};
+
 function getPhoneValidationMessage(countryCode, rawPhoneNumber) {
   const digits = String(rawPhoneNumber || "").replace(/\D/g, "");
   if (!digits) return "Phone number is required";
@@ -413,6 +424,12 @@ function getPhoneValidationMessage(countryCode, rawPhoneNumber) {
   }
 
   return "";
+}
+
+function formatSeconds(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }
 
 /* ─── Policy Modal (Terms or Privacy) ─────────────────────────── */
@@ -645,10 +662,52 @@ export default function SignupPage() {
   const [toastMessage, setToastMessage] = useState("");
   const [toastTone, setToastTone] = useState("warn");
   const [formError, setFormError] = useState("");
+  const [emailOtp, setEmailOtp] = useState(blankOtpState);
+  const [phoneOtp, setPhoneOtp] = useState(blankOtpState);
+  const emailOtpRefs = useRef([]);
+  const phoneOtpRefs = useRef([]);
   const redirectTo = (() => {
     const from = location?.state?.from;
     return typeof from === "string" && from.trim() ? from : PATHS.HOME;
   })();
+
+  useEffect(() => {
+    if (!emailOtp.expiresAt) return undefined;
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((new Date(emailOtp.expiresAt).getTime() - Date.now()) / 1000));
+      setEmailOtp((current) => ({ ...current, secondsLeft: remaining }));
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [emailOtp.expiresAt]);
+
+  useEffect(() => {
+    if (!phoneOtp.expiresAt) return undefined;
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((new Date(phoneOtp.expiresAt).getTime() - Date.now()) / 1000));
+      setPhoneOtp((current) => ({ ...current, secondsLeft: remaining }));
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [phoneOtp.expiresAt]);
+
+  useEffect(() => {
+    if (emailOtp.cooldown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setEmailOtp((current) => ({ ...current, cooldown: Math.max(0, current.cooldown - 1) }));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [emailOtp.cooldown]);
+
+  useEffect(() => {
+    if (phoneOtp.cooldown <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setPhoneOtp((current) => ({ ...current, cooldown: Math.max(0, current.cooldown - 1) }));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [phoneOtp.cooldown]);
 
   if (isAuthenticated) {
     return (
@@ -687,25 +746,111 @@ export default function SignupPage() {
     const { name, value, type, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+    if (name === "email") setEmailOtp(blankOtpState);
+    if (name === "phoneNumber" || name === "countryCode") setPhoneOtp(blankOtpState);
     setFormError("");
+  };
+
+  const ensurePolicyAccepted = () => {
+    if (!form.agree) {
+      setToastMessage("Please agree to the Terms & Privacy Policy.");
+      setToastTone("warn");
+      return false;
+    }
+    return true;
+  };
+
+  const ensureFormReady = () => {
+    if (!ensurePolicyAccepted()) return false;
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return false;
+    }
+    return true;
+  };
+
+  const getOtpConfig = (kind) => {
+    if (kind === "phone") {
+      return {
+        type: "sms",
+        identifier: String(form.phoneNumber || "").replace(/\D/g, ""),
+        state: phoneOtp,
+        setState: setPhoneOtp,
+        refs: phoneOtpRefs,
+        validate: () => {
+          const message = getPhoneValidationMessage(form.countryCode, form.phoneNumber);
+          if (message) {
+            setErrors((current) => ({ ...current, phoneNumber: message }));
+            return false;
+          }
+          return true;
+        },
+      };
+    }
+
+    return {
+      type: "email",
+      identifier: normalizeEmail(form.email),
+      state: emailOtp,
+      setState: setEmailOtp,
+      refs: emailOtpRefs,
+      validate: () => {
+        const email = normalizeEmail(form.email);
+        if (!email) {
+          setErrors((current) => ({ ...current, email: "Email is required" }));
+          return false;
+        }
+        if (!isValidEmail(email)) {
+          setErrors((current) => ({ ...current, email: "Enter a valid email address (example: name@gmail.com)" }));
+          return false;
+        }
+        return true;
+      },
+    };
+  };
+
+  const requestOtp = async (kind) => {
+    if (!ensurePolicyAccepted()) return;
+    const config = getOtpConfig(kind);
+    if (!config.validate()) return;
+
+    setLoading(true);
+    setFormError("");
+    try {
+      const result = await sendOtpApi({
+        identifier: config.identifier,
+        type: config.type,
+      });
+      config.setState({
+        sent: true,
+        verified: false,
+        identifier: config.identifier,
+        expiresAt: result.expiresAt,
+        secondsLeft: 0,
+        cooldown: 30,
+        attempts: 0,
+        digits: ["", "", "", "", "", ""],
+      });
+      setToastMessage(result.message || "OTP sent successfully.");
+      setToastTone("success");
+      window.setTimeout(() => config.refs.current[0]?.focus(), 80);
+    } catch (err) {
+      setFormError(err?.message || "Unable to send OTP.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!form.agree) {
-      setToastMessage("Please agree to the Terms & Privacy Policy.");
-      setToastTone("warn");
+    if (!ensureFormReady()) return;
+    if (!emailOtp.verified || !phoneOtp.verified) {
+      setFormError("Please verify both email and phone number before creating your account.");
       return;
     }
-
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-
     setLoading(true);
+    setFormError("");
     try {
       await signUp({
         fullName: String(form.fullName || "").trim(),
@@ -724,14 +869,135 @@ export default function SignupPage() {
     }
   };
 
+  const handleOtpChange = (kind, index, value) => {
+    const config = getOtpConfig(kind);
+    const digit = value.replace(/\D/g, "").slice(-1);
+    config.setState((current) => {
+      const nextDigits = [...current.digits];
+      nextDigits[index] = digit;
+      return { ...current, digits: nextDigits, verified: false };
+    });
+    setFormError("");
+    if (digit && index < 5) config.refs.current[index + 1]?.focus();
+  };
+
+  const handleOtpKeyDown = (kind, index, event) => {
+    const config = getOtpConfig(kind);
+    if (event.key === "Backspace" && !config.state.digits[index] && index > 0) {
+      config.refs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (kind, event) => {
+    const config = getOtpConfig(kind);
+    const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    event.preventDefault();
+    const next = ["", "", "", "", "", ""];
+    pasted.split("").forEach((digit, index) => {
+      next[index] = digit;
+    });
+    config.setState((current) => ({ ...current, digits: next }));
+    config.refs.current[Math.min(pasted.length, 6) - 1]?.focus();
+  };
+
+  const verifyOtp = async (kind) => {
+    const config = getOtpConfig(kind);
+    const code = config.state.digits.join("");
+    if (code.length !== 6 || config.state.secondsLeft <= 0) return;
+    setLoading(true);
+    setFormError("");
+    try {
+      await verifyOtpApi({
+        identifier: config.state.identifier,
+        code,
+      });
+      config.setState((current) => ({ ...current, verified: true, sent: false, digits: ["", "", "", "", "", ""] }));
+      setToastMessage(`${kind === "phone" ? "Phone number" : "Email"} verified successfully.`);
+      setToastTone("success");
+    } catch (err) {
+      const nextAttempts = config.state.attempts + 1;
+      config.setState((current) => ({
+        ...current,
+        attempts: nextAttempts,
+        sent: nextAttempts >= 3 ? false : current.sent,
+        digits: ["", "", "", "", "", ""],
+      }));
+      window.setTimeout(() => config.refs.current[0]?.focus(), 80);
+      setFormError(
+        nextAttempts >= 3
+          ? "Too many incorrect OTP attempts. Please request a new code."
+          : err?.message || "OTP verification failed."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderOtpControl = (kind) => {
+    const config = getOtpConfig(kind);
+    const label = kind === "phone" ? "Phone" : "Email";
+    const canVerify = config.state.digits.join("").length === 6 && config.state.secondsLeft > 0 && !loading;
+
+    if (config.state.verified) {
+      return (
+        <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-black text-emerald-800">
+          {label} verified
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-2 space-y-2">
+        {config.state.sent ? (
+          <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Enter {label} OTP
+              </span>
+              <span className={["text-[11px] font-bold", config.state.secondsLeft > 0 ? "text-slate-500" : "text-red-600"].join(" ")}>
+                {config.state.secondsLeft > 0 ? formatSeconds(config.state.secondsLeft) : "Expired"}
+              </span>
+            </div>
+            <div className="grid grid-cols-6 gap-2" onPaste={(event) => handleOtpPaste(kind, event)}>
+              {config.state.digits.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(node) => {
+                    config.refs.current[index] = node;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(event) => handleOtpChange(kind, index, event.target.value)}
+                  onKeyDown={(event) => handleOtpKeyDown(kind, index, event)}
+                  className="h-10 rounded-xl border border-slate-200 bg-slate-50 text-center text-base font-black text-[#004d3d] outline-none transition focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                  aria-label={`${label} OTP digit ${index + 1}`}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={!canVerify}
+              onClick={() => verifyOtp(kind)}
+              className="mt-3 h-10 w-full rounded-xl bg-[#004d3d] text-[12px] font-black text-white transition hover:bg-[#00392d] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Verify OTP
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <>
       <GlobalStyles />
-      <div className="w-full min-h-dvh lg:h-dvh flex flex-col lg:flex-row bg-white lg:overflow-hidden">
+      <div className="flex min-h-dvh w-full bg-white">
         {/* ── LEFT PANEL (Desktop Only) ── */}
-        <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-center p-12 overflow-hidden flex-shrink-0 h-full">
+        <div className="hidden">
           <div className="absolute inset-0 z-0">
-            <img src={loginImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-tr from-[#0f2d1f]/95 via-[#0f2d1f]/85 to-[#0f2d1f]/40" />
           </div>
           
@@ -767,8 +1033,8 @@ export default function SignupPage() {
         </div>
 
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
-        <div className="flex-1 flex flex-col min-h-0 h-full bg-white">
-          <div className="flex-1 min-h-0 flex flex-col justify-start px-4 sm:px-10 lg:px-16 xl:px-24 overflow-y-visible lg:overflow-y-auto no-scrollbar pt-5 pb-10 sm:py-8 lg:py-12 bg-white">
+        <div className="flex min-h-0 flex-1 flex-col bg-white">
+          <div className="flex min-h-0 flex-1 flex-col justify-start bg-white px-4 pb-10 pt-5 sm:px-10 sm:py-8 lg:px-16 xl:px-24">
             <div className="w-full max-w-md mx-auto">
               <div className="lg:hidden flex justify-center mb-5">
                 <Logo dark />
@@ -840,25 +1106,38 @@ export default function SignupPage() {
                   >
                     Email Address
                   </label>
-                  <input
-                    id="signup-email"
-                    type="email"
-                    name="email"
-                    placeholder="Enter email address"
-                    value={form.email}
-                    onChange={handleChange}
-                    className={`w-full h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
-                      ${
-                        errors.email
-                          ? "border-red-400"
-                          : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
-                      }`}
-                  />
+                  <div className="grid grid-cols-1 gap-2 min-[520px]:grid-cols-[1fr_auto]">
+                    <input
+                      id="signup-email"
+                      type="email"
+                      name="email"
+                      placeholder="Enter email address"
+                      value={form.email}
+                      onChange={handleChange}
+                      className={`min-w-0 h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
+                        ${
+                          errors.email
+                            ? "border-red-400"
+                            : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                        }`}
+                    />
+                    {!emailOtp.verified ? (
+                      <button
+                        type="button"
+                        disabled={loading || emailOtp.cooldown > 0}
+                        onClick={() => requestOtp("email")}
+                        className="h-11 rounded-xl border border-[#004d3d]/20 bg-[#004d3d]/5 px-4 text-[12px] font-black text-[#004d3d] transition hover:bg-[#004d3d]/10 disabled:cursor-not-allowed disabled:text-slate-300"
+                      >
+                        {emailOtp.cooldown > 0 ? `${emailOtp.cooldown}s` : emailOtp.sent ? "Resend" : "Verify"}
+                      </button>
+                    ) : null}
+                  </div>
                   {errors.email ? (
                     <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
                       {errors.email}
                     </div>
                   ) : null}
+                  {renderOtpControl("email")}
                 </div>
 
                 <div>
@@ -868,7 +1147,7 @@ export default function SignupPage() {
                   >
                     Phone Number
                   </label>
-                  <div className="grid grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)] gap-2">
+                  <div className="grid grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)] gap-2 min-[520px]:grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)_auto]">
                     <div className="relative">
                       <select
                         name="countryCode"
@@ -910,12 +1189,23 @@ export default function SignupPage() {
                             : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                         }`}
                     />
+                    {!phoneOtp.verified ? (
+                      <button
+                        type="button"
+                        disabled={loading || phoneOtp.cooldown > 0}
+                        onClick={() => requestOtp("phone")}
+                        className="col-span-2 h-11 rounded-xl border border-[#004d3d]/20 bg-[#004d3d]/5 px-4 text-[12px] font-black text-[#004d3d] transition hover:bg-[#004d3d]/10 disabled:cursor-not-allowed disabled:text-slate-300 min-[520px]:col-span-1"
+                      >
+                        {phoneOtp.cooldown > 0 ? `${phoneOtp.cooldown}s` : phoneOtp.sent ? "Resend" : "Verify"}
+                      </button>
+                    ) : null}
                   </div>
                   {errors.phoneNumber ? (
                     <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
                       {errors.phoneNumber}
                     </div>
                   ) : null}
+                  {renderOtpControl("phone")}
                 </div>
 
                 <div>
@@ -992,11 +1282,13 @@ export default function SignupPage() {
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-lg flex items-center justify-center gap-2 mt-1"
+                  disabled={loading || !emailOtp.verified || !phoneOtp.verified}
+                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-lg flex items-center justify-center gap-2 mt-1 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : !emailOtp.verified || !phoneOtp.verified ? (
+                    "Verify Email & Phone First"
                   ) : (
                     "Create Account"
                   )}

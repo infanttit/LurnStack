@@ -10,7 +10,9 @@ export default function AppShell() {
       <ZohoSalesIQ />
       <CartFlyAnimator />
       <SiteNavbar />
-      <Outlet />
+      <main className="pt-[89px]">
+        <Outlet />
+      </main>
       <SiteFooter />
     </div>
   );

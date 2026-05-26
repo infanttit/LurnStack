@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiMiniStar, HiChevronRight } from "react-icons/hi2";
 import { HiCheck } from "react-icons/hi";
+import { useAuth } from "../../auth";
+import { getStudentSessions } from "../../courses/api/studentSessionsApi";
+import { getAllCourses } from "../../courses/data/courseCatalog";
 
 /**
  * FeaturedCoursesSection
@@ -20,6 +23,8 @@ import { HiCheck } from "react-icons/hi";
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
 
+// Kept only as historical fallback data during transition to production sessions.
+// eslint-disable-next-line no-unused-vars
 const TABS = [
   "Artificial Intelligence (AI)",
   "Python",
@@ -29,6 +34,7 @@ const TABS = [
   "Amazon AWS",
 ];
 
+// eslint-disable-next-line no-unused-vars
 const COURSES_BY_TAB = {
   "Artificial Intelligence (AI)": [
     {
@@ -833,12 +839,87 @@ function CourseCard({ course, index, total, onOpenMobile }) {
   );
 }
 
+function normalizeLandingSession(course) {
+  const amountPaise = Number(course.amountPaise || 0);
+  const price =
+    course.price ||
+    (amountPaise > 0
+      ? new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: "INR",
+          maximumFractionDigits: amountPaise % 100 === 0 ? 0 : 2,
+        }).format(amountPaise / 100)
+      : "Free");
+
+  return {
+    ...course,
+    tab: course.tab || course.category || "Trainer Courses",
+    thumbnail: course.thumbnail || null,
+    thumbnailBg: course.thumbnailBg || "from-emerald-950 via-teal-800 to-cyan-600",
+    title: course.title || course.courseTitle || course.classTitle || "Live learning session",
+    instructor: course.instructor || course.instructorName || course.trainerName || "LurnStack Faculty",
+    badge: course.badge || "Live",
+    badgeColor: course.badgeColor || "bg-emerald-100 text-emerald-900",
+    rating: Number(course.rating || 4.8),
+    ratingCount: course.ratingCount || "Live session",
+    price,
+    oldPrice: course.oldPrice || null,
+    hours:
+      course.hours ||
+      (course.liveClass?.durationMinutes
+        ? `${course.liveClass.durationMinutes} min live class`
+        : "Live session"),
+    level: course.level || "All Levels",
+    updated: course.updated || "Published",
+    description:
+      course.description ||
+      course.liveClass?.description ||
+      "Join an expert-led LurnStack session with practical guidance and live support.",
+    bullets: course.bullets || [
+      "Learn directly from an expert trainer",
+      "Practice with production-focused examples",
+      "Review the session details and join when access opens",
+    ],
+  };
+}
+
 // ── MAIN SECTION ──────────────────────────────────────────────────────────────
-export default function FeaturedCoursesSection() {
-  const [activeTab, setActiveTab] = useState(TABS[0]);
-  const courses = useMemo(() => COURSES_BY_TAB[activeTab] ?? [], [activeTab]);
+export default function FeaturedCoursesSection({ compact = false }) {
+  const { isAuthenticated } = useAuth();
+  const [sessions, setSessions] = useState([]);
+  const tabs = useMemo(
+    () => [...new Set(sessions.map((session) => session.tab).filter(Boolean))],
+    [sessions]
+  );
+  const [activeTab, setActiveTab] = useState("");
+  const courses = useMemo(
+    () => sessions.filter((session) => !activeTab || session.tab === activeTab).slice(0, 8),
+    [activeTab, sessions]
+  );
   const [mobileCourse, setMobileCourse] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(getAllCourses());
+
+    loader
+      .then((items) => {
+        if (cancelled) return;
+        setSessions((items || []).map(normalizeLandingSession));
+      })
+      .catch(() => {
+        if (!cancelled) setSessions([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (tabs.length && !tabs.includes(activeTab)) setActiveTab(tabs[0]);
+  }, [activeTab, tabs]);
 
   const coursesWithActions = useMemo(
     () =>
@@ -850,19 +931,22 @@ export default function FeaturedCoursesSection() {
   );
 
   return (
-    <section className="py-12 px-4 sm:px-8 max-w-7xl mx-auto">
-      {/* Heading */}
-      <h2 className="text-[28px] sm:text-[32px] font-extrabold text-gray-900 mb-1">
-        Skills to transform your career and life
-      </h2>
-      <p className="text-[15px] text-gray-500 mb-6">
-        From critical skills to technical topics, Udemy supports your professional development.
-      </p>
+    <section className={compact ? "py-0" : "py-12 px-4 sm:px-8 max-w-7xl mx-auto"}>
+      {!compact ? (
+        <>
+          <h2 className="text-[28px] sm:text-[32px] font-extrabold text-gray-900 mb-1">
+            Latest live learning sessions
+          </h2>
+          <p className="text-[15px] text-gray-500 mb-6">
+            Browse newly published production sessions from LurnStack trainers.
+          </p>
+        </>
+      ) : null}
 
       {/* Tab bar */}
       <div className="border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
         <div className="flex gap-0 min-w-max">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -900,16 +984,17 @@ export default function FeaturedCoursesSection() {
           <div className="mt-6">
             <button
               type="button"
+              onClick={() => navigate("/courses")}
               className="flex items-center gap-1 text-[#059669] font-bold text-[14px] hover:text-[#047857] hover:underline transition-colors"
             >
-              Show all {activeTab} courses
+              Show all {activeTab} sessions
               <HiChevronRight className="text-[16px]" />
             </button>
           </div>
         </>
       ) : (
         <div className="text-center py-16 text-gray-400 text-[15px]">
-          No courses yet for <span className="font-semibold text-gray-600">{activeTab}</span>.
+          No live sessions are published yet.
         </div>
       )}
 
