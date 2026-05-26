@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import loginImage from "../../assets/Images/Signup.jpeg";
 import brandLogo from "../../assets/Logo/Logo3.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
@@ -131,12 +130,11 @@ export default function LoginPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="w-full min-h-dvh lg:h-dvh flex flex-col lg:flex-row bg-white lg:overflow-hidden">
+      <div className="flex min-h-dvh w-full bg-white">
 
         {/* ── LEFT PANEL (Desktop Only) ── */}
-        <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative flex-col justify-center p-12 overflow-hidden flex-shrink-0 h-full">
+        <div className="hidden">
           <div className="absolute inset-0 z-0">
-            <img src={loginImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-br from-[#0f2d1f]/95 via-[#0f2d1f]/85 to-transparent" />
           </div>
           
@@ -158,8 +156,8 @@ export default function LoginPage() {
         </div>
 
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
-        <div className="flex-1 flex flex-col min-h-0 h-full bg-white">
-          <div className="flex-1 min-h-0 flex flex-col justify-start px-4 sm:px-10 lg:px-16 xl:px-24 overflow-y-visible lg:overflow-y-auto no-scrollbar pt-5 pb-10 sm:py-8 lg:py-12 bg-white">
+        <div className="flex min-h-0 flex-1 flex-col bg-white">
+          <div className="flex min-h-0 flex-1 flex-col justify-start bg-white px-4 pb-10 pt-5 sm:px-10 sm:py-8 lg:px-16 xl:px-24">
             <div className="w-full max-w-md mx-auto">
               <div className="lg:hidden flex justify-center mb-5">
                 <Logo dark />

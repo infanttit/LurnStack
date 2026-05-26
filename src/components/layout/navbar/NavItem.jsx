@@ -9,8 +9,8 @@ export default function NavItem({ to, children, onClick }) {
         [
           "font-label-sm text-label-sm relative transition-colors duration-200 whitespace-nowrap",
           isActive
-            ? "text-white font-semibold"
-            : "text-white/80 hover:text-white",
+            ? "text-black font-extrabold"
+            : "text-gray-900/75 hover:text-black",
         ].join(" ")
       }
       end

@@ -16,6 +16,7 @@ import {
   FaUsers,
   FaHeadset,
 } from "react-icons/fa6";
+import FeaturedCoursesSection from "./FeaturedCoursesSection";
 
 const categories = [
   {
@@ -305,6 +306,7 @@ export default function CategoriesSection() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.38 }}
+            className="hidden"
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
@@ -319,12 +321,16 @@ export default function CategoriesSection() {
         </motion.div>
 
         {/* ── Cards Grid ── */}
+        <div className="mb-10">
+          <FeaturedCoursesSection compact />
+        </div>
+
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4"
+          className="hidden"
         >
           {categories.map((cat) => (
             <CategoryCard key={cat.id} category={cat} />

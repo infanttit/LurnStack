@@ -6,7 +6,7 @@ function FooterLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="text-sm text-white hover:text-white transition-colors duration-200"
+      className="text-sm text-black/70 hover:text-black transition-colors duration-200"
     >
       {children}
     </Link>
@@ -18,7 +18,7 @@ function SocialBtn({ to, label, children }) {
     <Link
       to={to}
       aria-label={label}
-      className="w-8 h-8 rounded-full border border-white/25 flex items-center justify-center text-white hover:text-white hover:border-white/40 hover:bg-white/10 transition-all duration-200"
+      className="w-8 h-8 rounded-full border border-black/20 flex items-center justify-center text-black hover:text-black hover:border-black/40 hover:bg-white/35 transition-all duration-200"
     >
       {children}
     </Link>
@@ -69,31 +69,31 @@ const NAV = [
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-primary text-on-primary">
+    <footer className="max-w-full overflow-hidden bg-[#54d410] text-black">
       {/* Top section */}
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-10">
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-12">
 
           {/* Brand column */}
           <div className="lg:col-span-4 space-y-5">
             {/* Logo */}
             <div>
-              <div className="inline-flex items-center">
+              <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
                 <img
                   src={logo}
                   alt="LurnStack"
-                  className="h-14 sm:h-16 w-auto object-contain"
+                  className="h-14 w-auto object-contain"
                   loading="lazy"
                 />
                 <span className="sr-only">LurnStack</span>
               </div>
-              <p className="mt-3 text-sm text-white leading-relaxed max-w-xs">
+              <p className="mt-3 max-w-xs break-words text-sm leading-relaxed text-black/70">
                 Industry-aligned courses, expert mentors, and verified certificates to power your next career leap.
               </p>
             </div>
 
             {/* Rating badge */}
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-white/10 bg-white/5">
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-black/10 bg-white/40">
               <div className="flex items-center gap-0.5">
                 {[1,2,3,4,5].map((s) => (
                   <svg key={s} className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20">
@@ -101,8 +101,8 @@ export default function SiteFooter() {
                   </svg>
                 ))}
               </div>
-              <span className="text-xs font-bold text-white">4.9</span>
-              <span className="text-xs text-white">· 50,000+ students</span>
+              <span className="text-xs font-bold text-black">4.9</span>
+              <span className="text-xs text-black/70">· 50,000+ students</span>
             </div>
 
             {/* Socials */}
@@ -123,18 +123,18 @@ export default function SiteFooter() {
 
             {/* Newsletter */}
             <div>
-              <p className="text-xs font-semibold text-white uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-black uppercase tracking-wider mb-2">
                 Weekly learning digest
               </p>
-              <div className="flex gap-2">
+              <div className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-[1fr_auto]">
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="flex-1 bg-white/8 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-white focus:outline-none focus:border-secondary-fixed/60 transition-colors"
+                  className="min-w-0 bg-white/70 border border-black/10 rounded-lg px-3 py-2 text-sm text-black placeholder-black/45 focus:outline-none focus:border-black/40 transition-colors"
                 />
                 <button
                   type="button"
-                  className="px-3 py-2 bg-secondary-fixed text-primary rounded-lg text-sm font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
+                  className="px-3 py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-900 transition-colors whitespace-nowrap"
                 >
                   Subscribe
                 </button>
@@ -146,7 +146,7 @@ export default function SiteFooter() {
           <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
             {NAV.map((col) => (
               <div key={col.heading} className="space-y-3">
-                <h5 className="text-xs font-bold text-white uppercase tracking-widest">
+                <h5 className="text-xs font-bold text-black uppercase tracking-widest">
                   {col.heading}
                 </h5>
                 <ul className="space-y-2.5">
@@ -162,23 +162,23 @@ export default function SiteFooter() {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-white/8" />
+        <div className="border-t border-black/10" />
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-white">
+          <p className="text-xs text-black/60">
             © {new Date().getFullYear()} LurnStack Academy. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-1 text-xs text-white">
+          <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-black/60 sm:justify-end">
             <FiGlobe className="text-[12px]" />
             <span>English</span>
             <span className="mx-3">·</span>
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link to="/privacy" className="hover:text-black transition-colors">Privacy</Link>
             <span className="mx-3">·</span>
-            <Link to="/cookies" className="hover:text-white transition-colors">Cookies</Link>
+            <Link to="/cookies" className="hover:text-black transition-colors">Cookies</Link>
             <span className="mx-3">·</span>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link to="/terms" className="hover:text-black transition-colors">Terms</Link>
           </div>
         </div>
       </div>

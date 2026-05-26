@@ -41,31 +41,31 @@ export default function SiteNavbar() {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    navigate(`${PATHS.SEARCH}?q=${encodeURIComponent(q)}`);
+    navigate(`${PATHS.COURSES}?q=${encodeURIComponent(q)}`);
     closeMobileMenu();
   };
 
   if (isCheckout) {
     return (
-      <header className="bg-primary text-on-primary backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        <nav className="px-margin-desktop py-5 max-w-container-max mx-auto">
+      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#54d410]/70 bg-[#54d410] text-gray-950 shadow-sm">
+        <nav className="mx-auto flex h-full max-w-container-max items-center px-4 sm:px-6 lg:px-margin-desktop">
           <div className="flex items-center justify-between gap-6">
             <NavLink
               to={PATHS.HOME}
-              className="inline-flex items-center"
+              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5"
               aria-label="LurnStack"
             >
               <img
                 src={logo}
                 alt="LurnStack"
-                className="h-12 md:h-14 w-auto object-contain"
+                className="h-11 w-auto object-contain"
                 loading="eager"
               />
             </NavLink>
             <button
               type="button"
               onClick={() => navigate(PATHS.HOME)}
-              className="font-label-sm text-label-sm text-white/90 hover:underline"
+              className="font-label-sm text-label-sm text-gray-900 hover:text-black hover:underline"
             >
               Cancel
             </button>
@@ -77,20 +77,20 @@ export default function SiteNavbar() {
 
   return (
     <>
-      <header className="bg-primary text-on-primary backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        <nav className="px-margin-desktop py-5 max-w-container-max mx-auto">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-6">
+      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#54d410]/70 bg-[#54d410] text-gray-950 shadow-sm">
+        <nav className="mx-auto flex h-full max-w-container-max items-center px-4 sm:px-6 lg:px-margin-desktop">
+          <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-12 min-w-0">
               <NavLink
                 to={PATHS.HOME}
-                className="inline-flex items-center"
+                className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5 sm:h-16 sm:w-16"
                 onClick={closeMobileMenu}
                 aria-label="LurnStack"
               >
                 <img
                   src={logo}
                   alt="LurnStack"
-                  className="h-12 md:h-14 w-auto object-contain"
+                  className="h-9 w-auto object-contain sm:h-11"
                   loading="eager"
                 />
               </NavLink>
@@ -132,13 +132,13 @@ export default function SiteNavbar() {
             <div className="flex items-center justify-end gap-4">
               <NavLink
                 to={PATHS.CART}
-                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/15 transition-colors flex items-center justify-center text-white/90 hover:text-white"
+                className="w-11 h-11 rounded-full border border-black/10 bg-white/85 hover:bg-white transition-colors flex items-center justify-center text-gray-900 hover:text-black"
                 aria-label="Cart"
               >
                 <span id="cart-icon" className="relative inline-flex items-center justify-center">
                   <HiOutlineShoppingBag className="text-[20px]" />
                   {itemCount > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-emerald-800 text-[11px] font-extrabold flex items-center justify-center shadow-md">
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[#004d3d] text-white text-[11px] font-extrabold flex items-center justify-center shadow-md">
                       {itemCount > 99 ? "99+" : itemCount}
                     </span>
                   )}
@@ -150,10 +150,10 @@ export default function SiteNavbar() {
                   <button
                     type="button"
                     onClick={() => setProfileOpen((v) => !v)}
-                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/15 transition-colors flex items-center justify-center"
+                    className="w-11 h-11 rounded-full border border-black/10 bg-white/85 hover:bg-white transition-colors flex items-center justify-center"
                     aria-label="Profile menu"
                   >
-                    <span className="w-8 h-8 rounded-full bg-white/15 text-white flex items-center justify-center font-extrabold text-xs">
+                    <span className="w-8 h-8 rounded-full bg-[#004d3d] text-white flex items-center justify-center font-extrabold text-xs">
                       {initials(user?.fullName)}
                     </span>
                   </button>
@@ -227,7 +227,7 @@ export default function SiteNavbar() {
                 <div className="hidden sm:flex items-center">
                   <NavLink
                     to={PATHS.SIGNUP}
-                    className="font-label-sm text-label-sm px-8 py-3 bg-white text-emerald-800 rounded-full hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200"
+                    className="font-label-sm text-label-sm px-8 py-3 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200"
                   >
                     Get Started
                   </NavLink>
@@ -236,21 +236,21 @@ export default function SiteNavbar() {
 
               <button
                 onClick={toggleMobileMenu}
-                className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-white/10 transition-colors"
+                className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-black/10 transition-colors"
                 aria-label="Toggle menu"
               >
                 <span
-                  className={`block w-6 h-0.5 bg-white/90 transition-all duration-300 ${
+                  className={`block w-6 h-0.5 bg-gray-900 transition-all duration-300 ${
                     isMobileMenuOpen ? "rotate-45 translate-y-2" : ""
                   }`}
                 />
                 <span
-                  className={`block w-6 h-0.5 bg-white/90 transition-all duration-300 ${
+                  className={`block w-6 h-0.5 bg-gray-900 transition-all duration-300 ${
                     isMobileMenuOpen ? "opacity-0" : ""
                   }`}
                 />
                 <span
-                  className={`block w-6 h-0.5 bg-white/90 transition-all duration-300 ${
+                  className={`block w-6 h-0.5 bg-gray-900 transition-all duration-300 ${
                     isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
                   }`}
                 />
@@ -261,11 +261,11 @@ export default function SiteNavbar() {
       </header>
 
       <div
-        className={`md:hidden fixed top-[73px] left-0 right-0 bg-primary text-on-primary backdrop-blur-md shadow-lg z-40 transition-all duration-300 overflow-hidden ${
+        className={`md:hidden fixed top-[89px] left-0 right-0 max-w-full border-b border-[#54d410]/70 bg-[#54d410] text-gray-950 shadow-lg z-40 transition-all duration-300 overflow-hidden ${
           isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="flex flex-col px-margin-desktop py-6 gap-4">
+        <div className="flex min-w-0 flex-col gap-4 px-4 py-6 sm:px-6">
           <NavbarSearch
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -288,11 +288,11 @@ export default function SiteNavbar() {
             Plans
           </NavItem>
 
-          <div className="flex flex-col gap-3 pt-2 border-t border-white/15">
+          <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
             <NavLink
               to={PATHS.CART}
               onClick={closeMobileMenu}
-              className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+              className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
             >
               Cart{itemCount > 0 ? ` (${itemCount > 99 ? "99+" : itemCount})` : ""}
             </NavLink>
@@ -302,7 +302,7 @@ export default function SiteNavbar() {
                 <NavLink
                   to={PATHS.PROFILE}
                   onClick={closeMobileMenu}
-                  className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                  className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
                 >
                   Profile
                 </NavLink>
@@ -310,7 +310,7 @@ export default function SiteNavbar() {
                   <NavLink
                     to={PATHS.STUDENT_ATTENDANCE}
                     onClick={closeMobileMenu}
-                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                    className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
                   >
                     My Attendance
                   </NavLink>
@@ -319,7 +319,7 @@ export default function SiteNavbar() {
                   <NavLink
                     to={PATHS.TRAINER_ATTENDANCE}
                     onClick={closeMobileMenu}
-                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                    className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
                   >
                     Attendance
                   </NavLink>
@@ -328,7 +328,7 @@ export default function SiteNavbar() {
                   <NavLink
                     to={PATHS.ADMIN_ATTENDANCE}
                     onClick={closeMobileMenu}
-                    className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                    className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
                   >
                     Admin Attendance
                   </NavLink>
@@ -340,7 +340,7 @@ export default function SiteNavbar() {
                     await signOut();
                     navigate(PATHS.HOME);
                   }}
-                  className="font-label-sm text-label-sm px-6 py-2 text-white/90 hover:bg-white/10 rounded-full transition-all active:scale-95 duration-200 text-center"
+                  className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
                 >
                   Log out
                 </button>
@@ -349,7 +349,7 @@ export default function SiteNavbar() {
               <NavLink
                 to={PATHS.SIGNUP}
                 onClick={closeMobileMenu}
-                className="font-label-sm text-label-sm px-8 py-3 bg-white text-emerald-800 rounded-full hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center"
+              className="font-label-sm text-label-sm px-8 py-3 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center"
               >
                 Get Started
               </NavLink>
