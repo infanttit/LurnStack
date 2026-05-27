@@ -6,13 +6,15 @@ export default function AuthRequiredModal({
   onClose,
   title = "Sign in to continue",
   message = "Create an account or log in to continue with this session.",
+  from: fromOverride = "",
 }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   if (!open) return null;
 
-  const from = `${location.pathname}${location.search}${location.hash}`;
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
+  const from = typeof fromOverride === "string" && fromOverride.trim() ? fromOverride : currentPath;
   const goTo = (path) => {
     onClose?.();
     navigate(path, { state: { from } });

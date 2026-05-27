@@ -6,7 +6,7 @@ import NavbarSearch from "./navbar/NavbarSearch";
 import { useCart } from "../../cart";
 import { PATHS } from "../../app/router/paths";
 import { useAuth } from "../../auth";
-import logo from "../../assets/Logo/Logo3.png";
+import logo from "../../assets/Logo/Logo4.png";
 
 function initials(name) {
   const parts = String(name || "")
@@ -47,7 +47,7 @@ export default function SiteNavbar() {
 
   if (isCheckout) {
     return (
-      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#54d410]/70 bg-[#54d410] text-gray-950 shadow-sm">
+      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#1a8003]/70 bg-[#1a8003] text-gray-950 shadow-sm">
         <nav className="mx-auto flex h-full max-w-container-max items-center px-4 sm:px-6 lg:px-margin-desktop">
           <div className="flex items-center justify-between gap-6">
             <NavLink
@@ -77,7 +77,7 @@ export default function SiteNavbar() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#54d410]/70 bg-[#54d410] text-gray-950 shadow-sm">
+      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#1a8003]/70 bg-[#1a8003] text-gray-950 shadow-sm">
         <nav className="mx-auto flex h-full max-w-container-max items-center px-4 sm:px-6 lg:px-margin-desktop">
           <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-12 min-w-0">
@@ -90,7 +90,7 @@ export default function SiteNavbar() {
                 <img
                   src={logo}
                   alt="LurnStack"
-                  className="h-9 w-auto object-contain sm:h-11"
+                  className="h-10 w-auto object-contain sm:h-12"
                   loading="eager"
                 />
               </NavLink>
@@ -150,7 +150,7 @@ export default function SiteNavbar() {
                   <button
                     type="button"
                     onClick={() => setProfileOpen((v) => !v)}
-                    className="w-11 h-11 rounded-full border border-black/10 bg-white/85 hover:bg-white transition-colors flex items-center justify-center"
+                    className="w-11 h-11 rounded-full border border-white/90 bg-white shadow-sm hover:bg-white transition-colors flex items-center justify-center ring-1 ring-black/5"
                     aria-label="Profile menu"
                   >
                     <span className="w-8 h-8 rounded-full bg-[#004d3d] text-white flex items-center justify-center font-extrabold text-xs">
@@ -224,12 +224,18 @@ export default function SiteNavbar() {
                   ) : null}
                 </div>
               ) : (
-                <div className="hidden sm:flex items-center">
+                <div className="hidden sm:flex items-center gap-2">
+                  <NavLink
+                    to={PATHS.LOGIN}
+                    className="font-label-sm text-label-sm px-4 py-2.5 rounded-full border border-black/10 bg-white/90 text-gray-900 hover:bg-white hover:shadow-md hover:shadow-black/10 transition-all active:scale-95 duration-200 text-[12px]"
+                  >
+                    Login
+                  </NavLink>
                   <NavLink
                     to={PATHS.SIGNUP}
-                    className="font-label-sm text-label-sm px-8 py-3 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200"
+                    className="font-label-sm text-label-sm px-4 py-2.5 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-[12px]"
                   >
-                    Get Started
+                    Register
                   </NavLink>
                 </div>
               )}
@@ -261,7 +267,7 @@ export default function SiteNavbar() {
       </header>
 
       <div
-        className={`md:hidden fixed top-[89px] left-0 right-0 max-w-full border-b border-[#54d410]/70 bg-[#54d410] text-gray-950 shadow-lg z-40 transition-all duration-300 overflow-hidden ${
+        className={`md:hidden fixed top-[89px] left-0 right-0 max-w-full border-b border-[#1a8003]/70 bg-[#1a8003] text-gray-950 shadow-lg z-40 transition-all duration-300 overflow-hidden ${
           isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
@@ -346,13 +352,22 @@ export default function SiteNavbar() {
                 </button>
               </>
             ) : (
-              <NavLink
-                to={PATHS.SIGNUP}
-                onClick={closeMobileMenu}
-              className="font-label-sm text-label-sm px-8 py-3 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center"
-              >
-                Get Started
-              </NavLink>
+              <div className="grid grid-cols-2 gap-2">
+                <NavLink
+                  to={PATHS.LOGIN}
+                  onClick={closeMobileMenu}
+                  className="font-label-sm text-label-sm px-4 py-2.5 rounded-full border border-black/10 bg-white/90 text-gray-900 hover:bg-white transition-all active:scale-95 duration-200 text-center text-[12px]"
+                >
+                  Login
+                </NavLink>
+                <NavLink
+                  to={PATHS.SIGNUP}
+                  onClick={closeMobileMenu}
+                  className="font-label-sm text-label-sm px-4 py-2.5 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center text-[12px]"
+                >
+                  Register
+                </NavLink>
+              </div>
             )}
           </div>
         </div>

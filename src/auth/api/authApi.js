@@ -119,3 +119,33 @@ export async function getAuthProfileApi() {
     throw new Error(getAxiosErrorMessage(err, "Unable to fetch profile details."));
   }
 }
+
+export async function forgotPasswordApi({ email }) {
+  try {
+    const res = await axiosClient.post("/api/auth/forgot-password", {
+      EMAIL_ADDRESS: email,
+    });
+    return unwrap(res);
+  } catch (err) {
+    const status = getAxiosErrorStatus(err);
+    if (status === 404) throw new Error("Email address not found.");
+    if (status === 429) throw new Error("Too many requests. Please try again later.");
+    throw new Error(getAxiosErrorMessage(err, "Unable to send reset link. Please try again."));
+  }
+}
+
+export async function resetPasswordApi({ token, newPassword }) {
+  try {
+    const res = await axiosClient.post("/api/auth/reset-password", {
+      token,
+      newPassword,
+    });
+    return unwrap(res);
+  } catch (err) {
+    const status = getAxiosErrorStatus(err);
+    if (status === 400 || status === 401 || status === 410) {
+      throw new Error(getAxiosErrorMessage(err, "Reset link is invalid or expired."));
+    }
+    throw new Error(getAxiosErrorMessage(err, "Unable to reset password. Please try again."));
+  }
+}

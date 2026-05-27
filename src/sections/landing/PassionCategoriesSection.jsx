@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FiArrowRight } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { getPublicSessions } from "../../courses/api/studentSessionsApi";
 import { getAllCourses } from "../../courses/data/courseCatalog";
 import { categoryHashPath } from "../../app/router/paths";
 import learnerImage from "../../assets/Images/sample.png";
@@ -9,28 +10,6 @@ import programmingImage from "../../assets/Images/categories/Categories1.jpeg";
 import marketingImage from "../../assets/Images/categories/categories3.jpeg";
 import businessImage from "../../assets/Images/categories/categories4.jpeg";
 import trainerImage from "../../assets/Images/categories/categories5.jpeg";
-
-const fallbackCategories = [
-  { name: "Tech & Programming" },
-  { name: "Trainer Courses" },
-  { name: "Database" },
-  { name: "Full Stack Development" },
-  { name: "Frontend Development" },
-  { name: "Cloud Computing" },
-  { name: "Mobile App Development" },
-];
-
-const supplementalCategories = [
-  "Tech & Programming",
-  "Trainer Courses",
-  "Database",
-  "Full Stack Development",
-  "Frontend Development",
-  "Cloud Computing",
-  "Mobile App Development",
-  "Digital Marketing",
-  "Amazon AWS",
-];
 
 const floatingImages = [
   {
@@ -126,9 +105,9 @@ function normalizeCategoryName(course) {
   return text;
 }
 
-function buildCourseCategories() {
+function buildCourseCategories(items = []) {
   const counts = new Map();
-  getAllCourses().forEach((course) => {
+  items.forEach((course) => {
     const name = normalizeCategoryName(course);
     counts.set(name, (counts.get(name) || 0) + 1);
   });
@@ -137,20 +116,28 @@ function buildCourseCategories() {
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 
-  const merged = [...built];
-  supplementalCategories.forEach((name) => {
-    if (!merged.some((category) => category.name === name)) {
-      merged.push({ name });
-    }
-  });
-
-  return merged.length ? merged.slice(0, 7) : fallbackCategories;
+  return built.slice(0, 7);
 }
 
 export default function PassionCategoriesSection() {
-  const categories = useMemo(() => buildCourseCategories(), []);
+  const [sessions, setSessions] = useState([]);
+  const categories = useMemo(() => buildCourseCategories(sessions), [sessions]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicSessions()
+      .then((items) => {
+        if (!cancelled) setSessions(items?.length ? items : getAllCourses());
+      })
+      .catch(() => {
+        if (!cancelled) setSessions(getAllCourses());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (categories.length <= 1) return undefined;
@@ -166,6 +153,8 @@ export default function PassionCategoriesSection() {
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
+
+  if (!categories.length) return null;
 
   return (
     <section className="relative overflow-hidden bg-white px-4 py-14 sm:px-6 sm:py-18 lg:px-8 lg:py-20">

@@ -3,8 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { HiMiniStar, HiChevronRight } from "react-icons/hi2";
 import { HiCheck } from "react-icons/hi";
 import { useAuth } from "../../auth";
-import { getStudentSessions } from "../../courses/api/studentSessionsApi";
-import { getAllCourses } from "../../courses/data/courseCatalog";
+import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
+import { getPublicSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
+import useNow from "../../live-classes/hooks/useNow";
+import { formatDuration } from "../../live-classes/lib/time";
+import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 
 /**
  * FeaturedCoursesSection
@@ -24,7 +27,6 @@ import { getAllCourses } from "../../courses/data/courseCatalog";
 // ── DATA ─────────────────────────────────────────────────────────────────────
 
 // Kept only as historical fallback data during transition to production sessions.
-// eslint-disable-next-line no-unused-vars
 const TABS = [
   "Artificial Intelligence (AI)",
   "Python",
@@ -34,7 +36,6 @@ const TABS = [
   "Amazon AWS",
 ];
 
-// eslint-disable-next-line no-unused-vars
 const COURSES_BY_TAB = {
   "Artificial Intelligence (AI)": [
     {
@@ -619,7 +620,7 @@ function StarRating({ rating }) {
 }
 
 // ── HOVER POPUP ───────────────────────────────────────────────────────────────
-function CoursePopup({ course, side, onViewDetails }) {
+function CoursePopup({ course, side, onViewDetails, onContinue, onJoinNow }) {
   return (
     <div
       className={`
@@ -670,6 +671,24 @@ function CoursePopup({ course, side, onViewDetails }) {
       </ul>
 
       <div className="grid grid-cols-1 gap-2 mt-1">
+        {onContinue ? (
+          <button
+            type="button"
+            onClick={onContinue}
+            className="w-full bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[14px] py-3 rounded-sm transition-colors"
+          >
+            Log in to continue
+          </button>
+        ) : onJoinNow ? (
+          <button
+            type="button"
+            disabled={course.disabled}
+            onClick={onJoinNow}
+            className="w-full bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[14px] py-3 rounded-sm transition-colors disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {course.label || (course.paymentRequired && !course.isPaid ? "Pay to Join" : "Join")}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onViewDetails}
@@ -682,7 +701,7 @@ function CoursePopup({ course, side, onViewDetails }) {
   );
 }
 
-function CourseModal({ course, onClose, onViewDetails }) {
+function CourseModal({ course, onClose, onViewDetails, onContinue, onJoinNow }) {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
@@ -743,6 +762,24 @@ function CourseModal({ course, onClose, onViewDetails }) {
           </ul>
 
           <div className="grid grid-cols-1 gap-2 mt-5">
+            {onContinue ? (
+              <button
+                type="button"
+                onClick={onContinue}
+                className="w-full bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[14px] py-3 rounded-sm transition-colors"
+              >
+                Log in to continue
+              </button>
+            ) : onJoinNow ? (
+              <button
+                type="button"
+                disabled={course.disabled}
+                onClick={onJoinNow}
+                className="w-full bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[14px] py-3 rounded-sm transition-colors disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {course.label || (course.paymentRequired && !course.isPaid ? "Pay to Join" : "Join")}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onViewDetails}
@@ -758,7 +795,7 @@ function CourseModal({ course, onClose, onViewDetails }) {
 }
 
 // ── COURSE CARD ───────────────────────────────────────────────────────────────
-function CourseCard({ course, index, total, onOpenMobile }) {
+function CourseCard({ course, index, total, onOpenMobile, onContinue, onJoinNow }) {
   const [hovered, setHovered] = useState(false);
   const cardRef = useRef(null);
   const [popupSide, setPopupSide] = useState("right");
@@ -825,6 +862,31 @@ function CourseCard({ course, index, total, onOpenMobile }) {
             <span className="text-[12px] text-gray-400 line-through">{course.oldPrice}</span>
           )}
         </div>
+
+        {onContinue ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onContinue();
+            }}
+            className="mt-2 h-9 rounded-sm bg-[#00342b] text-[12px] font-extrabold text-white transition-colors hover:bg-[#004d40]"
+          >
+            Log in to continue
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={course.disabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!course.disabled) onJoinNow?.();
+            }}
+            className="mt-2 h-9 rounded-sm bg-[#00342b] text-[12px] font-extrabold text-white transition-colors hover:bg-[#004d40] disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {course.label || (course.paymentRequired && !course.isPaid ? "Pay to Join" : "Join")}
+          </button>
+        )}
       </div>
 
       {/* Hover popup */}
@@ -833,6 +895,8 @@ function CourseCard({ course, index, total, onOpenMobile }) {
           course={course}
           side={popupSide}
           onViewDetails={course.onViewDetails}
+          onContinue={onContinue}
+          onJoinNow={onJoinNow}
         />
       )}
     </div>
@@ -883,10 +947,55 @@ function normalizeLandingSession(course) {
   };
 }
 
+function getLandingJoinState(course, now) {
+  const liveClass = course.liveClass || null;
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+  const unavailable = isSessionUnavailable(liveClass);
+  const startMs = occurrence.startMs || 0;
+  const endMs = occurrence.endMs || 0;
+  const canJoin = !!course.createdByTrainer && startMs > 0 && now >= startMs && now <= endMs && !unavailable;
+  const needsPayment = !!course.createdByTrainer && !!course.paymentRequired && !course.isPaid;
+
+  if (needsPayment) {
+    return {
+      label: "Pay to Join",
+      disabled: false,
+      helper: "",
+    };
+  }
+
+  if (canJoin) {
+    return {
+      label: "Join",
+      disabled: false,
+      helper: "Join is open now.",
+    };
+  }
+
+  if (course.isPaid) {
+    return {
+      label: "Paid",
+      disabled: true,
+      helper: startMs > 0 && now < startMs ? `Join opens when class starts - ${formatDuration(startMs - now)} left` : "Paid access is available for this session.",
+    };
+  }
+
+  return {
+    label: "Locked",
+    disabled: true,
+    helper: startMs > 0 && now < startMs ? `Join opens when class starts - ${formatDuration(startMs - now)} left` : "",
+  };
+}
+
 // ── MAIN SECTION ──────────────────────────────────────────────────────────────
+function getFallbackLandingSessions() {
+  return TABS.flatMap((tab) => (COURSES_BY_TAB[tab] || []).map((course) => ({ ...course, tab })));
+}
+
 export default function FeaturedCoursesSection({ compact = false }) {
   const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState([]);
+  const now = useNow(1000);
   const tabs = useMemo(
     () => [...new Set(sessions.map((session) => session.tab).filter(Boolean))],
     [sessions]
@@ -897,19 +1006,24 @@ export default function FeaturedCoursesSection({ compact = false }) {
     [activeTab, sessions]
   );
   const [mobileCourse, setMobileCourse] = useState(null);
+  const [authPrompt, setAuthPrompt] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
-    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(getAllCourses());
+    const loader = isAuthenticated ? getStudentSessions() : getPublicSessions();
 
     loader
       .then((items) => {
         if (cancelled) return;
-        setSessions((items || []).map(normalizeLandingSession));
+        const source = items?.length ? items : isAuthenticated ? [] : getFallbackLandingSessions();
+        setSessions(source.map(normalizeLandingSession));
       })
       .catch(() => {
-        if (!cancelled) setSessions([]);
+        if (!cancelled) {
+          const source = isAuthenticated ? [] : getFallbackLandingSessions();
+          setSessions(source.map(normalizeLandingSession));
+        }
       });
 
     return () => {
@@ -925,9 +1039,10 @@ export default function FeaturedCoursesSection({ compact = false }) {
     () =>
       courses.map((c) => ({
         ...c,
-        onViewDetails: () => navigate(`/courses/${c.id}`, { state: { course: c } }),
+        onViewDetails: () => navigate(`/courses/${encodeURIComponent(String(c.id))}`),
+        ...getLandingJoinState(c, now),
       })),
-    [courses, navigate]
+    [courses, navigate, now]
   );
 
   return (
@@ -976,6 +1091,17 @@ export default function FeaturedCoursesSection({ compact = false }) {
                 index={i}
                 total={courses.length}
                 onOpenMobile={(c) => setMobileCourse(c)}
+                onContinue={
+                  isAuthenticated
+                    ? null
+                    : () =>
+                        setAuthPrompt({
+                          title: "Log in to continue this session",
+                          message: "Register or log in first. After login, you can pay or join when the session access window opens.",
+                          from: `/courses/${encodeURIComponent(String(course.id))}`,
+                        })
+                }
+                onJoinNow={() => navigate(`/courses/${encodeURIComponent(String(course.id))}`)}
               />
             ))}
           </div>
@@ -1008,11 +1134,34 @@ export default function FeaturedCoursesSection({ compact = false }) {
           course={mobileCourse}
           onClose={() => setMobileCourse(null)}
           onViewDetails={() => {
-            navigate(`/courses/${mobileCourse.id}`, { state: { course: mobileCourse } });
+            navigate(`/courses/${encodeURIComponent(String(mobileCourse.id))}`);
+            setMobileCourse(null);
+          }}
+          onContinue={
+            isAuthenticated
+              ? null
+              : () => {
+                  setMobileCourse(null);
+                  setAuthPrompt({
+                    title: "Log in to continue this session",
+                    message: "Register or log in first. After login, you can pay or join when the session access window opens.",
+                    from: `/courses/${encodeURIComponent(String(mobileCourse.id))}`,
+                  });
+                }
+          }
+          onJoinNow={() => {
+            navigate(`/courses/${encodeURIComponent(String(mobileCourse.id))}`);
             setMobileCourse(null);
           }}
         />
       )}
+      <AuthRequiredModal
+        open={!!authPrompt}
+        title={authPrompt?.title}
+        message={authPrompt?.message}
+        from={authPrompt?.from}
+        onClose={() => setAuthPrompt(null)}
+      />
     </section>
   );
 }

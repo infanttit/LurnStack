@@ -4,12 +4,54 @@ import { env } from "../../shared/config/env";
 import { getDurationMinutes, toKolkataIso, toMs } from "../../live-classes/lib/time";
 import { normalizeAttendance } from "./studentAttendanceApi";
 
+const PAID_SESSION_ACCESS_KEY = "lurnstack:paid-session-access:v1";
+
+function isBrowserOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
 function unwrap(res) {
   const data = res?.data;
   if (data?.success === false) throw new Error(data?.message || "Request failed");
   if (data?.success === true) return data;
   if (data && typeof data === "object" && "data" in data) return data;
   throw new Error(data?.message || "Request failed");
+}
+
+function readPaidSessionAccess() {
+  if (typeof window === "undefined") return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PAID_SESSION_ACCESS_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function hasPaidSessionAccess(sessionId) {
+  const id = String(sessionId || "").trim();
+  if (!id) return false;
+  return !!readPaidSessionAccess()[id];
+}
+
+export function rememberPaidSessionAccess(sessionId) {
+  const id = String(sessionId || "").trim();
+  if (!id || typeof window === "undefined") return;
+  try {
+    const current = readPaidSessionAccess();
+    window.localStorage.setItem(
+      PAID_SESSION_ACCESS_KEY,
+      JSON.stringify({
+        ...current,
+        [id]: {
+          paidAt: new Date().toISOString(),
+          accessScope: "session",
+        },
+      })
+    );
+  } catch {
+    // Local persistence is a convenience only; backend remains the source of truth.
+  }
 }
 
 function getMeetingLink(payload) {
@@ -135,7 +177,8 @@ function normalizeSession(raw = {}) {
     raw.paid === true ||
     bookingStatus === "paid" ||
     paymentStatus === "captured" ||
-    paymentStatus === "paid";
+    paymentStatus === "paid" ||
+    hasPaidSessionAccess(raw.id);
   const paymentRequired = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
   const currency = raw.currency || "INR";
 
@@ -218,10 +261,19 @@ function normalizeBookingPayload(payload = {}) {
       email: source.student?.email || source.studentEmail || source.email || "",
       phone: source.student?.phone || source.studentPhone || source.phone || "",
     },
+    alreadyPaid:
+      source.alreadyPaid === true ||
+      source.isPaid === true ||
+      source.paid === true ||
+      source.bookingStatus === "paid" ||
+      source.booking_status === "paid" ||
+      source.paymentStatus === "paid" ||
+      source.payment_status === "paid",
   };
 }
 
 export async function getStudentSessions() {
+  if (isBrowserOffline()) return [];
   try {
     const res = await axiosClient.get("/api/student/sessions");
     const payload = unwrap(res);
@@ -232,7 +284,37 @@ export async function getStudentSessions() {
   }
 }
 
+export async function getPublicSessions() {
+  if (isBrowserOffline()) return [];
+  try {
+    const res = await axiosClient.get("/api/sessions");
+    const payload = unwrap(res);
+    const sessions = Array.isArray(payload.data)
+      ? payload.data
+      : Array.isArray(payload.sessions)
+        ? payload.sessions
+        : Array.isArray(payload)
+          ? payload
+          : [];
+    return sessions.map(normalizeSession);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to load published sessions."));
+  }
+}
+
+export async function getPublicSessionById(sessionId) {
+  if (isBrowserOffline()) throw new Error("You are offline. Session details are unavailable right now.");
+  try {
+    const res = await axiosClient.get(`/api/sessions/${encodeURIComponent(sessionId)}`);
+    const payload = unwrap(res);
+    return normalizeSession(payload.data || payload.session || {});
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to load session details."));
+  }
+}
+
 export async function getStudentSessionById(sessionId) {
+  if (isBrowserOffline()) throw new Error("You are offline. Session details are unavailable right now.");
   try {
     const res = await axiosClient.get(`/api/student/sessions/${encodeURIComponent(sessionId)}`);
     const payload = unwrap(res);
@@ -243,6 +325,7 @@ export async function getStudentSessionById(sessionId) {
 }
 
 export async function getStudentSessionCards() {
+  if (isBrowserOffline()) return [];
   try {
     const res = await axiosClient.get("/api/student/me/session-cards");
     const payload = unwrap(res);
@@ -273,6 +356,7 @@ export async function getStudentSessionCards() {
 }
 
 export async function addStudentSessionCard(sessionId) {
+  if (isBrowserOffline()) throw new Error("You are offline. Please reconnect and try again.");
   try {
     const path = `/api/student/sessions/${encodeURIComponent(sessionId)}/add-card`;
     let res;
@@ -299,12 +383,28 @@ export async function addStudentSessionCard(sessionId) {
 }
 
 export async function createStudentSessionBooking(sessionId, { sessionDate = "" } = {}) {
+  if (isBrowserOffline()) throw new Error("You are offline. Payment cannot be started right now.");
   try {
     const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(sessionId)}/bookings`, {
       sessionDate,
+      accessScope: "session",
     });
     return normalizeBookingPayload(unwrap(res));
   } catch (err) {
+    const status = getAxiosErrorStatus(err);
+    const message = getAxiosErrorMessage(err, "");
+    if ((status === 400 || status === 409) && /(already|paid|purchased|booked|active access)/i.test(message)) {
+      rememberPaidSessionAccess(sessionId);
+      return {
+        bookingId: "",
+        razorpayOrderId: "",
+        amountPaise: 0,
+        currency: "INR",
+        keyId: "",
+        student: {},
+        alreadyPaid: true,
+      };
+    }
     throw new Error(getAxiosErrorMessage(err, "Unable to start payment. Please try again."));
   }
 }
@@ -315,6 +415,7 @@ export async function verifyRazorpayPayment({
   razorpayPaymentId,
   razorpaySignature,
 }) {
+  if (isBrowserOffline()) throw new Error("You are offline. Payment verification cannot be completed right now.");
   try {
     const res = await axiosClient.post("/api/student/payments/razorpay/verify", {
       bookingId,
@@ -323,6 +424,8 @@ export async function verifyRazorpayPayment({
       razorpaySignature,
     });
     const payload = unwrap(res);
+    const sessionId = payload.data?.sessionId || payload.data?.session_id || payload.sessionId || payload.session_id || "";
+    if (sessionId) rememberPaidSessionAccess(sessionId);
     return payload.data || payload;
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Payment verification failed. Please contact support if amount was deducted."));
@@ -330,6 +433,7 @@ export async function verifyRazorpayPayment({
 }
 
 export async function getStudentPayments() {
+  if (isBrowserOffline()) return [];
   try {
     const res = await axiosClient.get("/api/student/payments");
     const payload = unwrap(res);
@@ -343,6 +447,7 @@ export async function joinStudentSession(
   sessionId,
   { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
 ) {
+  if (isBrowserOffline()) throw new Error("You are offline. Session join is unavailable right now.");
   const id = String(sessionId || "").trim();
   if (!id) throw new Error("Missing session id");
   const requestBody = sessionDate
@@ -433,6 +538,7 @@ export async function heartbeatStudentSession(
   sessionId,
   { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
 ) {
+  if (isBrowserOffline()) return null;
   const id = String(sessionId || "").trim();
   if (!id) return null;
   try {
@@ -455,6 +561,7 @@ export async function leaveStudentSession(
   sessionId,
   { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
 ) {
+  if (isBrowserOffline()) return null;
   const id = String(sessionId || "").trim();
   if (!id) return null;
   try {

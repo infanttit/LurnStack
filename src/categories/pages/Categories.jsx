@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 
 import catImages from "../../assets/Images/categories/categories";
 import { useAuth } from "../../auth";
-import { getStudentSessions } from "../../courses/api/studentSessionsApi";
-import { getAllCourses } from "../../courses/data/courseCatalog";
+import { getPublicSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
 
 const SORT_OPTIONS = [
   "Most Popular",
@@ -105,10 +104,6 @@ function normalizeCourse(course, index) {
     fallbackImage: categoryImage(index),
     thumbnailBg: course.thumbnailBg || "from-emerald-950 via-teal-800 to-cyan-600",
   };
-}
-
-function getGuestCourses() {
-  return getAllCourses().map(normalizeCourse);
 }
 
 function buildCategories(courses) {
@@ -288,7 +283,7 @@ export default function Categories() {
     setLoading(true);
     setLoadError("");
 
-    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(getGuestCourses());
+    const loader = isAuthenticated ? getStudentSessions() : getPublicSessions();
     loader
       .then((items) => {
         if (cancelled) return;
@@ -296,7 +291,7 @@ export default function Categories() {
       })
       .catch((err) => {
         if (cancelled) return;
-        setCourses(getGuestCourses());
+        setCourses([]);
         setLoadError(isAuthenticated ? err?.message || "Unable to load sessions." : "");
       })
       .finally(() => {

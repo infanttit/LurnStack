@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import {
   createStudentSessionBooking,
   joinStudentSession,
+  hasPaidSessionAccess,
+  rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../../courses/api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
@@ -105,7 +107,7 @@ export default function CourseCard({
   const isCancelled = String(liveClass?.status || "").toLowerCase() === "cancelled";
   const unavailable = isSessionUnavailable(liveClass);
   const cancellationReason = liveClass?.cancellationReason || "";
-  const effectivePaid = isPaid || paymentVerified;
+  const effectivePaid = isPaid || paymentVerified || hasPaidSessionAccess(id);
   const needsPayment = createdByTrainer && paymentRequired && !effectivePaid;
   const canJoin = createdByTrainer && !needsPayment && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
   const timerLabel = !startMs
@@ -198,6 +200,7 @@ export default function CourseCard({
       setAuthPrompt({
         title: "Log in to pay for this class",
         message: "Register or log in first. After payment verification, you can join when the session opens.",
+        from: `/courses/${encodeURIComponent(String(id))}`,
       });
       return;
     }
@@ -207,21 +210,24 @@ export default function CourseCard({
     try {
       const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
       const booking = await createStudentSessionBooking(id, { sessionDate });
-      const payment = await openRazorpayCheckout({
-        keyId: booking.keyId,
-        amountPaise: booking.amountPaise || amountPaise,
-        currency: booking.currency || currency || "INR",
-        razorpayOrderId: booking.razorpayOrderId,
-        sessionTitle: title,
-        student: booking.student,
-      });
-      await verifyRazorpayPayment({
-        bookingId: booking.bookingId,
-        razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
-        razorpayPaymentId: payment.razorpay_payment_id,
-        razorpaySignature: payment.razorpay_signature,
-      });
+      if (!booking.alreadyPaid) {
+        const payment = await openRazorpayCheckout({
+          keyId: booking.keyId,
+          amountPaise: booking.amountPaise || amountPaise,
+          currency: booking.currency || currency || "INR",
+          razorpayOrderId: booking.razorpayOrderId,
+          sessionTitle: title,
+          student: booking.student,
+        });
+        await verifyRazorpayPayment({
+          bookingId: booking.bookingId,
+          razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+          razorpayPaymentId: payment.razorpay_payment_id,
+          razorpaySignature: payment.razorpay_signature,
+        });
+      }
       setPaymentVerified(true);
+      rememberPaidSessionAccess(id);
     } catch (err) {
       setAuthPrompt({
         title: "Payment not completed",
@@ -239,6 +245,7 @@ export default function CourseCard({
       setAuthPrompt({
         title: "Log in to join this class",
         message: "Register or log in first. After authentication, you can continue with this session.",
+        from: `/courses/${encodeURIComponent(String(id))}`,
       });
       return;
     }
@@ -662,6 +669,7 @@ export default function CourseCard({
         open={!!authPrompt}
         title={authPrompt?.title}
         message={authPrompt?.message}
+        from={authPrompt?.from}
         onClose={() => setAuthPrompt(null)}
       />
     </div>

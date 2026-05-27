@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import brandLogo from "../../assets/Logo/Logo3.png";
+import brandLogo from "../../assets/Logo/Logo4.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { isStrongPassword, isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
@@ -72,6 +72,43 @@ const GlobalStyles = () => (
     
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .auth-shell {
+      position: relative;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(84, 212, 16, 0.24), transparent 28%),
+        radial-gradient(circle at 90% 18%, rgba(0, 77, 61, 0.13), transparent 34%),
+        linear-gradient(135deg, #f7fff3 0%, #ffffff 46%, #f2fbf6 100%);
+    }
+    .auth-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 77, 61, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 77, 61, 0.045) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.78), transparent 78%);
+    }
+    .auth-card {
+      position: relative;
+      border: 1px solid rgba(0, 77, 61, 0.1);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 28px 80px rgba(0, 77, 61, 0.13);
+      backdrop-filter: blur(18px);
+    }
+    .auth-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(84, 212, 16, 0.16), transparent 32%, rgba(0, 77, 61, 0.08));
+    }
+    .auth-content { position: relative; z-index: 1; }
+    .auth-mark { box-shadow: 0 18px 38px rgba(84, 212, 16, 0.2); }
 
     .modal-anim {
       animation: modal-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -994,7 +1031,7 @@ export default function SignupPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="flex min-h-dvh w-full bg-white">
+      <div className="auth-shell flex min-h-dvh w-full">
         {/* ── LEFT PANEL (Desktop Only) ── */}
         <div className="hidden">
           <div className="absolute inset-0 z-0">
@@ -1033,36 +1070,23 @@ export default function SignupPage() {
         </div>
 
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
-        <div className="flex min-h-0 flex-1 flex-col bg-white">
-          <div className="flex min-h-0 flex-1 flex-col justify-start bg-white px-4 pb-10 pt-5 sm:px-10 sm:py-8 lg:px-16 xl:px-24">
-            <div className="w-full max-w-md mx-auto">
-              <div className="lg:hidden flex justify-center mb-5">
-                <Logo dark />
+        <div className="flex min-h-0 flex-1 flex-col bg-transparent">
+          <div className="relative z-10 flex min-h-dvh flex-1 flex-col justify-start px-4 py-6 sm:px-6 lg:px-8 xl:py-10">
+            <div className="auth-card w-full max-w-[640px] mx-auto rounded-[28px] p-5 sm:p-7">
+              <div className="auth-content">
+              <div className="flex justify-center mb-5">
+                <div className="auth-mark rounded-full bg-white p-2 ring-1 ring-[#004d3d]/10">
+                  <Logo dark />
+                </div>
               </div>
-              <div className="anim-1 mb-4">
-                <h1 className="text-xl lg:text-2xl font-extrabold text-[#004d3d] mb-0.5">
+              <div className="anim-1 mb-5 text-center">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#54d410]">Start Learning</p>
+                <h1 className="text-2xl lg:text-3xl font-black text-[#004d3d] mb-1">
                   Create Account
                 </h1>
-                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold leading-snug hidden sm:block">
-                  Step into your portal.
+                <p className="text-slate-500 text-[12px] font-semibold leading-relaxed">
+                  Verify your email and phone to continue into LurnStack live sessions.
                 </p>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex border-b border-slate-200 mb-4 anim-2">
-                <Link
-                  to="/login"
-                  state={{ from: redirectTo }}
-                  className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]"
-                >
-                  Sign Up
-                </Link>
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
@@ -1121,12 +1145,12 @@ export default function SignupPage() {
                             : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                         }`}
                     />
-                    {!emailOtp.verified ? (
+                    {!emailOtp.verified && form.email.trim() ? (
                       <button
                         type="button"
                         disabled={loading || emailOtp.cooldown > 0}
                         onClick={() => requestOtp("email")}
-                        className="h-11 rounded-xl border border-[#004d3d]/20 bg-[#004d3d]/5 px-4 text-[12px] font-black text-[#004d3d] transition hover:bg-[#004d3d]/10 disabled:cursor-not-allowed disabled:text-slate-300"
+                        className="h-9 self-center rounded-full border border-[#004d3d]/20 bg-white px-3 text-[11px] font-black text-[#004d3d] shadow-sm transition hover:border-[#54d410]/50 hover:bg-[#54d410]/10 disabled:cursor-not-allowed disabled:text-slate-300"
                       >
                         {emailOtp.cooldown > 0 ? `${emailOtp.cooldown}s` : emailOtp.sent ? "Resend" : "Verify"}
                       </button>
@@ -1189,12 +1213,12 @@ export default function SignupPage() {
                             : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                         }`}
                     />
-                    {!phoneOtp.verified ? (
+                    {!phoneOtp.verified && form.phoneNumber.trim() ? (
                       <button
                         type="button"
                         disabled={loading || phoneOtp.cooldown > 0}
                         onClick={() => requestOtp("phone")}
-                        className="col-span-2 h-11 rounded-xl border border-[#004d3d]/20 bg-[#004d3d]/5 px-4 text-[12px] font-black text-[#004d3d] transition hover:bg-[#004d3d]/10 disabled:cursor-not-allowed disabled:text-slate-300 min-[520px]:col-span-1"
+                        className="col-span-2 h-9 self-center rounded-full border border-[#004d3d]/20 bg-white px-3 text-[11px] font-black text-[#004d3d] shadow-sm transition hover:border-[#54d410]/50 hover:bg-[#54d410]/10 disabled:cursor-not-allowed disabled:text-slate-300 min-[520px]:col-span-1"
                       >
                         {phoneOtp.cooldown > 0 ? `${phoneOtp.cooldown}s` : phoneOtp.sent ? "Resend" : "Verify"}
                       </button>
@@ -1283,7 +1307,7 @@ export default function SignupPage() {
                 <button
                   type="submit"
                   disabled={loading || !emailOtp.verified || !phoneOtp.verified}
-                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-lg flex items-center justify-center gap-2 mt-1 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-[0_16px_36px_rgba(0,77,61,0.22)] flex items-center justify-center gap-2 mt-1 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1305,6 +1329,7 @@ export default function SignupPage() {
                   Log In
                 </Link>
               </p>
+              </div>
             </div>
           </div>
         </div>

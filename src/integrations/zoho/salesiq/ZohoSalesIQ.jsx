@@ -17,6 +17,7 @@ function ensureZohoGlobal() {
 function loadZohoScript() {
   if (typeof document === "undefined") return;
   if (document.getElementById(ZOHO_WIDGET_ID)) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
   const script = document.createElement("script");
   script.id = ZOHO_WIDGET_ID;
