@@ -5,6 +5,8 @@ import SimplePage from "../../pages/SimplePage";
 import CategoriesPage from "../../categories/pages/Categories";
 import SignupPage from "../../auth/pages/SignupPage";
 import LoginPage from "../../auth/pages/LoginPage";
+import ForgotPasswordPage from "../../auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "../../auth/pages/ResetPasswordPage";
 import ProfilePage from "../../auth/pages/ProfilePage";
 import SearchPage from "../../pages/SearchPage";
 import CartPage from "../../cart/pages/CartPage";
@@ -73,6 +75,8 @@ export default function AppRouter() {
         <Route path={PATHS.PLANS} element={<SimplePage title="Plans" />} />
         <Route path={PATHS.LOGIN} element={<LoginPage />} />
         <Route path={PATHS.SIGNUP} element={<SignupPage />} />
+        <Route path={PATHS.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path={PATHS.RESET_PASSWORD} element={<ResetPasswordPage />} />
         <Route path={PATHS.PROFILE} element={<ProfilePage />} />
         <Route
           path={PATHS.TRAINER_ATTENDANCE}

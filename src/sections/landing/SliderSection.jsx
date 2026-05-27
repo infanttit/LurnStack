@@ -4,9 +4,17 @@ import { FiArrowUpRight } from "react-icons/fi";
 import { motion } from "framer-motion";
 
 import { useAuth } from "../../auth";
-import { getStudentSessions } from "../../courses/api/studentSessionsApi";
+import { getPublicSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
 import { getAllCourses } from "../../courses/data/courseCatalog";
 import { categoryHashPath } from "../../app/router/paths";
+import artificialBg from "../../assets/Images/sliders-images/Artificial.jpg";
+import programmingBg from "../../assets/Images/sliders-images/Programming.png";
+import trainerCoursesBg from "../../assets/Images/sliders-images/Trainer-coures.png";
+import databaseBg from "../../assets/Images/sliders-images/Database.png";
+import fullStackBg from "../../assets/Images/sliders-images/Fullstsck-developments.png";
+import frontendBg from "../../assets/Images/sliders-images/Frontend-developments.png";
+import appBg from "../../assets/Images/sliders-images/App-developments.png";
+import cloudBg from "../../assets/Images/sliders-images/Cloud-computing.png";
 
 const CATEGORY_STYLES = [
   "from-[#111827] via-[#14532d] to-[#0f766e]",
@@ -40,6 +48,20 @@ function categoryFromItem(item) {
   return normalizeCategory(item.category || item.topic || item.tab || "Trainer Courses");
 }
 
+function resolveSlideImage(name, index = 0) {
+  const text = String(name || "").toLowerCase();
+  if (/artificial|ai|agentic/.test(text)) return artificialBg;
+  if (/programming|code|developer/.test(text)) return programmingBg;
+  if (/trainer|mentor|courses?/.test(text)) return trainerCoursesBg;
+  if (/full\s*stack|fullstack|stack/.test(text)) return fullStackBg;
+  if (/frontend|front-end|ui|ux/.test(text)) return frontendBg;
+  if (/app|mobile|android|ios/.test(text)) return appBg;
+  if (/cloud|aws|azure|gcp|computing/.test(text)) return cloudBg;
+  if (/database|sql|pl\/sql|plsql/.test(text)) return databaseBg;
+  const fallbackImages = [artificialBg, programmingBg, trainerCoursesBg, fullStackBg, frontendBg, appBg, cloudBg, databaseBg];
+  return fallbackImages[index % fallbackImages.length];
+}
+
 function buildCategorySlides(items = []) {
   const counts = new Map();
 
@@ -54,6 +76,7 @@ function buildCategorySlides(items = []) {
     name,
     count,
     gradient: CATEGORY_STYLES[index % CATEGORY_STYLES.length],
+    image: resolveSlideImage(name, index),
   }));
 }
 
@@ -71,7 +94,14 @@ function CategorySlide({ slide, active, activeWidth, collapsedWidth, onActivate,
       style={{ width: active ? activeWidth : collapsedWidth }}
       aria-label={active ? `Open ${slide.name}` : `Show ${slide.name}`}
     >
-      <div className="absolute inset-0 bg-black/20" />
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
+        style={{
+          backgroundImage: slide.image ? `url(${slide.image})` : undefined,
+          transform: active ? "scale(1.02)" : "scale(1)",
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-black/25 via-black/35 to-black/55" />
 
       {!active ? (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -125,7 +155,13 @@ function MobileCategorySlide({ slide, active, onClick }) {
       ].join(" ")}
       aria-label={`Open ${slide.name}`}
     >
-      <div className="absolute inset-0 bg-black/20" />
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage: slide.image ? `url(${slide.image})` : undefined,
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-black/25 via-black/35 to-black/55" />
       <div className="relative flex h-full flex-col justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-white">
@@ -157,21 +193,22 @@ export default function SliderSection({ compact = false }) {
   const navigate = useNavigate();
   const [slides, setSlides] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(1280);
 
   useEffect(() => {
     let cancelled = false;
-    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(getAllCourses());
+    const loader = isAuthenticated ? getStudentSessions() : getPublicSessions();
+    const fallbackSlides = () => buildCategorySlides(getAllCourses());
 
     loader
       .then((items) => {
         if (cancelled) return;
-        setSlides(buildCategorySlides(items || []));
+        const realSlides = buildCategorySlides(items || []);
+        setSlides(realSlides.length ? realSlides : fallbackSlides());
         setActiveIndex(0);
       })
       .catch(() => {
-        if (!cancelled) setSlides([]);
+        if (!cancelled) setSlides(fallbackSlides());
       });
 
     return () => {
@@ -180,12 +217,12 @@ export default function SliderSection({ compact = false }) {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (paused || slides.length <= 1) return undefined;
+    if (slides.length <= 1) return undefined;
     const timer = window.setInterval(() => {
       setActiveIndex((index) => (index + 1) % slides.length);
-    }, 10000);
+    }, 3000);
     return () => window.clearInterval(timer);
-  }, [paused, slides.length]);
+  }, [slides.length]);
 
   useEffect(() => {
     const update = () => setViewportWidth(window.innerWidth);
@@ -215,11 +252,7 @@ export default function SliderSection({ compact = false }) {
       <div className={compact ? "mx-auto max-w-none px-0" : "mx-auto max-w-7xl px-4 sm:px-8"}>
         {isMobileSlider ? (
           <div>
-            <div
-              className="overflow-hidden"
-              onTouchStart={() => setPaused(true)}
-              onTouchEnd={() => setPaused(false)}
-            >
+            <div className="overflow-hidden">
               <MobileCategorySlide
                 key={slides[activeIndex]?.id}
                 slide={slides[activeIndex]}
@@ -246,8 +279,6 @@ export default function SliderSection({ compact = false }) {
         ) : (
         <div
           className="overflow-hidden"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
         >
           <motion.div
             className="flex items-center gap-3 pb-2"

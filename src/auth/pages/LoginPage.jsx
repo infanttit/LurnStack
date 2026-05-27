@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import brandLogo from "../../assets/Logo/Logo3.png";
+import brandLogo from "../../assets/Logo/Logo4.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
@@ -60,6 +60,43 @@ const GlobalStyles = () => (
     
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .auth-shell {
+      position: relative;
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(84, 212, 16, 0.24), transparent 28%),
+        radial-gradient(circle at 90% 18%, rgba(0, 77, 61, 0.13), transparent 34%),
+        linear-gradient(135deg, #f7fff3 0%, #ffffff 46%, #f2fbf6 100%);
+    }
+    .auth-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0, 77, 61, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 77, 61, 0.045) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.78), transparent 78%);
+    }
+    .auth-card {
+      position: relative;
+      border: 1px solid rgba(0, 77, 61, 0.1);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 28px 80px rgba(0, 77, 61, 0.13);
+      backdrop-filter: blur(18px);
+    }
+    .auth-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(84, 212, 16, 0.16), transparent 32%, rgba(0, 77, 61, 0.08));
+    }
+    .auth-content { position: relative; z-index: 1; }
+    .auth-mark { box-shadow: 0 18px 38px rgba(84, 212, 16, 0.2); }
   `}</style>
 );
 
@@ -130,7 +167,7 @@ export default function LoginPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="flex min-h-dvh w-full bg-white">
+      <div className="auth-shell flex min-h-dvh w-full">
 
         {/* ── LEFT PANEL (Desktop Only) ── */}
         <div className="hidden">
@@ -156,22 +193,20 @@ export default function LoginPage() {
         </div>
 
         {/* ── RIGHT PANEL (Mobile Friendly) ── */}
-        <div className="flex min-h-0 flex-1 flex-col bg-white">
-          <div className="flex min-h-0 flex-1 flex-col justify-start bg-white px-4 pb-10 pt-5 sm:px-10 sm:py-8 lg:px-16 xl:px-24">
-            <div className="w-full max-w-md mx-auto">
-              <div className="lg:hidden flex justify-center mb-5">
-                <Logo dark />
+        <div className="flex min-h-0 flex-1 flex-col bg-transparent">
+          <div className="relative z-10 flex min-h-dvh flex-1 flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
+            <div className="auth-card w-full max-w-[480px] mx-auto rounded-[28px] p-5 sm:p-7">
+              <div className="auth-content">
+              <div className="flex justify-center mb-5">
+                <div className="auth-mark rounded-full bg-white p-2 ring-1 ring-[#004d3d]/10">
+                  <Logo dark />
+                </div>
               </div>
               
-              <div className="anim-1 mb-4">
-                <h1 className="text-xl lg:text-2xl font-extrabold text-[#004d3d] mb-0.5">Welcome back</h1>
-                <p className="text-slate-500 text-[11px] uppercase tracking-wider font-bold leading-snug">Please enter your details to continue.</p>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex border-b border-slate-200 mb-4 anim-2">
-                <Link to="/login" className="flex-1 pb-1.5 text-center text-[12px] font-bold text-[#004d3d] border-b-2 border-[#004d3d]">Login</Link>
-                <Link to="/signup" state={{ from: redirectTo }} className="flex-1 pb-1.5 text-center text-[12px] font-medium text-slate-400 hover:text-slate-600 transition-colors">Sign Up</Link>
+              <div className="anim-1 mb-5 text-center">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#54d410]">LurnStack Learning</p>
+                <h1 className="text-2xl lg:text-3xl font-black text-[#004d3d] mb-1">Welcome back</h1>
+                <p className="text-slate-500 text-[12px] font-semibold leading-relaxed">Access your live classes, session bookings, and learning progress.</p>
               </div>
 
               <form onSubmit={handleSubmit} noValidate className="space-y-3.5 anim-3">
@@ -226,7 +261,7 @@ export default function LoginPage() {
                 </div>
 
                 <button type="submit" disabled={loading}
-                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-lg flex items-center justify-center gap-2 mt-1">
+                  className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-[0_16px_36px_rgba(0,77,61,0.22)] flex items-center justify-center gap-2 mt-1">
                   {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Sign In"}
                 </button>
               </form>
@@ -247,6 +282,18 @@ export default function LoginPage() {
                 </button>
               </div>
 
+              <p className="mt-5 text-center text-[12px] text-slate-500">
+                New to LurnStack?{" "}
+                <Link
+                  to="/signup"
+                  state={{ from: redirectTo }}
+                  className="font-black text-[#004d3d] hover:underline transition-colors"
+                >
+                  Create account
+                </Link>
+              </p>
+
+              </div>
             </div>
           </div>
         </div>

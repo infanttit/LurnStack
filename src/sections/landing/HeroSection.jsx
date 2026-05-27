@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { HiCheckBadge } from "react-icons/hi2";
-import { FiAward, FiPlay, FiUsers, FiBookOpen, FiTrendingUp, FiArrowRight, FiCode, FiDatabase, FiCloud, FiSmartphone, FiCpu } from "react-icons/fi";
+import { FiPlay, FiUsers, FiTrendingUp, FiArrowRight, FiCode, FiDatabase, FiCloud, FiSmartphone, FiCpu } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import lurnStackLogo from "../../assets/Logo/Logo3.png";
+import lurnStackLogo from "../../assets/Logo/Logo4.png";
 import heroLoginImage from "../../assets/Images/Hero/hero3.png";
 import heroLoginImageAlt from "../../assets/Images/Hero/hero-image1.png";
 import { useAuth } from "../../auth";
@@ -63,64 +63,6 @@ export default function HeroSection() {
     }, 20);
 
     return () => clearInterval(timer);
-  }, []);
-
-  // Separate counters for each stat
-  const [learnersCount, setLearnersCount] = useState(0);
-  const [coursesCount, setCoursesCount] = useState(0);
-  const [successRate, setSuccessRate] = useState(0);
-  
-  useEffect(() => {
-    // Learners counter (0 to 25000)
-    let startLearners = 0;
-    const endLearners = 25000;
-    const durationLearners = 2500;
-    const incrementLearners = endLearners / (durationLearners / 16);
-    const timerLearners = setInterval(() => {
-      startLearners += incrementLearners;
-      if (startLearners >= endLearners) {
-        setLearnersCount(endLearners);
-        clearInterval(timerLearners);
-      } else {
-        setLearnersCount(Math.floor(startLearners));
-      }
-    }, 16);
-
-    // Courses counter (0 to 500)
-    let startCourses = 0;
-    const endCourses = 500;
-    const durationCourses = 2000;
-    const incrementCourses = endCourses / (durationCourses / 16);
-    const timerCourses = setInterval(() => {
-      startCourses += incrementCourses;
-      if (startCourses >= endCourses) {
-        setCoursesCount(endCourses);
-        clearInterval(timerCourses);
-      } else {
-        setCoursesCount(Math.floor(startCourses));
-      }
-    }, 16);
-
-    // Success rate counter (0 to 98)
-    let startSuccess = 0;
-    const endSuccess = 98;
-    const durationSuccess = 1800;
-    const incrementSuccess = endSuccess / (durationSuccess / 16);
-    const timerSuccess = setInterval(() => {
-      startSuccess += incrementSuccess;
-      if (startSuccess >= endSuccess) {
-        setSuccessRate(endSuccess);
-        clearInterval(timerSuccess);
-      } else {
-        setSuccessRate(Math.floor(startSuccess));
-      }
-    }, 16);
-
-    return () => {
-      clearInterval(timerLearners);
-      clearInterval(timerCourses);
-      clearInterval(timerSuccess);
-    };
   }, []);
 
   useEffect(() => {
@@ -213,57 +155,6 @@ export default function HeroSection() {
                   Watch Demo
                 </button>
               </motion.div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.8 }}
-              className="mb-6 grid gap-4 min-[520px]:flex min-[520px]:flex-wrap min-[520px]:items-center min-[520px]:gap-5"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="h-8 w-8 rounded-full border-2 border-white bg-gradient-to-br from-teal-600 to-emerald-600 shadow-md"
-                    />
-                  ))}
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-teal-500 to-emerald-500 text-[10px] font-bold text-white shadow-md">
-                    +2k
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-500">Active Learners</p>
-                  <p className="text-lg font-bold text-gray-950">
-                    {learnersCount.toLocaleString()}+
-                  </p>
-                </div>
-              </div>
-
-              <div className="hidden h-6 w-px bg-gray-200 sm:block" />
-
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
-                  <FiBookOpen className="h-4 w-4 text-emerald-700" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-500">Expert-Led Courses</p>
-                  <p className="text-lg font-bold text-gray-950">{coursesCount}+</p>
-                </div>
-              </div>
-
-              <div className="hidden h-6 w-px bg-gray-200 sm:block" />
-
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100">
-                  <FiAward className="h-4 w-4 text-emerald-700" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-500">Success Rate</p>
-                  <p className="text-lg font-bold text-gray-950">{successRate}%</p>
-                </div>
-              </div>
             </motion.div>
 
             <motion.div
@@ -384,10 +275,10 @@ export default function HeroSection() {
               <div className="relative pb-[56.25%]">
                 <iframe
                   className="absolute inset-0 h-full w-full"
-                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1"
+                  src="https://www.instagram.com/reel/DYrXAIQhIay/embed/"
                   title="Demo Video"
                   frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
                   allowFullScreen
                 />
               </div>
@@ -443,20 +334,6 @@ export default function HeroSection() {
             </button>
           </form>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-2xl font-black text-[#19213d]">{coursesCount}+</p>
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Sessions</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-[#19213d]">{learnersCount.toLocaleString()}+</p>
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Learners</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-[#19213d]">{successRate}%</p>
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Success</p>
-            </div>
-          </div>
         </motion.div>
 
         <motion.div

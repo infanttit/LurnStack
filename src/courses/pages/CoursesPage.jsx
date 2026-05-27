@@ -6,11 +6,12 @@ import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import {
   createStudentSessionBooking,
+  getPublicSessions,
   getStudentSessions,
   joinStudentSession,
+  rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
-import { getAllCourses } from "../data/courseCatalog";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
@@ -59,20 +60,19 @@ function isSessionCompleted(liveClass, now = Date.now()) {
   return startMs > 0 && now > endMs;
 }
 
-function getGuestCourses() {
-  return getAllCourses()
-    .slice(0, 12)
-    .map((course) => ({
-      ...course,
-      tab: course.tab || "Popular Courses",
-      instructor: course.instructor || course.instructorName || "LurnStack Faculty",
-      instructorName: course.instructorName || course.instructor || "LurnStack Faculty",
-      rating: course.rating || 4.7,
-      ratingCount: course.ratingCount || "Live lesson",
-      price: course.price || "₹499",
-      level: course.level || "All Levels",
-      createdByTrainer: false,
-    }));
+function getKolkataDateKey(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function getCourseTiming(course, now) {
+  return getSessionOccurrenceTiming(course.liveClass, now, { defaultRecurring: false });
 }
 
 function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayForClass, actionId, now }) {
@@ -240,21 +240,24 @@ export default function CoursesPage() {
   const filteredCourses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const now = Date.now();
+    const todayKey = getKolkataDateKey(now);
     const source = q ? sessions : courses;
     return source.filter((course) => {
-      const liveClass = course.liveClass;
-      const startsAt = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false }).startMs;
+      const timing = getCourseTiming(course, now);
+      const startsAt = timing.startMs;
+      const hasSchedule = startsAt > 0;
       const matchesSearch =
         !q ||
         course.title.toLowerCase().includes(q) ||
         course.instructor.toLowerCase().includes(q) ||
-        String(course.description || "").toLowerCase().includes(q);
+        String(course.description || "").toLowerCase().includes(q) ||
+        String(course.category || course.tab || "").toLowerCase().includes(q);
       const matchesTime =
         timeFilter === "All" ||
-        (timeFilter === "Upcoming" && Number.isFinite(startsAt) && startsAt >= now) ||
+        (timeFilter === "Upcoming" && hasSchedule && startsAt >= now) ||
         (timeFilter === "Today" &&
-          Number.isFinite(startsAt) &&
-          new Date(startsAt).toDateString() === new Date().toDateString());
+          hasSchedule &&
+          getKolkataDateKey(startsAt) === todayKey);
       return matchesSearch && matchesTime;
     });
   }, [courses, searchQuery, sessions, timeFilter]);
@@ -272,7 +275,7 @@ export default function CoursesPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const loader = isAuthenticated ? getStudentSessions() : Promise.resolve(getGuestCourses());
+    const loader = isAuthenticated ? getStudentSessions() : getPublicSessions();
     loader
       .then((items) => {
         if (cancelled) return;
@@ -281,7 +284,7 @@ export default function CoursesPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setSessions(getGuestCourses());
+          setSessions([]);
           setError(isAuthenticated ? err?.message || "Unable to load sessions." : "");
         }
       })
@@ -306,6 +309,7 @@ export default function CoursesPage() {
       setAuthPrompt({
         title: "Log in to join this class",
         message: "Register or log in first. After authentication, you can return here and join when the session opens.",
+        from: `/courses/${encodeURIComponent(String(course.id))}`,
       });
       return;
     }
@@ -403,6 +407,7 @@ export default function CoursesPage() {
       setAuthPrompt({
         title: "Log in to pay for this class",
         message: "Register or log in first. After payment verification, you can join when the session opens.",
+        from: `/courses/${encodeURIComponent(String(course.id))}`,
       });
       return;
     }
@@ -422,20 +427,23 @@ export default function CoursesPage() {
     try {
       const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
       const booking = await createStudentSessionBooking(course.id, { sessionDate });
-      const payment = await openRazorpayCheckout({
-        keyId: booking.keyId,
-        amountPaise: booking.amountPaise || course.amountPaise,
-        currency: booking.currency || course.currency || "INR",
-        razorpayOrderId: booking.razorpayOrderId,
-        sessionTitle: course.title,
-        student: booking.student,
-      });
-      await verifyRazorpayPayment({
-        bookingId: booking.bookingId,
-        razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
-        razorpayPaymentId: payment.razorpay_payment_id,
-        razorpaySignature: payment.razorpay_signature,
-      });
+      if (!booking.alreadyPaid) {
+        const payment = await openRazorpayCheckout({
+          keyId: booking.keyId,
+          amountPaise: booking.amountPaise || course.amountPaise,
+          currency: booking.currency || course.currency || "INR",
+          razorpayOrderId: booking.razorpayOrderId,
+          sessionTitle: course.title,
+          student: booking.student,
+        });
+        await verifyRazorpayPayment({
+          bookingId: booking.bookingId,
+          razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+          razorpayPaymentId: payment.razorpay_payment_id,
+          razorpaySignature: payment.razorpay_signature,
+        });
+      }
+      rememberPaidSessionAccess(course.id);
       setSessions((prev) =>
         prev.map((item) =>
           String(item.id) === String(course.id)
@@ -607,6 +615,7 @@ export default function CoursesPage() {
         open={!!authPrompt}
         title={authPrompt?.title}
         message={authPrompt?.message}
+        from={authPrompt?.from}
         onClose={() => setAuthPrompt(null)}
       />
     </main>

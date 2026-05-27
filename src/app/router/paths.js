@@ -19,6 +19,8 @@ export const PATHS = {
   PLANS: "/plans",
   LOGIN: "/login",
   SIGNUP: "/signup",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
 };
 
 export function categoryHashPath(categoryId) {

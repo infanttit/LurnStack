@@ -15,8 +15,11 @@ import { getCourseById, getCourseLiveClasses } from "../data/courseCatalog";
 import {
   addStudentSessionCard,
   createStudentSessionBooking,
+  getPublicSessionById,
   getStudentSessionById,
   joinStudentSession,
+  hasPaidSessionAccess,
+  rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
@@ -403,7 +406,8 @@ export default function CourseDetailsPage() {
   useEffect(() => {
     if (course || !courseId) return;
     let cancelled = false;
-    getStudentSessionById(courseId)
+    const loader = isAuthenticated ? getStudentSessionById : getPublicSessionById;
+    loader(courseId)
       .then((session) => {
         if (!cancelled) setRemoteCourse(session);
       })
@@ -411,7 +415,7 @@ export default function CourseDetailsPage() {
     return () => {
       cancelled = true;
     };
-  }, [course, courseId]);
+  }, [course, courseId, isAuthenticated]);
 
   const addToCart = useCallback(
     async (fromEl) => {
@@ -479,7 +483,7 @@ export default function CourseDetailsPage() {
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
     const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
     const { startMs, endMs } = occurrence;
-    const effectivePaid = course.isPaid || paymentVerified;
+    const effectivePaid = course.isPaid || paymentVerified || hasPaidSessionAccess(liveClass?.id || course.id);
     const needsPayment = course.paymentRequired && !effectivePaid;
     const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
     const attendanceStatus =
@@ -535,21 +539,24 @@ export default function CourseDetailsPage() {
       try {
         const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
         const booking = await createStudentSessionBooking(liveClass.id, { sessionDate });
-        const payment = await openRazorpayCheckout({
-          keyId: booking.keyId,
-          amountPaise: booking.amountPaise || course.amountPaise,
-          currency: booking.currency || course.currency || "INR",
-          razorpayOrderId: booking.razorpayOrderId,
-          sessionTitle: course.title,
-          student: booking.student,
-        });
-        await verifyRazorpayPayment({
-          bookingId: booking.bookingId,
-          razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
-          razorpayPaymentId: payment.razorpay_payment_id,
-          razorpaySignature: payment.razorpay_signature,
-        });
+        if (!booking.alreadyPaid) {
+          const payment = await openRazorpayCheckout({
+            keyId: booking.keyId,
+            amountPaise: booking.amountPaise || course.amountPaise,
+            currency: booking.currency || course.currency || "INR",
+            razorpayOrderId: booking.razorpayOrderId,
+            sessionTitle: course.title,
+            student: booking.student,
+          });
+          await verifyRazorpayPayment({
+            bookingId: booking.bookingId,
+            razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+            razorpayPaymentId: payment.razorpay_payment_id,
+            razorpaySignature: payment.razorpay_signature,
+          });
+        }
         setPaymentVerified(true);
+        rememberPaidSessionAccess(liveClass.id || course.id);
         setAuthPrompt({
           title: "Payment verified",
           message: "You can join when the class access window opens.",

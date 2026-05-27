@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { FiGlobe, FiMail, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
-import logo from "../../assets/Logo/Logo3.png";
+import logo from "../../assets/Logo/Logo4.png";
 
 function FooterLink({ to, children }) {
   return (
@@ -69,7 +69,7 @@ const NAV = [
 
 export default function SiteFooter() {
   return (
-    <footer className="max-w-full overflow-hidden bg-[#54d410] text-black">
+    <footer className="max-w-full overflow-hidden bg-[#1a8003] text-black">
       {/* Top section */}
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-12">
@@ -102,7 +102,7 @@ export default function SiteFooter() {
                 ))}
               </div>
               <span className="text-xs font-bold text-black">4.9</span>
-              <span className="text-xs text-black/70">· 50,000+ students</span>
+              <span className="text-xs text-black/70">Â· 50,000+ students</span>
             </div>
 
             {/* Socials */}
@@ -167,17 +167,17 @@ export default function SiteFooter() {
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-black/60">
-            © {new Date().getFullYear()} LurnStack Academy. All rights reserved.
+            Â© {new Date().getFullYear()} Tamil info technology. All rights reserved.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-black/60 sm:justify-end">
             <FiGlobe className="text-[12px]" />
             <span>English</span>
-            <span className="mx-3">·</span>
+            <span className="mx-3">Â·</span>
             <Link to="/privacy" className="hover:text-black transition-colors">Privacy</Link>
-            <span className="mx-3">·</span>
+            <span className="mx-3">Â·</span>
             <Link to="/cookies" className="hover:text-black transition-colors">Cookies</Link>
-            <span className="mx-3">·</span>
+            <span className="mx-3">Â·</span>
             <Link to="/terms" className="hover:text-black transition-colors">Terms</Link>
           </div>
         </div>
@@ -185,3 +185,4 @@ export default function SiteFooter() {
     </footer>
   );
 }
+
