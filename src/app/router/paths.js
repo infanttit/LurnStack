@@ -8,6 +8,8 @@ export const PATHS = {
   CATEGORIES: "/categories",
   CATEGORY_DETAILS: "/categories/:categoryId",
   SEARCH: "/search",
+  SESSIONS: "/sessions",
+  UPCOMING_SESSIONS: "/dashboard/upcoming",
   CART: "/cart",
   CHECKOUT: "/checkout",
   TERMS: "/terms",

@@ -81,6 +81,8 @@ export default function CourseCard({
   liveClass = null,
   amountPaise = 0,
   currency = "INR",
+  isFree = false,
+  pricingState = "",
   paymentRequired = false,
   isPaid = false,
   attendance = null,
@@ -108,7 +110,10 @@ export default function CourseCard({
   const unavailable = isSessionUnavailable(liveClass);
   const cancellationReason = liveClass?.cancellationReason || "";
   const effectivePaid = isPaid || paymentVerified || hasPaidSessionAccess(id);
-  const needsPayment = createdByTrainer && paymentRequired && !effectivePaid;
+  const sessionIsFree =
+    isFree === true ||
+    String(pricingState || "").trim().toUpperCase() === "FREE";
+  const needsPayment = createdByTrainer && !sessionIsFree && paymentRequired && !effectivePaid;
   const canJoin = createdByTrainer && !needsPayment && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
   const timerLabel = !startMs
     ? "Schedule pending"
@@ -171,16 +176,16 @@ export default function CourseCard({
   };
 
   const priceLabel = useMemo(() => {
+    if (sessionIsFree) return "Free";
     if (createdByTrainer && amountPaise > 0) return formatINRFromPaise(amountPaise);
     if (price === 0) return "Free";
     const p = typeof price === "number" ? price * 80 : 499;
-    return `₹${p.toLocaleString()}`;
-  }, [amountPaise, createdByTrainer, price]);
-
+    return "Rs." + p.toLocaleString();
+  }, [amountPaise, createdByTrainer, price, sessionIsFree]);
   const originalLabel = useMemo(() => {
     if (!originalPrice) return null;
     const p = typeof originalPrice === "number" ? originalPrice * 80 : 3499;
-    return `₹${p.toLocaleString()}`;
+    return "Rs." + p.toLocaleString();
   }, [originalPrice]);
 
   const handleViewDetails = (e) => {
@@ -257,13 +262,15 @@ export default function CourseCard({
       return;
     }
     const meetingWindow = openPendingMeetingWindow();
-    const startTracking = (sessionDate) =>
+    const startTracking = (sessionDate, joinResult = {}) =>
       startAttendanceHeartbeat({
         sessionId: id,
         sessionDate,
         scheduledAt: occurrence.scheduledAt,
         startsAt: occurrence.scheduledAt,
         endsAt: occurrence.endsAt,
+        bookingId: joinResult.bookingId || "",
+        joinedAt: joinResult.joinedAt || "",
         meetingWindow,
         onAttendance: setJoinedAttendance,
       });
@@ -278,13 +285,11 @@ export default function CourseCard({
       setJoinedAttendance(result?.attendance || { attendanceStatus: "pending", firstJoinedAt: result?.joinedAt || "" });
       const meetingLink = result?.meetingLink || liveClass?.meetUrl || "";
       if (openMeetingLink(meetingWindow, meetingLink)) {
-        startTracking(sessionDate);
+        startTracking(sessionDate, result);
         return;
       }
     } catch {
       if (openMeetingLink(meetingWindow, liveClass?.meetUrl || "")) {
-        const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-        startTracking(sessionDate);
         return;
       }
       meetingWindow?.close?.();
@@ -398,7 +403,7 @@ export default function CourseCard({
                 disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
                 className="w-full h-9 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : effectivePaid ? "Paid" : "Locked"}
+                {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
               </button>
             ) : null}
             <button
@@ -512,7 +517,7 @@ export default function CourseCard({
                     disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
                     className="w-full h-8 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : effectivePaid ? "Paid" : "Locked"}
+                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
                   </button>
                 ) : null}
                 <button
@@ -643,7 +648,7 @@ export default function CourseCard({
                     disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
                     className="w-full h-10 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : effectivePaid ? "Paid" : "Locked"}
+                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
                   </button>
                 ) : null}
                 <button

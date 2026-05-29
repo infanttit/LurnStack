@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   authenticateTrainer,
+  authenticateWithToken,
   authenticateUser,
   getCurrentUser,
   logoutUser,
@@ -38,6 +39,11 @@ export function AuthProvider({ children }) {
           role === "trainer"
             ? await authenticateTrainer({ email, password, persist: !!remember })
             : await authenticateUser({ email, password, persist: !!remember });
+        setUser(next || null);
+        return next || null;
+      },
+      signInWithToken: async ({ token, remember = true }) => {
+        const next = await authenticateWithToken({ token, persist: !!remember });
         setUser(next || null);
         return next || null;
       },

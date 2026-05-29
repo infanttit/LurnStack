@@ -1,12 +1,26 @@
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { HiOutlineShoppingBag } from "react-icons/hi2";
+import { HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineShoppingBag } from "react-icons/hi2";
 import NavItem from "./navbar/NavItem";
 import NavbarSearch from "./navbar/NavbarSearch";
 import { useCart } from "../../cart";
 import { PATHS } from "../../app/router/paths";
 import { useAuth } from "../../auth";
 import logo from "../../assets/Logo/Logo4.png";
+
+const COURSE_CATEGORIES = [
+  "Trainer Courses",
+  "Frontend Development",
+  "Backend Development",
+  "Full Stack Development",
+  "Web Development",
+  "Mobile App Development",
+  "Programming",
+  "Database",
+  "DevOps",
+  "Cloud Computing",
+  "UI/UX Design",
+];
 
 function initials(name) {
   const parts = String(name || "")
@@ -18,8 +32,45 @@ function initials(name) {
   return (a + b).toUpperCase() || "U";
 }
 
+function courseCategoryPath(category) {
+  return `${PATHS.COURSES}?category=${encodeURIComponent(category)}`;
+}
+
+function MobileDrawerLink({ to, onClick, children, end = false }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      end={end}
+      className={({ isActive }) =>
+        [
+          "flex items-center justify-between py-3 text-[15px] font-medium transition-colors",
+          isActive ? "text-black" : "text-gray-900/80 hover:text-black",
+        ].join(" ")
+      }
+    >
+      <span>{children}</span>
+      <HiOutlineChevronRight className="text-[18px] text-gray-400" />
+    </NavLink>
+  );
+}
+
+function MobileDrawerButton({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between py-3 text-left text-[15px] font-medium text-gray-900/80 transition-colors hover:text-black"
+    >
+      <span>{children}</span>
+      <HiOutlineChevronRight className="text-[18px] text-gray-400" />
+    </button>
+  );
+}
+
 export default function SiteNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileMenuView, setMobileMenuView] = useState("main");
   const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
@@ -30,11 +81,15 @@ export default function SiteNavbar() {
   const isCheckout = location?.pathname === PATHS.CHECKOUT;
 
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    setIsMobileMenuOpen((open) => {
+      if (open) setMobileMenuView("main");
+      return !open;
+    });
   };
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+    setMobileMenuView("main");
   };
 
   const submitSearch = (e) => {
@@ -112,7 +167,11 @@ export default function SiteNavbar() {
                 {isAuthenticated ? (
                   <NavItem to={PATHS.LIVE_CLASSES}>Live Classes</NavItem>
                 ) : null}
-                <NavItem to={PATHS.CATEGORIES}>Categories</NavItem>
+                {isAuthenticated ? (
+                  <NavItem to={PATHS.DASHBOARD}>My Learning</NavItem>
+                ) : (
+                  <NavItem to={PATHS.CATEGORIES}>Categories</NavItem>
+                )}
                 <NavItem to={PATHS.PLANS}>Plans</NavItem>
               </div>
             </div>
@@ -169,7 +228,7 @@ export default function SiteNavbar() {
                           setProfileOpen(false);
                           navigate(PATHS.PROFILE);
                         }}
-                        className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-900/75 hover:bg-black/5 hover:text-black transition-colors"
                       >
                         Profile
                       </button>
@@ -180,7 +239,7 @@ export default function SiteNavbar() {
                             setProfileOpen(false);
                             navigate(PATHS.STUDENT_ATTENDANCE);
                           }}
-                          className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                          className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-900/75 hover:bg-black/5 hover:text-black transition-colors"
                         >
                           My Attendance
                         </button>
@@ -192,7 +251,7 @@ export default function SiteNavbar() {
                             setProfileOpen(false);
                             navigate(PATHS.TRAINER_ATTENDANCE);
                           }}
-                          className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                          className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-900/75 hover:bg-black/5 hover:text-black transition-colors"
                         >
                           Attendance
                         </button>
@@ -204,7 +263,7 @@ export default function SiteNavbar() {
                             setProfileOpen(false);
                             navigate(PATHS.ADMIN_ATTENDANCE);
                           }}
-                          className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                          className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-900/75 hover:bg-black/5 hover:text-black transition-colors"
                         >
                           Admin Attendance
                         </button>
@@ -216,7 +275,7 @@ export default function SiteNavbar() {
                           await signOut();
                           navigate(PATHS.HOME);
                         }}
-                        className="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-900/75 hover:bg-black/5 hover:text-black transition-colors"
                       >
                         Log out
                       </button>
@@ -267,110 +326,160 @@ export default function SiteNavbar() {
       </header>
 
       <div
-        className={`md:hidden fixed top-[89px] left-0 right-0 max-w-full border-b border-[#1a8003]/70 bg-[#1a8003] text-gray-950 shadow-lg z-40 transition-all duration-300 overflow-hidden ${
-          isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        className={`md:hidden fixed inset-0 z-40 transition-opacity duration-300 ${
+          isMobileMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
+        aria-hidden={!isMobileMenuOpen}
       >
-        <div className="flex min-w-0 flex-col gap-4 px-4 py-6 sm:px-6">
-          <NavbarSearch
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onSubmit={submitSearch}
-            placeholder="Search courses..."
-            className="sm:hidden"
-          />
-          <NavItem to={PATHS.COURSES} onClick={closeMobileMenu}>
-            Courses
-          </NavItem>
-          {isAuthenticated ? (
-            <NavItem to={PATHS.LIVE_CLASSES} onClick={closeMobileMenu}>
-              Live Classes
-            </NavItem>
-          ) : null}
-          <NavItem to={PATHS.CATEGORIES} onClick={closeMobileMenu}>
-            Categories
-          </NavItem>
-          <NavItem to={PATHS.PLANS} onClick={closeMobileMenu}>
-            Plans
-          </NavItem>
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={closeMobileMenu}
+          className="absolute inset-0 bg-black/35 backdrop-blur-[1px]"
+        />
 
-          <div className="flex flex-col gap-3 pt-2 border-t border-gray-100">
-            <NavLink
-              to={PATHS.CART}
-              onClick={closeMobileMenu}
-              className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-            >
-              Cart{itemCount > 0 ? ` (${itemCount > 99 ? "99+" : itemCount})` : ""}
-            </NavLink>
-
+        <aside
+          className={`absolute left-0 top-[89px] h-[calc(100vh-89px)] w-[86vw] max-w-[340px] transform border-r border-gray-200 bg-white text-gray-900 shadow-2xl transition-transform duration-300 ${
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="flex h-full min-w-0 flex-col overflow-y-auto px-4 py-4 sm:px-6">
             {isAuthenticated ? (
-              <>
-                <NavLink
-                  to={PATHS.PROFILE}
-                  onClick={closeMobileMenu}
-                  className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-                >
-                  Profile
-                </NavLink>
-                {userRole === "student" ? (
-                  <NavLink
-                    to={PATHS.STUDENT_ATTENDANCE}
-                    onClick={closeMobileMenu}
-                    className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-                  >
-                    My Attendance
-                  </NavLink>
-                ) : null}
-                {userRole === "trainer" ? (
-                  <NavLink
-                    to={PATHS.TRAINER_ATTENDANCE}
-                    onClick={closeMobileMenu}
-                    className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-                  >
-                    Attendance
-                  </NavLink>
-                ) : null}
-                {userRole === "admin" ? (
-                  <NavLink
-                    to={PATHS.ADMIN_ATTENDANCE}
-                    onClick={closeMobileMenu}
-                    className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-                  >
-                    Admin Attendance
-                  </NavLink>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    closeMobileMenu();
-                    await signOut();
-                    navigate(PATHS.HOME);
-                  }}
-                  className="font-label-sm text-label-sm px-6 py-2 text-gray-900 hover:bg-black/10 rounded-full transition-all active:scale-95 duration-200 text-center"
-                >
-                  Log out
-                </button>
-              </>
+              <NavLink
+                to={PATHS.PROFILE}
+                onClick={closeMobileMenu}
+                className="mb-4 flex items-center gap-3 rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3 shadow-sm"
+              >
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#111827] text-lg font-extrabold text-white">
+                  {initials(user?.fullName)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-bold leading-5 text-gray-900">
+                    Hi, {user?.fullName || "Learner"}
+                  </span>
+                  <span className="block text-[12px] text-gray-500">Welcome back</span>
+                </span>
+                <HiOutlineChevronRight className="text-[18px] text-gray-400" />
+              </NavLink>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <NavLink
-                  to={PATHS.LOGIN}
-                  onClick={closeMobileMenu}
-                  className="font-label-sm text-label-sm px-4 py-2.5 rounded-full border border-black/10 bg-white/90 text-gray-900 hover:bg-white transition-all active:scale-95 duration-200 text-center text-[12px]"
-                >
-                  Login
-                </NavLink>
-                <NavLink
-                  to={PATHS.SIGNUP}
-                  onClick={closeMobileMenu}
-                  className="font-label-sm text-label-sm px-4 py-2.5 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-center text-[12px]"
-                >
-                  Register
-                </NavLink>
+              <div className="mb-4 rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3 shadow-sm">
+                <p className="text-[15px] font-bold text-gray-900">Welcome to LurnStack</p>
+                <p className="mt-1 text-[12px] text-gray-500">Sign in to continue learning</p>
               </div>
             )}
+
+            <div className="relative min-h-[360px] flex-1 overflow-hidden">
+              <div
+                className={[
+                  "absolute inset-0 overflow-y-auto pb-4 transition-transform duration-300 ease-out",
+                  mobileMenuView === "courses" ? "-translate-x-full" : "translate-x-0",
+                ].join(" ")}
+              >
+                <div className="divide-y divide-gray-200 border-y border-gray-200">
+                  <MobileDrawerButton onClick={() => setMobileMenuView("courses")}>
+                    Courses
+                  </MobileDrawerButton>
+                  {isAuthenticated ? (
+                    <MobileDrawerLink to={PATHS.LIVE_CLASSES} onClick={closeMobileMenu}>
+                      Live Classes
+                    </MobileDrawerLink>
+                  ) : null}
+                  {isAuthenticated ? (
+                    <MobileDrawerLink to={PATHS.DASHBOARD} onClick={closeMobileMenu}>
+                      My Learning
+                    </MobileDrawerLink>
+                  ) : (
+                    <MobileDrawerLink to={PATHS.CATEGORIES} onClick={closeMobileMenu}>
+                      Categories
+                    </MobileDrawerLink>
+                  )}
+                  <MobileDrawerLink to={PATHS.PLANS} onClick={closeMobileMenu}>
+                    Plans
+                  </MobileDrawerLink>
+                  <MobileDrawerLink to={PATHS.CART} onClick={closeMobileMenu}>
+                    Cart{itemCount > 0 ? ` (${itemCount > 99 ? "99+" : itemCount})` : ""}
+                  </MobileDrawerLink>
+                  <MobileDrawerLink to={PATHS.PROFILE} onClick={closeMobileMenu}>
+                    Profile
+                  </MobileDrawerLink>
+                  {isAuthenticated ? (
+                    userRole === "student" ? (
+                      <MobileDrawerLink to={PATHS.STUDENT_ATTENDANCE} onClick={closeMobileMenu}>
+                        My Attendance
+                      </MobileDrawerLink>
+                    ) : userRole === "trainer" ? (
+                      <MobileDrawerLink to={PATHS.TRAINER_ATTENDANCE} onClick={closeMobileMenu}>
+                        Attendance
+                      </MobileDrawerLink>
+                    ) : userRole === "admin" ? (
+                      <MobileDrawerLink to={PATHS.ADMIN_ATTENDANCE} onClick={closeMobileMenu}>
+                        Admin Attendance
+                      </MobileDrawerLink>
+                    ) : null
+                  ) : (
+                    <>
+                      <MobileDrawerLink to={PATHS.LOGIN} onClick={closeMobileMenu}>
+                        Login
+                      </MobileDrawerLink>
+                      <MobileDrawerLink to={PATHS.SIGNUP} onClick={closeMobileMenu}>
+                        Register
+                      </MobileDrawerLink>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={[
+                  "absolute inset-0 overflow-y-auto pb-4 transition-transform duration-300 ease-out",
+                  mobileMenuView === "courses" ? "translate-x-0" : "translate-x-full",
+                ].join(" ")}
+              >
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuView("main")}
+                  className="mb-3 flex items-center gap-2 py-2 text-[14px] font-bold text-gray-600"
+                >
+                  <HiOutlineChevronLeft className="text-[18px]" />
+                  Menu
+                </button>
+                <div className="px-1 pb-2 text-[11px] font-extrabold uppercase tracking-widest text-gray-400">
+                  Course Categories
+                </div>
+                <div className="divide-y divide-gray-200 border-y border-gray-200">
+                  {COURSE_CATEGORIES.map((category) => (
+                    <MobileDrawerLink
+                      key={category}
+                      to={courseCategoryPath(category)}
+                      onClick={closeMobileMenu}
+                    >
+                      {category}
+                    </MobileDrawerLink>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-auto pt-4">
+              <div className="border-t border-gray-200 pt-3">
+                {isAuthenticated ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      closeMobileMenu();
+                      await signOut();
+                      navigate(PATHS.HOME);
+                    }}
+                    className="flex w-full items-center justify-between py-3 text-[15px] font-medium text-gray-900/80 transition-colors hover:text-black"
+                  >
+                    <span>Log out</span>
+                    <HiOutlineChevronRight className="text-[18px] text-gray-400" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </>
   );

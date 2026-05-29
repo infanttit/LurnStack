@@ -172,6 +172,11 @@ function normalizeSession(raw = {}) {
   const recurrenceType = raw.recurrenceType || raw.recurrence_type || raw.repeatType || "";
   const bookingStatus = raw.bookingStatus || raw.booking_status || raw.booking?.status || "";
   const paymentStatus = raw.paymentStatus || raw.payment_status || raw.payment?.status || "";
+  const isFree =
+    raw.isFree === true ||
+    raw.is_free === true ||
+    raw.pricingState === "FREE" ||
+    (amountPaise <= 0 && !raw.paymentRequired && !raw.payment_required);
   const isPaid =
     raw.isPaid === true ||
     raw.paid === true ||
@@ -179,7 +184,9 @@ function normalizeSession(raw = {}) {
     paymentStatus === "captured" ||
     paymentStatus === "paid" ||
     hasPaidSessionAccess(raw.id);
-  const paymentRequired = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
+  const pricingState = String(raw.pricingState || raw.pricing_state || "").trim().toUpperCase();
+  const paymentRequiredRaw = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
+  const paymentRequired = isFree ? false : !!paymentRequiredRaw && pricingState !== "FREE";
   const currency = raw.currency || "INR";
 
   return {
@@ -199,9 +206,12 @@ function normalizeSession(raw = {}) {
     ratingCount: "Live session",
     oldPrice: null,
     amountPaise,
+    isFree,
+    priceINR: raw.priceINR || raw.priceInR || raw.price_inr || "",
     currency,
     paymentRequired: !!paymentRequired,
     isPaid,
+    pricingState,
     bookingStatus,
     paymentStatus,
     price: formatINRFromPaise(amountPaise),
@@ -241,6 +251,7 @@ function normalizeSession(raw = {}) {
       currency,
       paymentRequired: !!paymentRequired,
       isPaid,
+      pricingState,
       bookingStatus,
       paymentStatus,
     },
@@ -300,6 +311,34 @@ export async function getPublicSessions() {
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to load published sessions."));
   }
+}
+
+export async function getPublicUpcomingSessions() {
+  if (isBrowserOffline()) return [];
+  const endpoints = ["/api/sessions/upcoming", "/api/sessions"];
+  let lastErr = null;
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await axiosClient.get(endpoint);
+      const payload = unwrap(res);
+      const sessions = Array.isArray(payload.data)
+        ? payload.data
+        : Array.isArray(payload.sessions)
+          ? payload.sessions
+          : Array.isArray(payload)
+            ? payload
+            : [];
+      return sessions.map(normalizeSession);
+    } catch (err) {
+      lastErr = err;
+      const status = getAxiosErrorStatus(err);
+      if (status === 404 || status === 405) continue;
+      break;
+    }
+  }
+
+  throw new Error(getAxiosErrorMessage(lastErr, "Unable to load upcoming sessions."));
 }
 
 export async function getPublicSessionById(sessionId) {
@@ -483,7 +522,6 @@ export async function joinStudentSession(
   const joinEndpoints = [
     `/api/student/sessions/${encodeURIComponent(id)}/join`,
     `/api/sessions/${encodeURIComponent(id)}/join`,
-    `/api/student/join-class/${encodeURIComponent(id)}`,
   ];
 
   let lastErr = null;
@@ -496,6 +534,7 @@ export async function joinStudentSession(
       return {
         message: responsePayload.message || "",
         meetingLink,
+        bookingId: responsePayload.data?.bookingId || responsePayload.bookingId || "",
         joinedAt: responsePayload.data?.joinedAt || "",
         attendance: normalizeAttendance(responsePayload.data?.attendance || responsePayload.attendance || responsePayload.data || {}),
       };
@@ -507,6 +546,7 @@ export async function joinStudentSession(
         return {
           message,
           meetingLink,
+          bookingId: err?.response?.data?.data?.bookingId || err?.response?.data?.bookingId || "",
           joinedAt: err?.response?.data?.data?.joinedAt || "",
           attendance: normalizeAttendance(
             err?.response?.data?.data?.attendance ||
@@ -526,6 +566,7 @@ export async function joinStudentSession(
       // Network/transient issue on the newer route can still be recovered by the
       // documented legacy route below.
       if (!status && endpoint !== joinEndpoints[joinEndpoints.length - 1]) continue;
+      if (status >= 500 && endpoint !== joinEndpoints[joinEndpoints.length - 1]) continue;
 
       break;
     }
@@ -536,41 +577,49 @@ export async function joinStudentSession(
 
 export async function heartbeatStudentSession(
   sessionId,
-  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
+  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "", bookingId = "", joinedAt = "" } = {}
 ) {
   if (isBrowserOffline()) return null;
   const id = String(sessionId || "").trim();
   if (!id) return null;
   try {
     const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(id)}/heartbeat`, {
+      sessionId: id,
+      bookingId,
       sessionDate,
       occurrenceDate: sessionDate,
       scheduledAt: scheduledAt || startsAt || "",
       startsAt: startsAt || scheduledAt || "",
       endsAt: endsAt || "",
+      joinedAt,
       clientHeartbeatAt: new Date().toISOString(),
     });
     const payload = unwrap(res);
     return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
-  } catch {
+  } catch (err) {
+    const status = getAxiosErrorStatus(err);
+    if (status === 400 || status === 404 || status === 405) return false;
     return null;
   }
 }
 
 export async function leaveStudentSession(
   sessionId,
-  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "" } = {}
+  { sessionDate = "", scheduledAt = "", startsAt = "", endsAt = "", bookingId = "", joinedAt = "" } = {}
 ) {
   if (isBrowserOffline()) return null;
   const id = String(sessionId || "").trim();
   if (!id) return null;
   try {
     const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(id)}/leave`, {
+      sessionId: id,
+      bookingId,
       sessionDate,
       occurrenceDate: sessionDate,
       scheduledAt: scheduledAt || startsAt || "",
       startsAt: startsAt || scheduledAt || "",
       endsAt: endsAt || "",
+      joinedAt,
       clientLeftAt: new Date().toISOString(),
     });
     const payload = unwrap(res);

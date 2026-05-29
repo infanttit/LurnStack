@@ -306,6 +306,101 @@
   display: none;
 }
 
+@media (max-width: 1023px) {
+  .ag-globe-col {
+    display: flex !important;
+    width: 100%;
+    min-height: 320px;
+    margin-top: 0.5rem;
+    justify-content: center;
+  }
+
+  .ag-globe-wrap {
+    width: min(360px, 100%);
+    max-width: 100%;
+    margin: 0 auto;
+    transform: scale(0.78);
+    transform-origin: top center;
+    animation-duration: 10s;
+  }
+
+  .ag-globe-ring {
+    inset: 10px;
+  }
+
+  .ag-globe-ring-2 {
+    inset: 42px;
+  }
+
+  .ag-globe-core {
+    inset: 42px;
+  }
+
+  .ag-globe-center {
+    width: 66px;
+    height: 66px;
+  }
+
+  .ag-globe-center img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .ag-hero-tag {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .ag-course-node {
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .ag-course-node span {
+    width: 54px;
+    height: 54px;
+  }
+
+  .ag-course-node span svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ag-course-node::before {
+    width: 34px;
+  }
+
+  .ag-course-node::after {
+    width: 6px;
+    height: 6px;
+  }
+
+  .ag-course-node-programming {
+    left: 8%;
+    top: 27%;
+  }
+
+  .ag-course-node-database {
+    right: 10%;
+    top: 24%;
+  }
+
+  .ag-course-node-ai {
+    left: 12%;
+    bottom: 24%;
+  }
+
+  .ag-course-node-cloud {
+    right: 18%;
+    bottom: 18%;
+  }
+
+  .ag-course-node-mobile {
+    left: 38%;
+    top: 8%;
+  }
+}
+
 @keyframes float {
   0%,
   100% {

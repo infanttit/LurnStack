@@ -483,8 +483,12 @@ export default function CourseDetailsPage() {
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
     const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
     const { startMs, endMs } = occurrence;
+    const sessionIsFree =
+      course.isFree === true ||
+      course.is_free === true ||
+      String(course.pricingState || course.pricing_state || "").trim().toUpperCase() === "FREE";
     const effectivePaid = course.isPaid || paymentVerified || hasPaidSessionAccess(liveClass?.id || course.id);
-    const needsPayment = course.paymentRequired && !effectivePaid;
+    const needsPayment = !sessionIsFree && course.paymentRequired && !effectivePaid;
     const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
     const attendanceStatus =
       sessionAttendance?.attendanceStatus ||
@@ -657,7 +661,7 @@ export default function CourseDetailsPage() {
                       "rounded-full px-2.5 py-1 text-[11px] font-extrabold",
                       needsPayment ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800",
                     ].join(" ")}>
-                      {needsPayment ? "Payment required" : course.paymentRequired ? "Paid" : "Free"}
+                      {needsPayment ? "Payment required" : sessionIsFree ? "Free" : "Paid"}
                     </span>
                   </div>
                 </div>
@@ -739,13 +743,15 @@ export default function CourseDetailsPage() {
                     if (!liveClass?.id || !canJoin) return;
                     const meetingWindow = openPendingMeetingWindow();
                     setSessionAction("join");
-                    const startTracking = (sessionDate) =>
+                    const startTracking = (sessionDate, joinResult = {}) =>
                       startAttendanceHeartbeat({
                         sessionId: liveClass.id,
                         sessionDate,
                         scheduledAt: occurrence.scheduledAt,
                         startsAt: occurrence.scheduledAt,
                         endsAt: occurrence.endsAt,
+                        bookingId: joinResult.bookingId || "",
+                        joinedAt: joinResult.joinedAt || "",
                         meetingWindow,
                         onAttendance: setSessionAttendance,
                       });
@@ -759,12 +765,11 @@ export default function CourseDetailsPage() {
                       });
                       setSessionAttendance(result?.attendance || { attendanceStatus: "pending", firstJoinedAt: result?.joinedAt || "" });
                       if (openMeetingLink(meetingWindow, result?.meetingLink || liveClass?.meetUrl || course?.meetUrl || "")) {
-                        startTracking(sessionDate);
+                        startTracking(sessionDate, result);
                       }
                     } catch {
-                      if (openMeetingLink(meetingWindow, liveClass?.meetUrl || course?.meetUrl || "")) {
-                        const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-                        startTracking(sessionDate);
+                      if (!openMeetingLink(meetingWindow, liveClass?.meetUrl || course?.meetUrl || "")) {
+                        meetingWindow?.close?.();
                       }
                     } finally {
                       setSessionAction("");
@@ -778,7 +783,7 @@ export default function CourseDetailsPage() {
                       : "bg-slate-100 text-slate-400 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay to Join" : canJoin ? "Join class" : sessionCompleted ? "Completed today" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
+                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay to Join" : canJoin ? "Join class" : sessionCompleted ? "Completed today" : sessionIsFree ? "Join opens soon" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
                 </button>
                 <button
                   type="button"

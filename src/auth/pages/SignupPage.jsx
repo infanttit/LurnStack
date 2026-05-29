@@ -6,6 +6,8 @@ import { PATHS } from "../../app/router/paths";
 import { isStrongPassword, isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
 import { sendOtpApi, verifyOtpApi } from "../api/authApi";
 
+const ENABLE_EMAIL_OTP = true;
+
 /* ─── Icons ─────────────────────────────────────────────────── */
 const EyeIcon = ({ open }) =>
   open ? (
@@ -690,7 +692,7 @@ export default function SignupPage() {
     countryCode: "+91",
     phoneNumber: "",
     password: "",
-    agree: false,
+    agree: true,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -864,8 +866,8 @@ export default function SignupPage() {
         verified: false,
         identifier: config.identifier,
         expiresAt: result.expiresAt,
-        secondsLeft: 0,
-        cooldown: 30,
+        secondsLeft: 60,
+        cooldown: 60,
         attempts: 0,
         digits: ["", "", "", "", "", ""],
       });
@@ -882,8 +884,12 @@ export default function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!ensureFormReady()) return;
-    if (!emailOtp.verified || !phoneOtp.verified) {
-      setFormError("Please verify both email and phone number before creating your account.");
+    if (!phoneOtp.verified) {
+      setFormError("Please verify your phone number before creating your account.");
+      return;
+    }
+    if (ENABLE_EMAIL_OTP && !emailOtp.verified) {
+      setFormError("Please verify your email address before creating your account.");
       return;
     }
     setLoading(true);
@@ -1085,7 +1091,7 @@ export default function SignupPage() {
                   Create Account
                 </h1>
                 <p className="text-slate-500 text-[12px] font-semibold leading-relaxed">
-                  Verify your email and phone to continue into LurnStack live sessions.
+                  Verify your phone number to continue into LurnStack live sessions.
                 </p>
               </div>
 
@@ -1145,7 +1151,7 @@ export default function SignupPage() {
                             : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                         }`}
                     />
-                    {!emailOtp.verified && form.email.trim() ? (
+                    {ENABLE_EMAIL_OTP && !emailOtp.verified && form.email.trim() ? (
                       <button
                         type="button"
                         disabled={loading || emailOtp.cooldown > 0}
@@ -1161,7 +1167,7 @@ export default function SignupPage() {
                       {errors.email}
                     </div>
                   ) : null}
-                  {renderOtpControl("email")}
+                  {ENABLE_EMAIL_OTP ? renderOtpControl("email") : null}
                 </div>
 
                 <div>
@@ -1306,13 +1312,15 @@ export default function SignupPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !emailOtp.verified || !phoneOtp.verified}
+                  disabled={loading || !phoneOtp.verified || (ENABLE_EMAIL_OTP && !emailOtp.verified)}
                   className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-[0_16px_36px_rgba(0,77,61,0.22)] flex items-center justify-center gap-2 mt-1 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : !emailOtp.verified || !phoneOtp.verified ? (
-                    "Verify Email & Phone First"
+                  ) : ENABLE_EMAIL_OTP && !emailOtp.verified ? (
+                    "Verify Email First"
+                  ) : !phoneOtp.verified ? (
+                    "Verify Phone First"
                   ) : (
                     "Create Account"
                   )}

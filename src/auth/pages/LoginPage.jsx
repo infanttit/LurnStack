@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import brandLogo from "../../assets/Logo/Logo4.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
+import { env } from "../../shared/config/env";
 import { isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
 
 
@@ -101,19 +102,67 @@ const GlobalStyles = () => (
 );
 
 export default function LoginPage() {
-  const { signIn, isAuthenticated, userRole } = useAuth();
+  const { signIn, signInWithToken, isAuthenticated, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "", remember: false });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [externalAuthLoading, setExternalAuthLoading] = useState(false);
+  const [externalAuthError, setExternalAuthError] = useState("");
+
+  const externalToken = searchParams.get("token") || "";
+  const externalError = searchParams.get("error") || "";
 
   const redirectTo = (() => {
     const from = location?.state?.from;
-    return typeof from === "string" && from.trim() ? from : PATHS.HOME;
+    const redirect = searchParams.get("redirect");
+    if (typeof from === "string" && from.trim()) return from;
+    if (typeof redirect === "string" && redirect.trim()) return redirect;
+    return PATHS.DASHBOARD;
   })();
+
+  useEffect(() => {
+    if (!externalToken && !externalError) return undefined;
+    if (externalError) {
+      setExternalAuthError(decodeURIComponent(externalError));
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return undefined;
+    }
+    if (isAuthenticated) return undefined;
+    let active = true;
+
+    const completeGoogleLogin = async () => {
+      setExternalAuthError("");
+      setExternalAuthLoading(true);
+      try {
+        await signInWithToken({ token: externalToken, remember: true });
+        if (active) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          navigate(redirectTo, { replace: true });
+        }
+      } catch (err) {
+        if (active) {
+          setExternalAuthError(err?.message || "Unable to sign in with Google.");
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } finally {
+        if (active) {
+          setExternalAuthLoading(false);
+        }
+      }
+    };
+
+    completeGoogleLogin();
+
+    return () => {
+      active = false;
+    };
+  }, [externalError, externalToken, isAuthenticated, navigate, redirectTo, signInWithToken]);
 
   if (isAuthenticated) {
     return (
@@ -164,6 +213,30 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    if (typeof window === "undefined") return;
+    setFormError("");
+    setExternalAuthError("");
+    setSocialLoading(true);
+
+    const loginUrl = new URL(PATHS.LOGIN, window.location.origin);
+    if (redirectTo && redirectTo !== PATHS.DASHBOARD) {
+      loginUrl.searchParams.set("redirect", redirectTo);
+    }
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    const configuredBaseUrl = String(env.apiBaseUrl || "").replace(/\/+$/, "");
+    const baseUrl =
+      isLocal && configuredBaseUrl === "https://api.lurnstack.com"
+        ? "http://localhost:5000"
+        : configuredBaseUrl;
+    const redirectToLogin = loginUrl.toString();
+    const authUrl = `${baseUrl}/api/auth/google?redirect=${encodeURIComponent(redirectToLogin)}`;
+
+    window.location.assign(authUrl);
+  };
+
   return (
     <>
       <GlobalStyles />
@@ -197,6 +270,21 @@ export default function LoginPage() {
           <div className="relative z-10 flex min-h-dvh flex-1 flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
             <div className="auth-card w-full max-w-[480px] mx-auto rounded-[28px] p-5 sm:p-7">
               <div className="auth-content">
+              {externalAuthLoading ? (
+                <div className="rounded-2xl border border-slate-100 bg-white/90 px-4 py-5 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="w-4 h-4 border-2 border-[#004d3d]/20 border-t-[#004d3d] rounded-full animate-spin" />
+                    <p className="text-[12px] font-semibold text-slate-600">
+                      Completing Google sign-in...
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+              {externalAuthError ? (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700">
+                  {externalAuthError}
+                </div>
+              ) : null}
               <div className="flex justify-center mb-5">
                 <div className="auth-mark rounded-full bg-white p-2 ring-1 ring-[#004d3d]/10">
                   <Logo dark />
@@ -272,9 +360,14 @@ export default function LoginPage() {
               </div>
 
               <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 anim-3">
-                <button type="button" className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm">
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={socialLoading || externalAuthLoading}
+                  className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+                >
                   <GoogleIcon />
-                  <span>Google</span>
+                  <span>{socialLoading ? "Opening..." : "Google"}</span>
                 </button>
                 <button type="button" className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm">
                   <FacebookIcon />

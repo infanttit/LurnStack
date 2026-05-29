@@ -20,11 +20,14 @@ function sendLeaveKeepAlive(sessionId, details = {}) {
   if (!id) return;
   const token = getAuthToken();
   const body = JSON.stringify({
+    sessionId: id,
+    bookingId: details.bookingId || "",
     sessionDate: details.sessionDate || "",
     occurrenceDate: details.sessionDate || "",
     scheduledAt: details.scheduledAt || details.startsAt || "",
     startsAt: details.startsAt || details.scheduledAt || "",
     endsAt: details.endsAt || "",
+    joinedAt: details.joinedAt || "",
     clientLeftAt: new Date().toISOString(),
   });
 
@@ -50,6 +53,8 @@ export function startAttendanceHeartbeat({
   scheduledAt = "",
   startsAt = "",
   endsAt = "",
+  bookingId = "",
+  joinedAt = "",
   meetingWindow = null,
   onAttendance,
 } = {}) {
@@ -60,7 +65,7 @@ export function startAttendanceHeartbeat({
   activeTrackers.get(key)?.stop?.({ sendLeave: false });
 
   let stopped = false;
-  const details = { sessionDate, scheduledAt, startsAt, endsAt };
+  const details = { sessionDate, scheduledAt, startsAt, endsAt, bookingId, joinedAt };
 
   const stop = ({ sendLeave = true } = {}) => {
     if (stopped) return;
@@ -88,6 +93,10 @@ export function startAttendanceHeartbeat({
       return;
     }
     const attendance = await heartbeatStudentSession(id, details);
+    if (attendance === false) {
+      stop({ sendLeave: false });
+      return;
+    }
     if (attendance) onAttendance?.(attendance);
   };
 
