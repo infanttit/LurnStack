@@ -142,7 +142,7 @@ export default function ForgotPasswordPage() {
                     setErrorMessage("");
                   }}
                   placeholder="Enter email address"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[13px] outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[16px] sm:text-[16px] outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                 />
               </div>
 

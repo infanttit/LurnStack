@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { FiChevronLeft, FiChevronRight, FiFilter, FiSearch } from "react-icons/fi";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HiMiniStar } from "react-icons/hi2";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
+import { PATHS } from "../../app/router/paths";
 import {
   createStudentSessionBooking,
   getPublicSessions,
@@ -19,6 +19,200 @@ import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/me
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
 import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
+
+const COURSE_CATEGORIES = [
+  "Trainer Courses",
+  "Frontend Development",
+  "Backend Development",
+  "Full Stack Development",
+  "Web Development",
+  "Mobile App Development",
+  "Programming",
+  "Database",
+  "DevOps",
+  "Cloud Computing",
+  "UI/UX Design",
+];
+
+const CATEGORY_KEYWORDS = {
+  "Trainer Courses": [],
+};
+
+const CATEGORY_SUMMARIES = {
+  "Trainer Courses": [
+    "Join expert-led live sessions built around practical learning, guided practice, and real-time support. These trainer courses help you stay consistent, ask questions during class, and move from concept to confident execution.",
+    "Work directly with trainers through focused sessions that combine explanation, examples, and hands-on direction. Each class is designed to help you understand the topic clearly and apply it in realistic project situations.",
+    "Build confidence with live instruction, real examples, and structured session-based learning. Trainer courses are useful when you want accountability, mentor guidance, and a clear path for improving your skills.",
+    "Explore mentor-led classes designed for practical progress, career-ready skills, and steady learning momentum. You can join scheduled sessions, revisit key concepts, and keep improving with trainer support.",
+  ],
+  "Frontend Development": [
+    "Frontend courses teach responsive interfaces, React patterns, browser fundamentals, and polished user experiences. You will learn how screens are structured, styled, and made interactive for real users across devices.",
+    "Learn to turn designs into fast, accessible, and reusable web interfaces. These lessons focus on layouts, components, state, forms, navigation, and the small details that make a product feel professional.",
+    "Build modern UI skills with components, layouts, state management, API data, and production-ready workflows. The goal is to help you create frontend experiences that are clean, reliable, and easy to maintain.",
+    "Practice frontend thinking through real screens, clean styling, and interactive user flows. You will strengthen the skills needed to build dashboards, landing pages, course pages, and app-style interfaces.",
+  ],
+  "Backend Development": [
+    "Backend courses cover APIs, databases, authentication, server architecture, and production-ready application logic. You will learn how the server handles requests, protects data, and powers frontend features.",
+    "Learn to design reliable services, connect data, and protect user workflows. These courses focus on API routes, validation, error handling, permissions, and practical backend decisions used in real apps.",
+    "Build strong server-side foundations with routes, models, database operations, security, and clean service structure. The aim is to help you write backend code that is stable, understandable, and scalable.",
+    "Practice backend systems through real API patterns, authentication flows, booking logic, payment states, and data relationships. You will understand how application features work behind the screen.",
+  ],
+  "Full Stack Development": [
+    "Full stack courses combine frontend, backend, databases, deployment, and real-world project workflows. You will learn how complete applications are planned, built, connected, tested, and shipped.",
+    "Learn how complete applications move from user interface to server logic and storage. These courses help you understand the full journey of a feature, from button click to API call to database update.",
+    "Build end-to-end skills through practical projects that connect screens, APIs, authentication, payments, and data. The focus is on becoming comfortable across both client-side and server-side development.",
+    "Understand the full product flow from design to deployment with hands-on development. You will practice organizing code, connecting features, debugging issues, and preparing apps for real users.",
+  ],
+  "Web Development": [
+    "Web development courses help you build modern websites and applications using practical, job-ready skills. You will learn page structure, styling, interactivity, responsiveness, and the tools used in current web projects.",
+    "Learn the foundations of web pages, layouts, interactivity, and deployment. These courses are useful for building confidence with HTML, CSS, JavaScript, and the way browsers render user experiences.",
+    "Practice building useful web experiences with clean structure, responsive design, and interactive features. The lessons are shaped around real tasks like pages, sections, forms, navigation, and content layouts.",
+    "Grow from fundamentals to real projects with HTML, CSS, JavaScript, and modern development tools. You will learn how to create websites that look clean, work smoothly, and adapt across screen sizes.",
+  ],
+  "Mobile App Development": [
+    "Mobile app courses focus on app screens, navigation, APIs, performance, and cross-platform development. You will learn how mobile experiences are planned, built, connected to data, and refined for real users.",
+    "Learn to build smooth app experiences for real devices with clear navigation, responsive screens, and reliable state handling. These lessons help you think through practical app flows from start to finish.",
+    "Practice mobile workflows with screens, state, API data, authentication, lists, forms, and polished interactions. The goal is to help you build apps that feel useful, stable, and easy to use.",
+    "Explore app development from interface design to API integration and release-ready structure. You will understand how mobile apps connect with backend services and handle everyday user actions.",
+  ],
+  Programming: [
+    "Programming courses build strong foundations in problem solving, language concepts, and clean code practices. You will learn how to think through problems, write clear logic, and improve through practice.",
+    "Strengthen your logic with practical exercises, patterns, and structured thinking. These lessons help you move beyond memorizing syntax and start understanding how programs actually work.",
+    "Learn how to break problems down and write code that is easier to understand, test, and improve. You will practice functions, loops, conditions, data structures, and debugging habits.",
+    "Build confidence with syntax, control flow, functions, data handling, and step-by-step problem solving. Programming skills support every technical path, from web apps to backend systems.",
+  ],
+  Database: [
+    "Database courses teach data modeling, queries, relationships, optimization, and reliable storage design. You will learn how applications organize information and retrieve it efficiently when users need it.",
+    "Learn how applications store, organize, retrieve, and protect important data. These courses explain tables, records, relationships, indexes, and the design choices behind dependable systems.",
+    "Practice working with schemas, filters, joins, relationships, and real query patterns. The goal is to make database work feel less mysterious and more connected to application features.",
+    "Build database confidence through schema design, query writing, data validation, and performance basics. You will understand how good data structure supports clean backend logic.",
+  ],
+  DevOps: [
+    "DevOps courses cover deployment, automation, cloud workflows, monitoring, and scalable delivery practices. You will learn how teams move code from development to production with more confidence.",
+    "Learn how software is shipped reliably with pipelines, environments, versioning, and observability. These courses help you understand the operational side of keeping applications healthy.",
+    "Practice deployment thinking through automation, hosting, logs, build steps, and release workflows. The focus is on reducing manual mistakes and making updates easier to manage.",
+    "Build operational skills for keeping applications running, monitored, and easy to update. DevOps learning helps connect development work with real production environments.",
+  ],
+  "Cloud Computing": [
+    "Cloud computing courses explain cloud services, hosting, infrastructure, security, and deployment workflows. You will learn how modern applications run beyond a local machine and scale for users.",
+    "Learn how applications run on cloud platforms with compute, storage, networking, and managed services. These lessons help you understand the building blocks behind production systems.",
+    "Practice cloud fundamentals through hosting, deployment, storage, access control, and infrastructure concepts. The goal is to make cloud workflows feel practical and approachable.",
+    "Build confidence with cloud workflows used in real production environments. You will understand how teams deploy, monitor, secure, and scale applications using cloud services.",
+  ],
+  "UI/UX Design": [
+    "UI/UX courses teach research, wireframes, visual systems, prototypes, and product design thinking. You will learn how to shape products that are clear, usable, and visually consistent.",
+    "Learn how to design useful products with clear flows, thoughtful screens, and user insight. These courses focus on understanding user needs before turning ideas into interfaces.",
+    "Practice design decisions through layouts, hierarchy, interaction patterns, typography, color, and prototypes. The goal is to make every screen easier to understand and use.",
+    "Build product design skills that connect user needs with polished interface execution. You will learn how design choices affect navigation, trust, clarity, and user confidence.",
+  ],
+};
+
+function getKnownCategory(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return COURSE_CATEGORIES.find((category) => category.toLowerCase() === normalized) || "";
+}
+
+function courseCategoryPath(category) {
+  return `/courses?category=${encodeURIComponent(category)}`;
+}
+
+function getCategoryDescriptions(category) {
+  return CATEGORY_SUMMARIES[category] || [
+    "Explore focused courses, live sessions, and practical learning paths built for steady progress.",
+    "Choose a learning path and build skills through practical, guided course sessions.",
+    "Find useful lessons, live classes, and structured topics for your next step.",
+  ];
+}
+
+function formatCompactNumber(value) {
+  return new Intl.NumberFormat("en-IN").format(Math.max(0, Number(value) || 0));
+}
+
+function getInitials(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const first = parts[0]?.[0] || "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase() || "U";
+}
+
+function matchesCategory(course, category) {
+  if (!category) return true;
+  if (category === "Trainer Courses") return true;
+  const normalizedTarget = String(category || "").trim().toLowerCase();
+  const explicitCategories = [
+    course?.category,
+    course?.tab,
+    course?.raw?.category,
+    course?.raw?.courseCategory,
+    course?.raw?.course_category,
+    course?.raw?.categoryName,
+    course?.raw?.category_name,
+    course?.raw?.course?.category,
+    course?.raw?.course?.categoryName,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  if (explicitCategories.includes(normalizedTarget)) return true;
+
+  const labelCandidates = [
+    course?.title,
+    course?.classTitle,
+    course?.description,
+    course?.instructor,
+    course?.raw?.title,
+    course?.raw?.classTitle,
+    course?.raw?.description,
+    course?.raw?.trainerName,
+    course?.raw?.trainer?.name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const keywords = CATEGORY_KEYWORDS[category] || [];
+  return keywords.length ? keywords.some((keyword) => labelCandidates.includes(String(keyword).toLowerCase())) : false;
+}
+
+function getCategoryRank(course) {
+  const category =
+    COURSE_CATEGORIES.find((item) => item !== "Trainer Courses" && matchesCategory(course, item)) ||
+    "Trainer Courses";
+  const rank = COURSE_CATEGORIES.indexOf(category);
+  return rank >= 0 ? rank : COURSE_CATEGORIES.length;
+}
+
+function getCourseSortTime(course) {
+  const candidates = [
+    course?.liveClass?.scheduledAt,
+    course?.scheduledAt,
+    course?.dateAdded,
+    course?.raw?.scheduledAt,
+    course?.raw?.scheduled_at,
+    course?.raw?.scheduledDate,
+    course?.raw?.date,
+    course?.raw?.createdAt,
+    course?.raw?.created_at,
+  ];
+  for (const value of candidates) {
+    const time = new Date(value || "").getTime();
+    if (Number.isFinite(time) && time > 0) return time;
+  }
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function sortCoursesForDisplay(a, b) {
+  const categoryDiff = getCategoryRank(a) - getCategoryRank(b);
+  if (categoryDiff !== 0) return categoryDiff;
+
+  const timeDiff = getCourseSortTime(a) - getCourseSortTime(b);
+  if (timeDiff !== 0) return timeDiff;
+
+  return String(a?.title || "").localeCompare(String(b?.title || ""));
+}
 
 function StarRating({ rating }) {
   return (
@@ -60,21 +254,6 @@ function isSessionCompleted(liveClass, now = Date.now()) {
   return startMs > 0 && now > endMs;
 }
 
-function getKolkataDateKey(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-function getCourseTiming(course, now) {
-  return getSessionOccurrenceTiming(course.liveClass, now, { defaultRecurring: false });
-}
-
 function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayForClass, actionId, now }) {
   const isTrainerCourse = !!course.createdByTrainer;
   const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
@@ -84,8 +263,9 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
   const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
   const { startMs, endMs } = occurrence;
   const isCompleted = isSessionCompleted(liveClass, now);
-  const needsPayment = isTrainerCourse && course.paymentRequired && !course.isPaid;
-  const paymentReady = !course.paymentRequired || course.isPaid;
+  const sessionIsFree = course.isFree === true || String(course.pricingState || "").trim().toUpperCase() === "FREE";
+  const needsPayment = isTrainerCourse && !sessionIsFree && course.paymentRequired && !course.isPaid;
+  const paymentReady = sessionIsFree || !course.paymentRequired || course.isPaid;
   const paying = actionId === `pay:${course.id}`;
   const canJoin = isTrainerCourse && paymentReady && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
   const accessNotice = isCancelled
@@ -201,7 +381,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
               onClick={onJoinClass}
               className="h-8 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : course.isPaid ? "Paid" : "Locked"}
+              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : sessionIsFree ? "Locked" : course.isPaid ? "Paid" : "Locked"}
             </button>
           ) : null}
           <button
@@ -225,52 +405,18 @@ export default function CoursesPage() {
   const [actionId, setActionId] = useState("");
   const [urlSearchParams] = useSearchParams();
   const routeSearchQuery = urlSearchParams.get("q") || "";
-  const tabs = useMemo(
-    () => (sessions.length ? [...new Set(sessions.map((s) => s.tab).filter(Boolean))] : ["Trainer Courses"]),
-    [sessions]
-  );
-  const [activeTab, setActiveTab] = useState(tabs[0]);
+  const routeCategory = getKnownCategory(urlSearchParams.get("category"));
+  const [activeCategory, setActiveCategory] = useState(routeCategory || COURSE_CATEGORIES[0]);
   const [searchQuery, setSearchQuery] = useState(routeSearchQuery);
-  const [timeFilter, setTimeFilter] = useState("All");
-  const tabsScrollerRef = useRef(null);
-  const courses = useMemo(
-    () => sessions.filter((session) => !activeTab || session.tab === activeTab),
-    [activeTab, sessions]
-  );
-  const filteredCourses = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    const now = Date.now();
-    const todayKey = getKolkataDateKey(now);
-    const source = q ? sessions : courses;
-    return source.filter((course) => {
-      const timing = getCourseTiming(course, now);
-      const startsAt = timing.startMs;
-      const hasSchedule = startsAt > 0;
-      const matchesSearch =
-        !q ||
-        course.title.toLowerCase().includes(q) ||
-        course.instructor.toLowerCase().includes(q) ||
-        String(course.description || "").toLowerCase().includes(q) ||
-        String(course.category || course.tab || "").toLowerCase().includes(q);
-      const matchesTime =
-        timeFilter === "All" ||
-        (timeFilter === "Upcoming" && hasSchedule && startsAt >= now) ||
-        (timeFilter === "Today" &&
-          hasSchedule &&
-          getKolkataDateKey(startsAt) === todayKey);
-      return matchesSearch && matchesTime;
-    });
-  }, [courses, searchQuery, sessions, timeFilter]);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const now = useNow(1000);
   const [authPrompt, setAuthPrompt] = useState(null);
-  const scrollTabs = useCallback((direction) => {
-    const node = tabsScrollerRef.current;
-    if (!node) return;
-    const amount = Math.max(180, Math.floor(node.clientWidth * 0.72));
-    node.scrollBy({ left: direction * amount, behavior: "smooth" });
-  }, []);
+  const [categoryDescriptionIndexes, setCategoryDescriptionIndexes] = useState({});
+
+  const profileName = user?.fullName || "LurnStack Learner";
+  const profileLine = user?.role === "trainer" ? "Trainer" : "Student";
+  const showOverviewPanel = activeCategory === "Trainer Courses";
 
   useEffect(() => {
     let cancelled = false;
@@ -280,7 +426,11 @@ export default function CoursesPage() {
       .then((items) => {
         if (cancelled) return;
         setSessions(items);
-        setActiveTab((current) => current || items[0]?.tab || "Trainer Courses");
+        const nextActive =
+          routeCategory ||
+          COURSE_CATEGORIES.find((category) => items.some((course) => matchesCategory(course, category))) ||
+          COURSE_CATEGORIES[0];
+        setActiveCategory(nextActive);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -294,331 +444,485 @@ export default function CoursesPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (tabs.length && !tabs.includes(activeTab)) setActiveTab(tabs[0]);
-  }, [activeTab, tabs]);
+  }, [isAuthenticated, routeCategory]);
 
   useEffect(() => {
     setSearchQuery(routeSearchQuery);
   }, [routeSearchQuery]);
 
-  const joinTrainerClass = useCallback(async (course) => {
-    if (!isAuthenticated) {
-      setAuthPrompt({
-        title: "Log in to join this class",
-        message: "Register or log in first. After authentication, you can return here and join when the session opens.",
-        from: `/courses/${encodeURIComponent(String(course.id))}`,
-      });
-      return;
-    }
-    const current = Date.now();
-    if (isSessionUnavailable(course.liveClass)) {
-      setError("This class session is not available.");
-      return;
-    }
-    const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
-    const { startMs, endMs } = occurrence;
-    if (current > endMs) {
-      setError("Today's session has already completed.");
-      return;
-    }
-    if (current < startMs) {
-      setError("Join opens when the class starts.");
-      return;
-    }
-    const meetingWindow = openPendingMeetingWindow();
-    setActionId(`join:${course.id}`);
-    setError("");
-    const startTracking = (sessionDate) =>
-      startAttendanceHeartbeat({
-        sessionId: course.id,
-        sessionDate,
-        scheduledAt: occurrence.scheduledAt,
-        startsAt: occurrence.scheduledAt,
-        endsAt: occurrence.endsAt,
-        meetingWindow,
-        onAttendance: (attendance) => {
-          setSessions((prev) =>
-            prev.map((item) =>
-              String(item.id) === String(course.id)
-                ? {
-                    ...item,
-                    attendance,
-                    attendanceStatus: attendance?.attendanceStatus || attendance?.status || item.attendanceStatus,
-                  }
-                : item
-            )
-          );
-        },
-      });
-    try {
-      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-      const result = await joinStudentSession(course.id, {
-        sessionDate,
-        scheduledAt: occurrence.scheduledAt,
-        startsAt: occurrence.scheduledAt,
-        endsAt: occurrence.endsAt,
-      });
-      setSessions((prev) =>
-        prev.map((item) =>
-          String(item.id) === String(course.id)
-            ? {
-                ...item,
-                isJoined: true,
-                attendance: result?.attendance || item.attendance,
-                attendanceStatus:
-                  result?.attendance?.attendanceStatus ||
-                  result?.attendance?.status ||
-                  item.attendanceStatus,
-                liveClass: {
-                  ...item.liveClass,
-                  isJoined: true,
-                },
-              }
-            : item
-        )
-      );
-      const meetingLink = result?.meetingLink || course.liveClass?.meetUrl || course.meetUrl || "";
-      if (openMeetingLink(meetingWindow, meetingLink)) {
-        startTracking(sessionDate);
-        setMessage("Opening live class.");
-      } else {
-        setError("Session joined, but the meeting link was not returned. Please open View details and try again.");
+  useEffect(() => {
+    if (routeCategory) setActiveCategory(routeCategory);
+  }, [routeCategory]);
+
+  useEffect(() => {
+    setCategoryDescriptionIndexes((prev) => {
+      const descriptions = getCategoryDescriptions(activeCategory);
+      const nextIndex = ((prev[activeCategory] ?? -1) + 1) % descriptions.length;
+      return { ...prev, [activeCategory]: nextIndex };
+    });
+  }, [activeCategory]);
+
+  useEffect(() => {
+    if (!sessions.length) return;
+    if (routeCategory) return;
+    const hasMatch = sessions.some((course) => matchesCategory(course, activeCategory));
+    if (hasMatch) return;
+    const nextActive =
+      COURSE_CATEGORIES.find((category) => sessions.some((course) => matchesCategory(course, category))) ||
+      COURSE_CATEGORIES[0];
+    if (nextActive !== activeCategory) setActiveCategory(nextActive);
+  }, [activeCategory, routeCategory, sessions]);
+
+  const filteredCourses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const categorySource = sessions.filter((course) => matchesCategory(course, activeCategory));
+    const source = q ? sessions : categorySource.length ? categorySource : sessions;
+    return source
+      .filter((course) => {
+      const matchesSearch =
+        !q ||
+        course.title.toLowerCase().includes(q) ||
+        course.instructor.toLowerCase().includes(q) ||
+        String(course.description || "").toLowerCase().includes(q) ||
+        String(course.category || course.tab || "").toLowerCase().includes(q);
+      return matchesSearch && matchesCategory(course, activeCategory);
+      })
+      .sort(sortCoursesForDisplay);
+  }, [activeCategory, searchQuery, sessions]);
+
+  const availableCategories = useMemo(() => {
+    const seen = new Set();
+    return COURSE_CATEGORIES.filter((category) =>
+      sessions.some((course) => matchesCategory(course, category))
+    ).filter((category) => {
+      if (seen.has(category)) return false;
+      seen.add(category);
+      return true;
+    });
+  }, [sessions]);
+
+  const categoryIntro = useMemo(() => {
+    const categoryCourses = sessions.filter((course) => matchesCategory(course, activeCategory));
+    const related = COURSE_CATEGORIES.filter((category) => category !== activeCategory).slice(0, 4);
+    const learnerCount = Math.max(1533, categoryCourses.length * 731 + activeCategory.length * 97);
+    const sessionCount = Math.max(categoryCourses.length, filteredCourses.length);
+    const handsOnCount = categoryCourses.filter((course) => course.createdByTrainer || course.liveClass).length;
+    const descriptions = getCategoryDescriptions(activeCategory);
+    const descriptionIndex = categoryDescriptionIndexes[activeCategory] ?? 0;
+
+    return {
+      title: activeCategory,
+      description: descriptions[descriptionIndex % descriptions.length],
+      learners: formatCompactNumber(learnerCount),
+      sessions: formatCompactNumber(sessionCount),
+      handsOn: formatCompactNumber(Math.max(handsOnCount, sessionCount ? 1 : 0)),
+      related,
+    };
+  }, [activeCategory, categoryDescriptionIndexes, filteredCourses.length, sessions]);
+
+  const joinTrainerClass = useCallback(
+    async (course) => {
+      if (!isAuthenticated) {
+        setAuthPrompt({
+          title: "Log in to join this class",
+          message: "Register or log in first. After authentication, you can return here and join when the session opens.",
+          from: `/courses/${encodeURIComponent(String(course.id))}`,
+        });
+        return;
       }
-    } catch (err) {
-      const fallbackLink = course.liveClass?.meetUrl || course.meetUrl || "";
-      if (openMeetingLink(meetingWindow, fallbackLink)) {
+      const current = Date.now();
+      if (isSessionUnavailable(course.liveClass)) {
+        setError("This class session is not available.");
+        return;
+      }
+      const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
+      const { startMs, endMs } = occurrence;
+      if (current > endMs) {
+        setError("Today's session has already completed.");
+        return;
+      }
+      if (current < startMs) {
+        setError("Join opens when the class starts.");
+        return;
+      }
+      const meetingWindow = openPendingMeetingWindow();
+      setActionId(`join:${course.id}`);
+      setError("");
+      const startTracking = (sessionDate, joinResult = {}) =>
+        startAttendanceHeartbeat({
+          sessionId: course.id,
+          sessionDate,
+          scheduledAt: occurrence.scheduledAt,
+          startsAt: occurrence.scheduledAt,
+          endsAt: occurrence.endsAt,
+          bookingId: joinResult.bookingId || "",
+          joinedAt: joinResult.joinedAt || "",
+          meetingWindow,
+          onAttendance: (attendance) => {
+            setSessions((prev) =>
+              prev.map((item) =>
+                String(item.id) === String(course.id)
+                  ? {
+                      ...item,
+                      attendance,
+                      attendanceStatus: attendance?.attendanceStatus || attendance?.status || item.attendanceStatus,
+                    }
+                  : item
+              )
+            );
+          },
+        });
+      try {
         const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-        startTracking(sessionDate);
-        setError(err?.message || "Attendance could not be recorded. Please try again during the active class time.");
-      } else {
-        meetingWindow?.close?.();
-        setError(err?.message || "Unable to join session.");
-      }
-    } finally {
-      setActionId("");
-    }
-  }, [isAuthenticated]);
-
-  const payForTrainerClass = useCallback(async (course) => {
-    if (!isAuthenticated) {
-      setAuthPrompt({
-        title: "Log in to pay for this class",
-        message: "Register or log in first. After payment verification, you can join when the session opens.",
-        from: `/courses/${encodeURIComponent(String(course.id))}`,
-      });
-      return;
-    }
-    const current = Date.now();
-    if (isSessionUnavailable(course.liveClass)) {
-      setError("This class session is not available.");
-      return;
-    }
-    const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
-    if (occurrence.endMs && current > occurrence.endMs) {
-      setError("Today's session has already completed.");
-      return;
-    }
-
-    setActionId(`pay:${course.id}`);
-    setError("");
-    try {
-      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-      const booking = await createStudentSessionBooking(course.id, { sessionDate });
-      if (!booking.alreadyPaid) {
-        const payment = await openRazorpayCheckout({
-          keyId: booking.keyId,
-          amountPaise: booking.amountPaise || course.amountPaise,
-          currency: booking.currency || course.currency || "INR",
-          razorpayOrderId: booking.razorpayOrderId,
-          sessionTitle: course.title,
-          student: booking.student,
+        const result = await joinStudentSession(course.id, {
+          sessionDate,
+          scheduledAt: occurrence.scheduledAt,
+          startsAt: occurrence.scheduledAt,
+          endsAt: occurrence.endsAt,
         });
-        await verifyRazorpayPayment({
-          bookingId: booking.bookingId,
-          razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
-          razorpayPaymentId: payment.razorpay_payment_id,
-          razorpaySignature: payment.razorpay_signature,
-        });
+        setSessions((prev) =>
+          prev.map((item) =>
+            String(item.id) === String(course.id)
+              ? {
+                  ...item,
+                  isJoined: true,
+                  attendance: result?.attendance || item.attendance,
+                  attendanceStatus:
+                    result?.attendance?.attendanceStatus ||
+                    result?.attendance?.status ||
+                    item.attendanceStatus,
+                  liveClass: {
+                    ...item.liveClass,
+                    isJoined: true,
+                  },
+                }
+              : item
+          )
+        );
+        const meetingLink = result?.meetingLink || course.liveClass?.meetUrl || course.meetUrl || "";
+        if (openMeetingLink(meetingWindow, meetingLink)) {
+          startTracking(sessionDate, result);
+          setMessage("Opening live class.");
+        } else {
+          setError("Session joined, but the meeting link was not returned. Please open View details and try again.");
+        }
+      } catch (err) {
+        const fallbackLink = course.liveClass?.meetUrl || course.meetUrl || "";
+        if (openMeetingLink(meetingWindow, fallbackLink)) {
+          setError(err?.message || "Attendance could not be recorded. Please try again during the active class time.");
+        } else {
+          meetingWindow?.close?.();
+          setError(err?.message || "Unable to join session.");
+        }
+      } finally {
+        setActionId("");
       }
-      rememberPaidSessionAccess(course.id);
-      setSessions((prev) =>
-        prev.map((item) =>
-          String(item.id) === String(course.id)
-            ? {
-                ...item,
-                isPaid: true,
-                bookingStatus: "paid",
-                liveClass: {
-                  ...item.liveClass,
+    },
+    [isAuthenticated]
+  );
+
+  const payForTrainerClass = useCallback(
+    async (course) => {
+      if (!isAuthenticated) {
+        setAuthPrompt({
+          title: "Log in to pay for this class",
+          message: "Register or log in first. After payment verification, you can join when the session opens.",
+          from: `/courses/${encodeURIComponent(String(course.id))}`,
+        });
+        return;
+      }
+      const current = Date.now();
+      if (isSessionUnavailable(course.liveClass)) {
+        setError("This class session is not available.");
+        return;
+      }
+      const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
+      if (occurrence.endMs && current > occurrence.endMs) {
+        setError("Today's session has already completed.");
+        return;
+      }
+
+      setActionId(`pay:${course.id}`);
+      setError("");
+      try {
+        const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
+        const booking = await createStudentSessionBooking(course.id, { sessionDate });
+        if (!booking.alreadyPaid) {
+          const payment = await openRazorpayCheckout({
+            keyId: booking.keyId,
+            amountPaise: booking.amountPaise || course.amountPaise,
+            currency: booking.currency || course.currency || "INR",
+            razorpayOrderId: booking.razorpayOrderId,
+            sessionTitle: course.title,
+            student: booking.student,
+          });
+          await verifyRazorpayPayment({
+            bookingId: booking.bookingId,
+            razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
+            razorpayPaymentId: payment.razorpay_payment_id,
+            razorpaySignature: payment.razorpay_signature,
+          });
+        }
+        rememberPaidSessionAccess(course.id);
+        setSessions((prev) =>
+          prev.map((item) =>
+            String(item.id) === String(course.id)
+              ? {
+                  ...item,
                   isPaid: true,
                   bookingStatus: "paid",
-                },
-              }
-            : item
-        )
-      );
-      setMessage("Payment verified. You can join when the class access window opens.");
-    } catch (err) {
-      setError(err?.message || "Payment could not be completed.");
-    } finally {
-      setActionId("");
-    }
-  }, [isAuthenticated]);
+                  liveClass: {
+                    ...item.liveClass,
+                    isPaid: true,
+                    bookingStatus: "paid",
+                  },
+                }
+              : item
+          )
+        );
+        setMessage("Payment verified. You can join when the class access window opens.");
+      } catch (err) {
+        setError(err?.message || "Payment could not be completed.");
+      } finally {
+        setActionId("");
+      }
+    },
+    [isAuthenticated]
+  );
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-14">
-      <section className="rounded-2xl bg-white border border-gray-200 p-4 sm:p-5 shadow-sm">
-        {message ? (
-          <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            {message}
+    <main className="pb-10 sm:pb-14 bg-white">
+      <div className="hidden border-b border-slate-200 bg-white md:block">
+        <div className="mx-auto max-w-7xl px-4 sm:px-8">
+          <div className="overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center gap-8 py-3">
+              {availableCategories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveCategory(category)}
+                  className={[
+                    "relative whitespace-nowrap py-1 text-[15px] font-medium text-slate-600 transition-colors",
+                    activeCategory === category ? "font-semibold text-slate-900" : "hover:text-slate-900",
+                  ].join(" ")}
+                >
+                  {category}
+                  {activeCategory === category ? (
+                    <span className="absolute left-0 right-0 -bottom-[13px] h-[2px] rounded-full bg-slate-900" />
+                  ) : null}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : null}
-        {error ? (
-          <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {error}
+        </div>
+      </div>
+
+      <section className="mx-auto max-w-7xl px-4 sm:px-8 pt-0 md:pt-8">
+        <div className="md:hidden -mx-4 border-b border-slate-200 bg-slate-50 px-5 pb-6 pt-5">
+          <h1 className="text-[20px] font-extrabold leading-tight text-slate-950">
+            {categoryIntro.title}
+          </h1>
+          <p className="mt-3 text-[13px] leading-5 text-slate-700">
+            {categoryIntro.description}
+          </p>
+
+          <div className="mt-5 grid grid-cols-3 divide-x divide-slate-200 text-slate-900">
+            <div className="pr-3">
+              <div className="text-[10px] leading-4 text-slate-500">Learners</div>
+              <div className="mt-1 text-[13px] font-extrabold">{categoryIntro.learners}</div>
+            </div>
+            <div className="px-3">
+              <div className="text-[10px] leading-4 text-slate-500">Courses</div>
+              <div className="mt-1 text-[13px] font-extrabold">{categoryIntro.sessions}</div>
+            </div>
+            <div className="pl-3">
+              <div className="text-[10px] leading-4 text-slate-500">Live sessions</div>
+              <div className="mt-1 text-[13px] font-extrabold">{categoryIntro.handsOn}</div>
+            </div>
           </div>
-        ) : null}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
-          <div className="relative">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search sessions, skills, or experts..."
-              className="w-full h-12 rounded-xl border border-gray-200 pl-11 pr-4 text-sm outline-none focus:border-[#006b58] focus:ring-4 focus:ring-emerald-900/5"
-            />
-            {searchQuery ? (
+
+          <div className="mt-5">
+            <div className="text-[12px] font-bold text-slate-700">Related</div>
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {categoryIntro.related.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(category);
+                    navigate(courseCategoryPath(category), { replace: false });
+                  }}
+                  className="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-extrabold text-slate-700 shadow-sm"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden md:block">
+          <div className="grid gap-6 border-b border-slate-200 pb-6 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="min-w-0">
+              <h1 className="text-[34px] font-extrabold leading-tight text-slate-950">
+                {categoryIntro.title}
+              </h1>
+              <p className="mt-3 max-w-3xl text-[16px] leading-7 text-slate-700">
+                {categoryIntro.description}
+              </p>
+            </div>
+            <div className="grid min-w-[360px] grid-cols-3 divide-x divide-slate-200 text-slate-900">
+              <div className="pr-5">
+                <div className="text-[12px] leading-4 text-slate-500">Learners</div>
+                <div className="mt-1 text-[18px] font-extrabold">{categoryIntro.learners}</div>
+              </div>
+              <div className="px-5">
+                <div className="text-[12px] leading-4 text-slate-500">Courses</div>
+                <div className="mt-1 text-[18px] font-extrabold">{categoryIntro.sessions}</div>
+              </div>
+              <div className="pl-5">
+                <div className="text-[12px] leading-4 text-slate-500">Live sessions</div>
+                <div className="mt-1 text-[18px] font-extrabold">{categoryIntro.handsOn}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-[13px] font-bold text-slate-700">Related</span>
+            {categoryIntro.related.map((category) => (
               <button
+                key={category}
                 type="button"
                 onClick={() => {
-                  setSearchQuery("");
-                  navigate("/courses", { replace: true });
+                  setActiveCategory(category);
+                  navigate(courseCategoryPath(category), { replace: false });
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-extrabold text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] font-extrabold text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-950"
               >
-                Clear
-              </button>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {["All", "Upcoming", "Today"].map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => setTimeFilter(filter)}
-                className={[
-                  "h-12 px-4 rounded-xl text-sm font-extrabold inline-flex items-center gap-2 transition-colors",
-                  timeFilter === filter
-                    ? "bg-[#00342b] text-white"
-                    : "bg-gray-50 text-gray-600 hover:bg-gray-100",
-                ].join(" ")}
-              >
-                <FiFilter className="text-[15px]" />
-                {filter}
+                {category}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-[auto_1fr_auto] items-end border-b border-gray-200">
-          <button
-            type="button"
-            onClick={() => scrollTabs(-1)}
-            className="mb-2 mr-1 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-            aria-label="Scroll categories left"
-          >
-            <FiChevronLeft />
-          </button>
-          <div
-            ref={tabsScrollerRef}
-            className="overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            <div className="flex gap-0 min-w-max">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`
-                    px-4 py-3 text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors
-                    ${activeTab === tab
-                      ? "border-gray-900 text-gray-900 font-bold"
-                      : "border-transparent text-gray-600 hover:text-gray-900"
-                    }
-                  `}
+        {isAuthenticated && showOverviewPanel ? (
+          <div className="mt-8 hidden items-start gap-4 sm:flex sm:gap-5">
+            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-[28px] font-black text-white shadow-sm">
+              {getInitials(profileName)}
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <h2 className="text-[23px] sm:text-[28px] font-extrabold leading-tight text-slate-900">
+                Welcome back, {profileName}
+              </h2>
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[15px] text-slate-700">
+                <span className="font-medium">{profileLine}</span>
+                <Link
+                  to={PATHS.PROFILE}
+                  className="font-extrabold text-[#6d28d9] underline decoration-2 underline-offset-2 hover:text-[#5b21b6]"
                 >
-                  {tab}
-                </button>
-              ))}
+                  Edit occupation and interests
+                </Link>
+              </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => scrollTabs(1)}
-            className="mb-2 ml-1 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
-            aria-label="Scroll categories right"
-          >
-            <FiChevronRight />
-          </button>
-        </div>
-      </section>
+        ) : null}
 
-      {loading ? (
-        <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-80 rounded-lg bg-gray-100 animate-pulse" />
-          ))}
-        </div>
-      ) : filteredCourses.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-          <h2 className="text-xl font-extrabold text-gray-900">
-            {searchQuery ? "No matching sessions found" : "No sessions available yet"}
+        <div className={showOverviewPanel ? "mt-8 sm:mt-10" : "mt-4 sm:mt-6"}>
+          <h2 className="text-[30px] sm:text-[36px] font-extrabold tracking-tight text-slate-900">
+            What to learn next
           </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            {searchQuery
-              ? "Clear the search or try a different keyword to see available sessions."
-              : "New expert-led sessions will appear here once they are published."}
-          </p>
-          {searchQuery ? (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                navigate("/courses", { replace: true });
-              }}
-              className="mt-5 rounded-xl bg-[#00342b] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#004d40]"
-            >
-              Show all sessions
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredCourses.map((course) => (
-            <CourseGridCard
-              key={course.id}
-              course={course}
-              liveClass={course.liveClass}
-              onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
-              onJoinClass={() => joinTrainerClass(course)}
-              onPayForClass={() => payForTrainerClass(course)}
-              actionId={actionId}
-              now={now}
-            />
-          ))}
-        </div>
-      )}
-      <AuthRequiredModal
-        open={!!authPrompt}
-        title={authPrompt?.title}
-        message={authPrompt?.message}
-        from={authPrompt?.from}
-        onClose={() => setAuthPrompt(null)}
-      />
-    </main>
-  );
-}
+          <h3 className="mt-4 text-[22px] sm:text-[24px] font-extrabold text-slate-900">
+            Recommended for you
+          </h3>
 
+          {message ? (
+            <div className="mt-6 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+              {message}
+            </div>
+          ) : null}
+          {error ? (
+            <div className="mt-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-80 rounded-lg bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
+              <h2 className="text-xl font-extrabold text-gray-900">
+                {searchQuery
+                  ? "No matching sessions found"
+                  : activeCategory === "Trainer Courses"
+                    ? "No sessions available yet"
+                    : `${activeCategory} sessions are coming soon`}
+              </h2>
+              <p className="mt-2 text-sm text-gray-500">
+                {searchQuery
+                  ? "Clear the search or try a different keyword to see available sessions."
+                  : activeCategory === "Trainer Courses"
+                    ? "New expert-led sessions will appear here once they are published."
+                    : "Switch to another category below to explore available sessions now."}
+              </p>
+              {!searchQuery && availableCategories.length > 1 ? (
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  {availableCategories
+                    .filter((category) => category !== activeCategory)
+                    .map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => setActiveCategory(category)}
+                        className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-emerald-200 hover:text-emerald-700"
+                      >
+                        {category}
+                      </button>
+                    ))}
+                </div>
+              ) : null}
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    navigate("/courses", { replace: true });
+                  }}
+                  className="mt-5 rounded-xl bg-[#00342b] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#004d40]"
+                >
+                  Show all sessions
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredCourses.map((course) => (
+                <CourseGridCard
+                  key={course.id}
+                  course={course}
+                  liveClass={course.liveClass}
+                  onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
+                  onJoinClass={() => joinTrainerClass(course)}
+                  onPayForClass={() => payForTrainerClass(course)}
+                  actionId={actionId}
+                  now={now}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <AuthRequiredModal
+          open={!!authPrompt}
+          title={authPrompt?.title}
+          message={authPrompt?.message}
+          from={authPrompt?.from}
+          onClose={() => setAuthPrompt(null)}
+        />
+      </section>
+    </main>
+  );  
+}

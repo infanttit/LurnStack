@@ -82,9 +82,14 @@ function normalizeCourse(course, index) {
   const explicitPriceType = normalizeText(course.priceType);
   const priceLabel = formatPrice(course);
   const hasPaidAmount = hasPositivePrice(course);
+  const backendIsFree =
+    course.isFree === true ||
+    course.is_free === true ||
+    String(course.pricingState || course.pricing_state || "").trim().toUpperCase() === "FREE";
   const isFree =
-    !hasPaidAmount &&
-    (explicitPriceType.toLowerCase() === "free" || priceLabel.toLowerCase() === "free");
+    backendIsFree ||
+    (!hasPaidAmount &&
+      (explicitPriceType.toLowerCase() === "free" || priceLabel.toLowerCase() === "free"));
 
   return {
     ...course,
@@ -97,6 +102,7 @@ function normalizeCourse(course, index) {
     ratingCount: course.ratingCount || "Live session",
     priceLabel,
     priceAmount,
+    isFree,
     priceType: isFree ? "Free" : "Paid",
     popularity: Number(course.popularity || course.ratingCount || 1000) || 1000,
     dateAdded: course.dateAdded || course.updated || course.scheduledAt || new Date().toISOString(),

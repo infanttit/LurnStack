@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { FiArrowRight, FiBell, FiClock, FiRefreshCcw } from "react-icons/fi";
+import { FiArrowRight, FiBell, FiBookOpen, FiCheckCircle, FiClock, FiRefreshCcw } from "react-icons/fi";
 import { PATHS } from "../../app/router/paths";
+import { getStudentSessions } from "../../courses/api/studentSessionsApi";
 import SmartImage from "../../shared/components/SmartImage";
 import LiveClassCard from "../components/LiveClassCard";
 import SkeletonCard from "../components/SkeletonCard";
@@ -34,9 +35,45 @@ function SectionCard({ title, right, children }) {
   );
 }
 
+function formatIST(iso) {
+  const date = new Date(iso || "");
+  if (Number.isNaN(date.getTime())) return "Schedule pending";
+  return date.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function LearningStat({ icon: Icon, label, value, tone = "emerald" }) {
+  const tones = {
+    emerald: "bg-emerald-50 text-emerald-800 border-emerald-100",
+    slate: "bg-slate-50 text-slate-800 border-slate-100",
+    amber: "bg-amber-50 text-amber-800 border-amber-100",
+  };
+
+  return (
+    <div className={["rounded-2xl border p-4", tones[tone] || tones.emerald].join(" ")}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-extrabold uppercase tracking-widest opacity-75">
+          {label}
+        </span>
+        <Icon className="text-lg opacity-80" />
+      </div>
+      <div className="mt-3 text-2xl font-black">{value}</div>
+    </div>
+  );
+}
+
 export default function StudentDashboardPage() {
   const dispatch = useDispatch();
   const [actionNotice, setActionNotice] = useState("");
+  const [learningSessions, setLearningSessions] = useState([]);
+  const [learningLoading, setLearningLoading] = useState(true);
+  const [learningError, setLearningError] = useState("");
   const {
     enrolledCourses,
     upcomingClasses,
@@ -51,6 +88,28 @@ export default function StudentDashboardPage() {
   useEffect(() => {
     dispatch(fetchDashboardData());
   }, [dispatch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLearningLoading(true);
+    setLearningError("");
+    getStudentSessions()
+      .then((items) => {
+        if (!cancelled) setLearningSessions(items || []);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLearningSessions([]);
+          setLearningError(err?.message || "Unable to load your learning sessions.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLearningLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const nextLive = upcomingClasses?.[0] || null;
   const nextWhen = useMemo(() => {
@@ -90,6 +149,30 @@ export default function StudentDashboardPage() {
     return items;
   }, [upcomingClasses]);
 
+  const learningSummary = useMemo(() => {
+    const now = Date.now();
+    const upcoming = learningSessions.filter((session) => {
+      const start = new Date(session?.liveClass?.scheduledAt || session?.scheduledAt || "").getTime();
+      return Number.isFinite(start) && start >= now;
+    });
+    const completed = learningSessions.filter((session) => {
+      const end = new Date(session?.liveClass?.endsAt || session?.endsAt || "").getTime();
+      return Number.isFinite(end) && end < now;
+    });
+    const nextSession = [...upcoming].sort(
+      (a, b) =>
+        new Date(a?.liveClass?.scheduledAt || a?.scheduledAt || "").getTime() -
+        new Date(b?.liveClass?.scheduledAt || b?.scheduledAt || "").getTime()
+    )[0] || null;
+
+    return {
+      total: learningSessions.length,
+      upcoming: upcoming.length,
+      completed: completed.length,
+      nextSession,
+    };
+  }, [learningSessions]);
+
   const handleJoin = async (liveClass) => {
     const classId = liveClass?.id;
     if (!classId) return;
@@ -113,9 +196,9 @@ export default function StudentDashboardPage() {
     <main className="max-w-container-max mx-auto px-margin-mobile sm:px-margin-desktop py-10 sm:py-14">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div>
-          <h1 className="font-h2 text-h2 text-on-surface">Live classes</h1>
+          <h1 className="font-h2 text-h2 text-on-surface">My Learning</h1>
           <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
-            Times shown in IST (Asia/Kolkata). You can join only from 5 minutes before start.
+            Track your booked sessions, upcoming live classes, attendance, and learning progress in one place.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -148,6 +231,71 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
+      <section className="mt-8 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+        <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-stretch">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">
+              Learning dashboard
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+              Continue where you left off
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+              Your joined, paid, and free learning sessions appear here. Use this page to review what is coming next and open the right class when access starts.
+            </p>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <LearningStat
+                icon={FiBookOpen}
+                label="My sessions"
+                value={learningLoading ? "..." : learningSummary.total}
+              />
+              <LearningStat
+                icon={FiClock}
+                label="Upcoming"
+                value={learningLoading ? "..." : learningSummary.upcoming}
+                tone="amber"
+              />
+              <LearningStat
+                icon={FiCheckCircle}
+                label="Completed"
+                value={learningLoading ? "..." : learningSummary.completed}
+                tone="slate"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+            <div className="text-[11px] font-black uppercase tracking-widest text-emerald-800">
+              Next learning session
+            </div>
+            {learningSummary.nextSession ? (
+              <div className="mt-3">
+                <div className="text-base font-black leading-snug text-slate-950">
+                  {learningSummary.nextSession.title}
+                </div>
+                <div className="mt-1 text-xs font-semibold text-slate-600">
+                  Trainer: {learningSummary.nextSession.instructorName || learningSummary.nextSession.instructor || "LurnStack Trainer"}
+                </div>
+                <div className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-slate-700">
+                  {formatIST(learningSummary.nextSession.liveClass?.scheduledAt || learningSummary.nextSession.scheduledAt)}
+                </div>
+                <Link
+                  to={PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(learningSummary.nextSession.id)))}
+                  className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d3d] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#00392d]"
+                >
+                  View details <FiArrowRight />
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-3 text-sm font-semibold text-slate-600">
+                No upcoming learning session yet.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <section className="lg:col-span-8 xl:col-span-9 space-y-8">
           {error ? (
@@ -161,6 +309,73 @@ export default function StudentDashboardPage() {
               {actionNotice}
             </div>
           ) : null}
+
+          {learningError ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+              {learningError}
+            </div>
+          ) : null}
+
+          <SectionCard
+            title="My learning sessions"
+            right={learningLoading ? "Loading..." : `${learningSessions.length} sessions`}
+          >
+            {learningLoading ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-100" />
+                ))}
+              </div>
+            ) : learningSessions.length === 0 ? (
+              <EmptyState
+                title="No learning sessions yet"
+                body="Your paid, free, and joined sessions will appear here after you start learning."
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {learningSessions.slice(0, 6).map((session) => (
+                  <Link
+                    key={session.id}
+                    to={PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(session.id)))}
+                    className="group overflow-hidden rounded-2xl border border-outline-variant bg-white transition-all hover:border-emerald-200 hover:shadow-sm"
+                  >
+                    <div className="relative h-28 bg-surface-variant">
+                      <SmartImage
+                        src={session.thumbnail}
+                        alt={session.title}
+                        className="h-full w-full object-cover"
+                        fallbackClassName="h-full w-full bg-gradient-to-br from-slate-900 via-emerald-800 to-teal-500"
+                      />
+                      <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-[#00342b]">
+                        {session.isFree ? "Free" : session.isPaid ? "Paid" : session.price || "Session"}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <div className="text-sm font-extrabold leading-snug text-on-surface line-clamp-2">
+                        {session.title}
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-on-surface-variant line-clamp-1">
+                        {session.instructorName || session.instructor || "LurnStack Trainer"}
+                      </div>
+                      <div className="mt-3 text-[11px] font-bold text-emerald-800">
+                        {formatIST(session.liveClass?.scheduledAt || session.scheduledAt)}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {!learningLoading && learningSessions.length > 6 ? (
+              <div className="mt-5">
+                <Link
+                  to={PATHS.SESSIONS}
+                  className="inline-flex items-center gap-2 text-sm font-extrabold text-[#004d3d] hover:underline"
+                >
+                  View all sessions <FiArrowRight />
+                </Link>
+              </div>
+            ) : null}
+          </SectionCard>
 
           <SectionCard
             title="Upcoming live classes"

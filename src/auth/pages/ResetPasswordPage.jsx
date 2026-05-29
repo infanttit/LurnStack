@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   placeholder="Enter new password"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[13px] outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[16px] sm:text-[16px] outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                 />
               </div>
 
@@ -165,7 +165,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   placeholder="Confirm new password"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[13px] outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-[16px] sm:text-[16px] outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
                 />
               </div>
 

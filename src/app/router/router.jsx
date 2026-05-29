@@ -17,6 +17,7 @@ import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage"
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
 import AttendanceReportPage from "../../attendance/pages/AttendanceReportPage";
+import StudentSessionsPage from "../../pages/StudentSessionsPage";
 import { PATHS, categoryHashPath } from "./paths";
 
 function CategoryRedirect() {
@@ -58,6 +59,8 @@ export default function AppRouter() {
         <Route path={PATHS.CATEGORIES} element={<CategoriesPage />} />
         <Route path={PATHS.CATEGORY_DETAILS} element={<CategoryRedirect />} />
         <Route path={PATHS.SEARCH} element={<SearchPage />} />
+        <Route path={PATHS.SESSIONS} element={<StudentSessionsPage />} />
+        <Route path={PATHS.UPCOMING_SESSIONS} element={<StudentSessionsPage />} />
         <Route path={PATHS.CART} element={<CartPage />} />
         <Route
           path={PATHS.CHECKOUT}
