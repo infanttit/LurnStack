@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiChevronDown, FiSliders } from "react-icons/fi";
 import { HiMiniStar } from "react-icons/hi2";
 import { motion } from "framer-motion";
@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import catImages from "../../assets/Images/categories/categories";
 import { useAuth } from "../../auth";
 import { getPublicSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
+import useOfferCampaignClick from "../../courses/hooks/useOfferCampaignClick";
 
 const SORT_OPTIONS = [
   "Most Popular",
@@ -261,6 +262,7 @@ function CourseShelfCard({ course }) {
 export default function Categories() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const { categoryId } = useParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -277,11 +279,37 @@ export default function Categories() {
       .filter((value) => value !== ALL_LEVELS);
     return [ALL_LEVELS, ...new Set(levels)];
   }, [courses]);
+
+  const requestedCategoryIds = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const ids = String(params.get("ids") || "")
+      .split(",")
+      .map((id) => decodeURIComponent(id).trim())
+      .filter(Boolean);
+    if (ids.length) return ids;
+    if (categoryId) return [decodeURIComponent(categoryId)];
+    const hash = decodeURIComponent((location.hash || "").replace("#", "")).trim();
+    return hash ? [hash] : [];
+  }, [categoryId, location.hash, location.search]);
+
+  const requestedCategoryKey = requestedCategoryIds.join(",");
+  useOfferCampaignClick("category", requestedCategoryKey);
+
+  const requestedCategories = useMemo(() => {
+    if (!requestedCategoryIds.length) return [];
+    return requestedCategoryIds
+      .map((id) =>
+        categories.find(
+          (category) => slugify(category) === slugify(id) || category === id
+        )
+      )
+      .filter(Boolean);
+  }, [categories, requestedCategoryIds]);
+
   const initialCategory = useMemo(() => {
-    const hash = decodeURIComponent((location.hash || "").replace("#", ""));
-    if (!hash) return "";
-    return categories.find((category) => slugify(category) === slugify(hash) || category === hash) || "";
-  }, [categories, location.hash]);
+    if (requestedCategories.length === 1) return requestedCategories[0];
+    return "";
+  }, [requestedCategories]);
   const [activeCategory, setActiveCategory] = useState("");
 
   useEffect(() => {
@@ -312,17 +340,29 @@ export default function Categories() {
   useEffect(() => {
     if (!categories.length) return;
     setActiveCategory((current) => {
+      if (requestedCategoryIds.length && !requestedCategories.length) return "";
+      if (requestedCategories.length > 1) return "";
+      if (requestedCategories.length === 1) return requestedCategories[0];
       if (current && categories.includes(current)) return current;
       return initialCategory || categories[0];
     });
-  }, [categories, initialCategory]);
+  }, [categories, initialCategory, requestedCategoryIds.length, requestedCategories]);
 
   const visibleCourses = useMemo(() => {
     let result = courses.filter((course) => {
-      const matchesCategory = !activeCategory || course.category === activeCategory || course.tab === activeCategory;
+      if (requestedCategoryIds.length && !requestedCategories.length) return false;
+      const matchesOfferCategories =
+        requestedCategories.length > 1
+          ? requestedCategories.includes(course.category) || requestedCategories.includes(course.tab)
+          : true;
+      const matchesCategory =
+        requestedCategories.length > 1 ||
+        !activeCategory ||
+        course.category === activeCategory ||
+        course.tab === activeCategory;
       const matchesLevel = level === ALL_LEVELS || course.level === level;
       const matchesPrice = priceType === "All Prices" || course.priceType === priceType;
-      return matchesCategory && matchesLevel && matchesPrice;
+      return matchesOfferCategories && matchesCategory && matchesLevel && matchesPrice;
     });
 
     result = [...result];
@@ -332,7 +372,7 @@ export default function Categories() {
     if (sortBy === "Price: Low to High") result.sort((a, b) => a.priceAmount - b.priceAmount);
     if (sortBy === "Price: High to Low") result.sort((a, b) => b.priceAmount - a.priceAmount);
     return result;
-  }, [activeCategory, courses, level, priceType, sortBy]);
+  }, [activeCategory, courses, level, priceType, requestedCategoryIds.length, requestedCategories, sortBy]);
 
   return (
     <main className="min-h-screen bg-white">
@@ -343,7 +383,7 @@ export default function Categories() {
               Categories
             </p>
             <h1 className="mt-4 max-w-full break-normal text-5xl font-black leading-[0.95] tracking-normal text-gray-950 sm:text-6xl lg:text-6xl">
-              {activeCategory || "Courses"}
+              {requestedCategories.length > 1 ? "Selected Categories" : activeCategory || "Courses"}
             </h1>
           </div>
 

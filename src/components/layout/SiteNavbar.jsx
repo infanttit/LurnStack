@@ -169,9 +169,7 @@ export default function SiteNavbar() {
                 ) : null}
                 {isAuthenticated ? (
                   <NavItem to={PATHS.DASHBOARD}>My Learning</NavItem>
-                ) : (
-                  <NavItem to={PATHS.CATEGORIES}>Categories</NavItem>
-                )}
+                ) : null}
                 <NavItem to={PATHS.PLANS}>Plans</NavItem>
               </div>
             </div>
@@ -388,11 +386,7 @@ export default function SiteNavbar() {
                     <MobileDrawerLink to={PATHS.DASHBOARD} onClick={closeMobileMenu}>
                       My Learning
                     </MobileDrawerLink>
-                  ) : (
-                    <MobileDrawerLink to={PATHS.CATEGORIES} onClick={closeMobileMenu}>
-                      Categories
-                    </MobileDrawerLink>
-                  )}
+                  ) : null}
                   <MobileDrawerLink to={PATHS.PLANS} onClick={closeMobileMenu}>
                     Plans
                   </MobileDrawerLink>

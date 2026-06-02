@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "../AppShell";
 import LandingPage from "../../pages/LandingPage";
 import SimplePage from "../../pages/SimplePage";
@@ -18,12 +18,7 @@ import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
 import AttendanceReportPage from "../../attendance/pages/AttendanceReportPage";
 import StudentSessionsPage from "../../pages/StudentSessionsPage";
-import { PATHS, categoryHashPath } from "./paths";
-
-function CategoryRedirect() {
-  const { categoryId } = useParams();
-  return <Navigate to={categoryHashPath(categoryId)} replace />;
-}
+import { PATHS } from "./paths";
 
 export default function AppRouter() {
   return (
@@ -57,9 +52,10 @@ export default function AppRouter() {
         <Route path={PATHS.COURSES} element={<CoursesPage />} />
         <Route path={PATHS.COURSE_DETAILS} element={<CourseDetailsPage />} />
         <Route path={PATHS.CATEGORIES} element={<CategoriesPage />} />
-        <Route path={PATHS.CATEGORY_DETAILS} element={<CategoryRedirect />} />
+        <Route path={PATHS.CATEGORY_DETAILS} element={<CategoriesPage />} />
         <Route path={PATHS.SEARCH} element={<SearchPage />} />
         <Route path={PATHS.SESSIONS} element={<StudentSessionsPage />} />
+        <Route path={PATHS.SESSION_DETAILS} element={<CourseDetailsPage />} />
         <Route path={PATHS.UPCOMING_SESSIONS} element={<StudentSessionsPage />} />
         <Route path={PATHS.CART} element={<CartPage />} />
         <Route

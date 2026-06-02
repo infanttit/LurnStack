@@ -83,18 +83,13 @@ const GlobalStyles = () => (
     }
     .auth-card {
       position: relative;
-      border: 1px solid rgba(0, 77, 61, 0.1);
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 28px 80px rgba(0, 77, 61, 0.13);
-      backdrop-filter: blur(18px);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(14px);
     }
     .auth-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      background: linear-gradient(135deg, rgba(84, 212, 16, 0.16), transparent 32%, rgba(0, 77, 61, 0.08));
+      content: none;
     }
     .auth-content { position: relative; z-index: 1; }
     .auth-mark { box-shadow: 0 18px 38px rgba(84, 212, 16, 0.2); }
@@ -292,8 +287,8 @@ export default function LoginPage() {
               </div>
               
               <div className="anim-1 mb-5 text-center">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#54d410]">LurnStack Learning</p>
-                <h1 className="text-2xl lg:text-3xl font-black text-[#004d3d] mb-1">Welcome back</h1>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#54d410]">LurnStack Sign In</p>
+                <h1 className="text-2xl lg:text-3xl font-black text-[#004d3d] mb-1">Sign In</h1>
                 <p className="text-slate-500 text-[12px] font-semibold leading-relaxed">Access your live classes, session bookings, and learning progress.</p>
               </div>
 
@@ -382,7 +377,7 @@ export default function LoginPage() {
                   state={{ from: redirectTo }}
                   className="font-black text-[#004d3d] hover:underline transition-colors"
                 >
-                  Create account
+                  Sign up
                 </Link>
               </p>
 

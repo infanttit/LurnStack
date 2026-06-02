@@ -124,6 +124,7 @@ export async function forgotPasswordApi({ email }) {
   try {
     const res = await axiosClient.post("/api/auth/forgot-password", {
       EMAIL_ADDRESS: email,
+      email,
     });
     return unwrap(res);
   } catch (err) {
@@ -139,6 +140,7 @@ export async function resetPasswordApi({ token, newPassword }) {
     const res = await axiosClient.post("/api/auth/reset-password", {
       token,
       newPassword,
+      PASSWORD: newPassword,
     });
     return unwrap(res);
   } catch (err) {

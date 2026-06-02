@@ -9,6 +9,7 @@ export const PATHS = {
   CATEGORY_DETAILS: "/categories/:categoryId",
   SEARCH: "/search",
   SESSIONS: "/sessions",
+  SESSION_DETAILS: "/sessions/:sessionId",
   UPCOMING_SESSIONS: "/dashboard/upcoming",
   CART: "/cart",
   CHECKOUT: "/checkout",
