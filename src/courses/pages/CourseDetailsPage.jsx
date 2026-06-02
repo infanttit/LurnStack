@@ -29,6 +29,7 @@ import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/me
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
 import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
+import useOfferCampaignClick from "../hooks/useOfferCampaignClick";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -378,7 +379,9 @@ const TABS = ["Overview", "Q&A", "Notes", "Announcements", "Resources"];
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function CourseDetailsPage() {
-  const { courseId } = useParams();
+  const { courseId, sessionId } = useParams();
+  const detailId = courseId || sessionId || "";
+  const offerTargetType = sessionId ? "session" : "course";
   const location = useLocation();
   const navigate = useNavigate();
   const { addItem, items } = useCart();
@@ -391,23 +394,26 @@ export default function CourseDetailsPage() {
   const [authPrompt, setAuthPrompt] = useState(null);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [sessionAttendance, setSessionAttendance] = useState(null);
-  const liveClasses = useMemo(() => getCourseLiveClasses(courseId), [courseId]);
+  const liveClasses = useMemo(() => getCourseLiveClasses(detailId), [detailId]);
+
+  useOfferCampaignClick(offerTargetType, detailId);
 
   const course = useMemo(() => {
     const fromState = location?.state?.course;
-    if (fromState && String(fromState.id) === String(courseId)) return fromState;
-    return remoteCourse || getCourseById(courseId);
-  }, [courseId, location?.state, remoteCourse]);
+    if (fromState && String(fromState.id) === String(detailId)) return fromState;
+    if (sessionId) return remoteCourse;
+    return remoteCourse || getCourseById(detailId);
+  }, [detailId, location?.state, remoteCourse, sessionId]);
   const isInCart = useMemo(
     () => items.some((item) => String(item.sessionId || item.id) === String(course?.id || "")),
     [course?.id, items]
   );
 
   useEffect(() => {
-    if (course || !courseId) return;
+    if (course || !detailId) return;
     let cancelled = false;
     const loader = isAuthenticated ? getStudentSessionById : getPublicSessionById;
-    loader(courseId)
+    loader(detailId)
       .then((session) => {
         if (!cancelled) setRemoteCourse(session);
       })
@@ -415,7 +421,7 @@ export default function CourseDetailsPage() {
     return () => {
       cancelled = true;
     };
-  }, [course, courseId, isAuthenticated]);
+  }, [course, detailId, isAuthenticated]);
 
   const addToCart = useCallback(
     async (fromEl) => {

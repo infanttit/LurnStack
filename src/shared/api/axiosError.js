@@ -7,10 +7,13 @@ export function getAxiosErrorMessage(err, fallback = "Something went wrong") {
     if (typeof data.error === "string" && data.error.trim()) return data.error.trim();
   }
 
-  if (typeof err?.message === "string" && err.message.trim()) return err.message.trim();
-
   if (err?.code === "ECONNABORTED") return "Request timed out. Please try again.";
+  if (String(err?.message || "").toLowerCase().includes("timeout")) {
+    return "Request timed out. Please try again.";
+  }
   if (err?.request && !err?.response) return "Network error. Please check your connection.";
+
+  if (typeof err?.message === "string" && err.message.trim()) return err.message.trim();
 
   return fallback;
 }

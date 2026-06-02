@@ -96,18 +96,13 @@ const GlobalStyles = () => (
     }
     .auth-card {
       position: relative;
-      border: 1px solid rgba(0, 77, 61, 0.1);
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 28px 80px rgba(0, 77, 61, 0.13);
-      backdrop-filter: blur(18px);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(14px);
     }
     .auth-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      background: linear-gradient(135deg, rgba(84, 212, 16, 0.16), transparent 32%, rgba(0, 77, 61, 0.08));
+      content: none;
     }
     .auth-content { position: relative; z-index: 1; }
     .auth-mark { box-shadow: 0 18px 38px rgba(84, 212, 16, 0.2); }
@@ -702,9 +697,7 @@ export default function SignupPage() {
   const [toastTone, setToastTone] = useState("warn");
   const [formError, setFormError] = useState("");
   const [emailOtp, setEmailOtp] = useState(blankOtpState);
-  const [phoneOtp, setPhoneOtp] = useState(blankOtpState);
   const emailOtpRefs = useRef([]);
-  const phoneOtpRefs = useRef([]);
   const redirectTo = (() => {
     const from = location?.state?.from;
     return typeof from === "string" && from.trim() ? from : PATHS.HOME;
@@ -722,31 +715,12 @@ export default function SignupPage() {
   }, [emailOtp.expiresAt]);
 
   useEffect(() => {
-    if (!phoneOtp.expiresAt) return undefined;
-    const tick = () => {
-      const remaining = Math.max(0, Math.floor((new Date(phoneOtp.expiresAt).getTime() - Date.now()) / 1000));
-      setPhoneOtp((current) => ({ ...current, secondsLeft: remaining }));
-    };
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [phoneOtp.expiresAt]);
-
-  useEffect(() => {
     if (emailOtp.cooldown <= 0) return undefined;
     const timer = window.setInterval(() => {
       setEmailOtp((current) => ({ ...current, cooldown: Math.max(0, current.cooldown - 1) }));
     }, 1000);
     return () => window.clearInterval(timer);
   }, [emailOtp.cooldown]);
-
-  useEffect(() => {
-    if (phoneOtp.cooldown <= 0) return undefined;
-    const timer = window.setInterval(() => {
-      setPhoneOtp((current) => ({ ...current, cooldown: Math.max(0, current.cooldown - 1) }));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [phoneOtp.cooldown]);
 
   if (isAuthenticated) {
     return (
@@ -786,7 +760,6 @@ export default function SignupPage() {
     setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
     if (name === "email") setEmailOtp(blankOtpState);
-    if (name === "phoneNumber" || name === "countryCode") setPhoneOtp(blankOtpState);
     setFormError("");
   };
 
@@ -810,24 +783,6 @@ export default function SignupPage() {
   };
 
   const getOtpConfig = (kind) => {
-    if (kind === "phone") {
-      return {
-        type: "sms",
-        identifier: String(form.phoneNumber || "").replace(/\D/g, ""),
-        state: phoneOtp,
-        setState: setPhoneOtp,
-        refs: phoneOtpRefs,
-        validate: () => {
-          const message = getPhoneValidationMessage(form.countryCode, form.phoneNumber);
-          if (message) {
-            setErrors((current) => ({ ...current, phoneNumber: message }));
-            return false;
-          }
-          return true;
-        },
-      };
-    }
-
     return {
       type: "email",
       identifier: normalizeEmail(form.email),
@@ -884,10 +839,6 @@ export default function SignupPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!ensureFormReady()) return;
-    if (!phoneOtp.verified) {
-      setFormError("Please verify your phone number before creating your account.");
-      return;
-    }
     if (ENABLE_EMAIL_OTP && !emailOtp.verified) {
       setFormError("Please verify your email address before creating your account.");
       return;
@@ -1086,12 +1037,12 @@ export default function SignupPage() {
                 </div>
               </div>
               <div className="anim-1 mb-5 text-center">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#54d410]">Start Learning</p>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#54d410]">LurnStack Sign Up</p>
                 <h1 className="text-2xl lg:text-3xl font-black text-[#004d3d] mb-1">
-                  Create Account
+                  Sign Up
                 </h1>
                 <p className="text-slate-500 text-[12px] font-semibold leading-relaxed">
-                  Verify your phone number to continue into LurnStack live sessions.
+                  Enter your details and verify your email to start learning.
                 </p>
               </div>
 
@@ -1125,6 +1076,63 @@ export default function SignupPage() {
                   {errors.fullName ? (
                     <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
                       {errors.fullName}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="signup-phone"
+                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
+                  >
+                    Phone Number
+                  </label>
+                  <div className="grid grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)] gap-2">
+                    <div className="relative">
+                      <select
+                        name="countryCode"
+                        value={form.countryCode}
+                        onChange={handleChange}
+                        aria-label="Country code"
+                        className="appearance-none h-11 w-full rounded-xl bg-slate-50 border border-slate-200 pl-3 pr-8 text-[12px] font-semibold text-slate-700 outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                      >
+                        {COUNTRY_CODES.map((country) => (
+                          <option key={`${country.name}-${country.code}`} value={country.code}>
+                            {country.name} ({country.code})
+                          </option>
+                        ))}
+                      </select>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      id="signup-phone"
+                      type="tel"
+                      name="phoneNumber"
+                      placeholder="Enter phone number"
+                      value={form.phoneNumber}
+                      onChange={handleChange}
+                      className={`min-w-0 flex-1 h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
+                        ${
+                          errors.phoneNumber
+                            ? "border-red-400"
+                            : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
+                        }`}
+                    />
+                  </div>
+                  {errors.phoneNumber ? (
+                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
+                      {errors.phoneNumber}
                     </div>
                   ) : null}
                 </div>
@@ -1168,74 +1176,6 @@ export default function SignupPage() {
                     </div>
                   ) : null}
                   {ENABLE_EMAIL_OTP ? renderOtpControl("email") : null}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="signup-phone"
-                    className="block text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-0.5 ml-1"
-                  >
-                    Phone Number
-                  </label>
-                  <div className="grid grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)] gap-2 min-[520px]:grid-cols-[minmax(132px,0.45fr)_minmax(0,1fr)_auto]">
-                    <div className="relative">
-                      <select
-                        name="countryCode"
-                        value={form.countryCode}
-                        onChange={handleChange}
-                        aria-label="Country code"
-                        className="appearance-none h-11 w-full rounded-xl bg-slate-50 border border-slate-200 pl-3 pr-8 text-[12px] font-semibold text-slate-700 outline-none transition-all focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
-                      >
-                        {COUNTRY_CODES.map((country) => (
-                          <option key={`${country.name}-${country.code}`} value={country.code}>
-                            {country.name} ({country.code})
-                          </option>
-                        ))}
-                      </select>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <input
-                      id="signup-phone"
-                      type="tel"
-                      name="phoneNumber"
-                      placeholder="Enter phone number"
-                      value={form.phoneNumber}
-                      onChange={handleChange}
-                      className={`min-w-0 flex-1 h-11 px-4 rounded-xl bg-slate-50 border text-[13px] outline-none transition-all
-                        ${
-                          errors.phoneNumber
-                            ? "border-red-400"
-                            : "border-slate-200 focus:border-[#004d3d] focus:ring-4 focus:ring-[#004d3d]/5"
-                        }`}
-                    />
-                    {!phoneOtp.verified && form.phoneNumber.trim() ? (
-                      <button
-                        type="button"
-                        disabled={loading || phoneOtp.cooldown > 0}
-                        onClick={() => requestOtp("phone")}
-                        className="col-span-2 h-9 self-center rounded-full border border-[#004d3d]/20 bg-white px-3 text-[11px] font-black text-[#004d3d] shadow-sm transition hover:border-[#54d410]/50 hover:bg-[#54d410]/10 disabled:cursor-not-allowed disabled:text-slate-300 min-[520px]:col-span-1"
-                      >
-                        {phoneOtp.cooldown > 0 ? `${phoneOtp.cooldown}s` : phoneOtp.sent ? "Resend" : "Verify"}
-                      </button>
-                    ) : null}
-                  </div>
-                  {errors.phoneNumber ? (
-                    <div className="mt-1 ml-1 text-[10px] font-semibold text-red-600">
-                      {errors.phoneNumber}
-                    </div>
-                  ) : null}
-                  {renderOtpControl("phone")}
                 </div>
 
                 <div>
@@ -1312,17 +1252,15 @@ export default function SignupPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !phoneOtp.verified || (ENABLE_EMAIL_OTP && !emailOtp.verified)}
+                  disabled={loading || (ENABLE_EMAIL_OTP && !emailOtp.verified)}
                   className="w-full h-11 rounded-xl bg-[#004d3d] hover:bg-[#00392d] active:scale-[0.98] text-white font-bold text-[13px] transition-all shadow-[0_16px_36px_rgba(0,77,61,0.22)] flex items-center justify-center gap-2 mt-1 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
                 >
                   {loading ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : ENABLE_EMAIL_OTP && !emailOtp.verified ? (
                     "Verify Email First"
-                  ) : !phoneOtp.verified ? (
-                    "Verify Phone First"
                   ) : (
-                    "Create Account"
+                    "Sign Up"
                   )}
                 </button>
               </form>
@@ -1334,7 +1272,7 @@ export default function SignupPage() {
                   state={{ from: redirectTo }}
                   className="font-bold text-[#004d3d] hover:underline transition-colors"
                 >
-                  Log In
+                  Sign In
                 </Link>
               </p>
               </div>
