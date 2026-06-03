@@ -116,9 +116,14 @@ export default function LoginPage() {
   const redirectTo = (() => {
     const from = location?.state?.from;
     const redirect = searchParams.get("redirect");
-    if (typeof from === "string" && from.trim()) return from;
-    if (typeof redirect === "string" && redirect.trim()) return redirect;
-    return PATHS.DASHBOARD;
+    const target =
+      typeof from === "string" && from.trim()
+        ? from
+        : typeof redirect === "string" && redirect.trim()
+          ? redirect
+          : "";
+    if (target && target !== PATHS.DASHBOARD && target !== PATHS.LOGIN) return target;
+    return PATHS.HOME;
   })();
 
   useEffect(() => {
@@ -215,7 +220,7 @@ export default function LoginPage() {
     setSocialLoading(true);
 
     const loginUrl = new URL(PATHS.LOGIN, window.location.origin);
-    if (redirectTo && redirectTo !== PATHS.DASHBOARD) {
+    if (redirectTo && redirectTo !== PATHS.HOME) {
       loginUrl.searchParams.set("redirect", redirectTo);
     }
     const isLocal =

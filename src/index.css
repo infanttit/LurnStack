@@ -298,6 +298,26 @@
   animation-delay: 1.8s;
 }
 
+.auth-session-ticker-track {
+  animation: authSessionTicker 28s linear infinite;
+}
+
+.auth-session-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+.auth-live-session-pill {
+  animation: liveSessionJump 1.65s ease-in-out infinite;
+}
+
+.auth-live-dot {
+  animation: liveDotPulse 1.15s ease-in-out infinite;
+}
+
+.auth-live-badge {
+  animation: liveBadgePop 1.35s ease-in-out infinite;
+}
+
 .ag-course-node-mobile::before {
   display: none;
 }
@@ -462,5 +482,48 @@
 @keyframes connectionDash {
   to {
     stroke-dashoffset: -120;
+  }
+}
+
+@keyframes authSessionTicker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes liveSessionJump {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 10px 26px rgba(239, 68, 68, 0.16);
+  }
+  48% {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px rgba(249, 115, 22, 0.22);
+  }
+}
+
+@keyframes liveDotPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes liveBadgePop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
   }
 }
