@@ -8,8 +8,142 @@ import bannerIntroVideo from "../../assets/Images/Banner-video/Hailuo_Video_but 
 import heroLoginImage from "../../assets/Images/Hero/hero3.png";
 import heroLoginImageAlt from "../../assets/Images/Hero/hero-image1.png";
 import { useAuth } from "../../auth";
+import { getPublicUpcomingSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
+import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 
 const authenticatedHeroImages = [heroLoginImage, heroLoginImageAlt];
+
+function formatSessionTime(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Time pending";
+  return date.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getSessionPriceLabel(session) {
+  if (session?.isFree) return "Free";
+  if (session?.priceINR) return `Rs ${session.priceINR}`;
+  const amount = Number(session?.amountPaise || 0);
+  if (amount > 0) return `Rs ${(amount / 100).toFixed(amount % 100 === 0 ? 0 : 2)}`;
+  return "Paid";
+}
+
+function prioritizeUpcomingSessions(sessions, now) {
+  return (sessions || [])
+    .map((session) => {
+      const live = session?.liveClass || session;
+      const occurrence = getSessionOccurrenceTiming(live, now, { defaultRecurring: false });
+      const startMs = occurrence.startMs || 0;
+      const endMs = occurrence.endMs || 0;
+      const isLive = startMs > 0 && now >= startMs && now <= endMs;
+
+      return {
+        ...session,
+        occurrence,
+        priorityTime: startMs || Number.MAX_SAFE_INTEGER,
+        isLive,
+      };
+    })
+    .filter((session) => {
+      if (!session?.id) return false;
+      if (isSessionUnavailable(session.liveClass || session)) return false;
+      return !session.occurrence.endMs || session.occurrence.endMs >= now;
+    })
+    .sort((a, b) => {
+      if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
+      return a.priorityTime - b.priorityTime;
+    });
+}
+
+function UpcomingSessionsTicker() {
+  const { isAuthenticated } = useAuth();
+  const [sessions, setSessions] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSessions() {
+      try {
+        const items = isAuthenticated
+          ? await getStudentSessions()
+          : await getPublicUpcomingSessions();
+        if (!cancelled) {
+          setSessions(prioritizeUpcomingSessions(items, Date.now()).slice(0, 8));
+        }
+      } catch {
+        try {
+          const fallbackItems = await getPublicUpcomingSessions();
+          if (!cancelled) {
+            setSessions(prioritizeUpcomingSessions(fallbackItems, Date.now()).slice(0, 8));
+          }
+        } catch {
+          if (!cancelled) setSessions([]);
+        }
+      }
+    }
+
+    loadSessions();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  if (!sessions.length) return null;
+
+  const shouldAnimate = sessions.length > 1;
+  const tickerItems = shouldAnimate ? [...sessions, ...sessions] : sessions;
+
+  return (
+    <div className="relative z-20 border-b border-cyan-100 bg-white/95 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur">
+      <div className="mx-auto flex h-12 max-w-7xl items-center gap-3 overflow-hidden px-4 sm:px-6 lg:px-8">
+        <Link
+          to="/sessions"
+          className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-sm"
+        >
+          Live / Upcoming
+        </Link>
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className={`${shouldAnimate ? "auth-session-ticker-track" : ""} flex w-max items-center gap-3`}>
+            {tickerItems.map((session, index) => {
+              const scheduledAt = session.occurrence?.scheduledAt || session.scheduledAt;
+              const itemClass = session.isLive
+                ? "auth-live-session-pill border-red-200 bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 text-red-950 shadow-[0_10px_26px_rgba(239,68,68,0.16)]"
+                : "border-cyan-100 bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50 text-slate-800 shadow-[0_8px_22px_rgba(14,165,233,0.10)]";
+              const dotClass = session.isLive
+                ? "auth-live-dot bg-red-500 shadow-[0_0_0_5px_rgba(239,68,68,0.14)]"
+                : "bg-sky-500 shadow-[0_0_0_4px_rgba(14,165,233,0.12)]";
+              const badgeClass = session.isLive
+                ? "auth-live-badge bg-red-600 text-white ring-red-200"
+                : "bg-white text-sky-800 ring-sky-100";
+              return (
+                <Link
+                  key={`${session.id}-${index}`}
+                  to={`/courses/${encodeURIComponent(String(session.id))}`}
+                  className={`group inline-flex h-8 max-w-[320px] shrink-0 items-center gap-2 rounded-full border px-3 text-[11px] font-bold transition hover:-translate-y-0.5 hover:shadow-md ${itemClass}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+                  <span className="truncate">{session.title || "Live session"}</span>
+                  <span className="hidden shrink-0 text-slate-500 sm:inline">
+                    {formatSessionTime(scheduledAt)}
+                  </span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ring-1 ${badgeClass}`}>
+                    {session.isLive ? "Live now" : getSessionPriceLabel(session)}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function HeroSection() {
   const { isAuthenticated } = useAuth();
@@ -321,7 +455,8 @@ export default function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-white">
       <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-[#ffe7ea] via-[#fff5f6] to-transparent" />
-      <div className="relative mx-auto grid min-h-[calc(100svh-89px)] w-full max-w-7xl items-center gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-14">
+      <UpcomingSessionsTicker />
+      <div className="relative mx-auto grid min-h-[calc(100svh-137px)] w-full max-w-7xl items-center gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-12">
         <motion.div
           initial={{ opacity: 0, x: -36 }}
           animate={{ opacity: 1, x: 0 }}

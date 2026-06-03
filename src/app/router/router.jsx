@@ -56,6 +56,7 @@ export default function AppRouter() {
         <Route path={PATHS.SEARCH} element={<SearchPage />} />
         <Route path={PATHS.SESSIONS} element={<StudentSessionsPage />} />
         <Route path={PATHS.SESSION_DETAILS} element={<CourseDetailsPage />} />
+        <Route path={PATHS.SESSION_DETAILS_LEGACY} element={<CourseDetailsPage />} />
         <Route path={PATHS.UPCOMING_SESSIONS} element={<StudentSessionsPage />} />
         <Route path={PATHS.CART} element={<CartPage />} />
         <Route
