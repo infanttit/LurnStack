@@ -69,13 +69,14 @@ module.exports = {
         gutter: "24px",
       },
       fontFamily: {
-        h1: ["Inter", "ui-sans-serif", "system-ui"],
-        h2: ["Inter", "ui-sans-serif", "system-ui"],
-        h3: ["Inter", "ui-sans-serif", "system-ui"],
-        "body-md": ["Inter", "ui-sans-serif", "system-ui"],
-        "body-lg": ["Inter", "ui-sans-serif", "system-ui"],
-        "label-sm": ["Inter", "ui-sans-serif", "system-ui"],
-        caption: ["Inter", "ui-sans-serif", "system-ui"],
+        sans: ["var(--app-font-family)"],
+        h1: ["var(--app-font-family)"],
+        h2: ["var(--app-font-family)"],
+        h3: ["var(--app-font-family)"],
+        "body-md": ["var(--app-font-family)"],
+        "body-lg": ["var(--app-font-family)"],
+        "label-sm": ["var(--app-font-family)"],
+        caption: ["var(--app-font-family)"],
       },
       fontSize: {
         h1: [

@@ -263,7 +263,10 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
   const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
   const { startMs, endMs } = occurrence;
   const isCompleted = isSessionCompleted(liveClass, now);
-  const sessionIsFree = course.isFree === true || String(course.pricingState || "").trim().toUpperCase() === "FREE";
+  const sessionIsFree =
+    course.isFree === true ||
+    String(course.pricingState || "").trim().toUpperCase() === "FREE" ||
+    Number(course.amountPaise || 0) <= 0;
   const needsPayment = isTrainerCourse && !sessionIsFree && course.paymentRequired && !course.isPaid;
   const paymentReady = sessionIsFree || !course.paymentRequired || course.isPaid;
   const paying = actionId === `pay:${course.id}`;
@@ -370,9 +373,9 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
               type="button"
               disabled={paying || isCompleted || unavailable}
               onClick={onPayForClass}
-              className="h-8 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="h-8 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {paying ? "Opening..." : "Pay to Join"}
+              {paying ? "Opening..." : "Pay Now"}
             </button>
           ) : isTrainerCourse ? (
             <button

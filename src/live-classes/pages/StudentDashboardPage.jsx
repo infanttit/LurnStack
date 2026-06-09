@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FiArrowRight, FiBell, FiBookOpen, FiCheckCircle, FiClock, FiRefreshCcw } from "react-icons/fi";
 import { PATHS } from "../../app/router/paths";
 import { getStudentSessions } from "../../courses/api/studentSessionsApi";
@@ -70,6 +70,7 @@ function LearningStat({ icon: Icon, label, value, tone = "emerald" }) {
 
 export default function StudentDashboardPage() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const [actionNotice, setActionNotice] = useState("");
   const [learningSessions, setLearningSessions] = useState([]);
   const [learningLoading, setLearningLoading] = useState(true);
@@ -84,6 +85,7 @@ export default function StudentDashboardPage() {
     lastUpdatedAt,
   } =
     useSelector((s) => s.liveClasses);
+  const isLiveClassesView = location.pathname === PATHS.LIVE_CLASSES;
 
   useEffect(() => {
     dispatch(fetchDashboardData());
@@ -196,9 +198,13 @@ export default function StudentDashboardPage() {
     <main className="max-w-container-max mx-auto px-margin-mobile sm:px-margin-desktop py-10 sm:py-14">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div>
-          <h1 className="font-h2 text-h2 text-on-surface">My Learning</h1>
+          <h1 className="font-h2 text-h2 text-on-surface">
+            {isLiveClassesView ? "Live Classes" : "My Learning"}
+          </h1>
           <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
-            Track your booked sessions, upcoming live classes, attendance, and learning progress in one place.
+            {isLiveClassesView
+              ? "View your upcoming live classes, class status, and completed live sessions."
+              : "Track your booked sessions, upcoming live classes, attendance, and learning progress in one place."}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -231,73 +237,75 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      <section className="mt-8 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-stretch">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">
-              Learning dashboard
-            </p>
-            <h2 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
-              Continue where you left off
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
-              Your joined, paid, and free learning sessions appear here. Use this page to review what is coming next and open the right class when access starts.
-            </p>
+      {!isLiveClassesView ? (
+        <section className="mt-8 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+          <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-stretch">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">
+                Learning dashboard
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+                Continue where you left off
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+                Your joined, paid, and free learning sessions appear here. Use this page to review what is coming next and open the right class when access starts.
+              </p>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <LearningStat
-                icon={FiBookOpen}
-                label="My sessions"
-                value={learningLoading ? "..." : learningSummary.total}
-              />
-              <LearningStat
-                icon={FiClock}
-                label="Upcoming"
-                value={learningLoading ? "..." : learningSummary.upcoming}
-                tone="amber"
-              />
-              <LearningStat
-                icon={FiCheckCircle}
-                label="Completed"
-                value={learningLoading ? "..." : learningSummary.completed}
-                tone="slate"
-              />
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <LearningStat
+                  icon={FiBookOpen}
+                  label="My sessions"
+                  value={learningLoading ? "..." : learningSummary.total}
+                />
+                <LearningStat
+                  icon={FiClock}
+                  label="Upcoming"
+                  value={learningLoading ? "..." : learningSummary.upcoming}
+                  tone="amber"
+                />
+                <LearningStat
+                  icon={FiCheckCircle}
+                  label="Completed"
+                  value={learningLoading ? "..." : learningSummary.completed}
+                  tone="slate"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="text-[11px] font-black uppercase tracking-widest text-emerald-800">
+                Next learning session
+              </div>
+              {learningSummary.nextSession ? (
+                <div className="mt-3">
+                  <div className="text-base font-black leading-snug text-slate-950">
+                    {learningSummary.nextSession.title}
+                  </div>
+                  <div className="mt-1 text-xs font-semibold text-slate-600">
+                    Trainer: {learningSummary.nextSession.instructorName || learningSummary.nextSession.instructor || "LurnStack Trainer"}
+                  </div>
+                  <div className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-slate-700">
+                    {formatIST(learningSummary.nextSession.liveClass?.scheduledAt || learningSummary.nextSession.scheduledAt)}
+                  </div>
+                  <Link
+                    to={PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(learningSummary.nextSession.id)))}
+                    className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d3d] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#00392d]"
+                  >
+                    View details <FiArrowRight />
+                  </Link>
+                </div>
+              ) : (
+                <div className="mt-3 text-sm font-semibold text-slate-600">
+                  No upcoming learning session yet.
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-            <div className="text-[11px] font-black uppercase tracking-widest text-emerald-800">
-              Next learning session
-            </div>
-            {learningSummary.nextSession ? (
-              <div className="mt-3">
-                <div className="text-base font-black leading-snug text-slate-950">
-                  {learningSummary.nextSession.title}
-                </div>
-                <div className="mt-1 text-xs font-semibold text-slate-600">
-                  Trainer: {learningSummary.nextSession.instructorName || learningSummary.nextSession.instructor || "LurnStack Trainer"}
-                </div>
-                <div className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-slate-700">
-                  {formatIST(learningSummary.nextSession.liveClass?.scheduledAt || learningSummary.nextSession.scheduledAt)}
-                </div>
-                <Link
-                  to={PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(learningSummary.nextSession.id)))}
-                  className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#004d3d] px-4 text-xs font-extrabold text-white transition-colors hover:bg-[#00392d]"
-                >
-                  View details <FiArrowRight />
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-3 text-sm font-semibold text-slate-600">
-                No upcoming learning session yet.
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <section className="lg:col-span-8 xl:col-span-9 space-y-8">
+        <section className={isLiveClassesView ? "lg:col-span-8 xl:col-span-9 space-y-8" : "lg:col-span-12 space-y-8"}>
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
               {error}
@@ -310,73 +318,76 @@ export default function StudentDashboardPage() {
             </div>
           ) : null}
 
-          {learningError ? (
+          {!isLiveClassesView && learningError ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
               {learningError}
             </div>
           ) : null}
 
-          <SectionCard
-            title="My learning sessions"
-            right={learningLoading ? "Loading..." : `${learningSessions.length} sessions`}
-          >
-            {learningLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-100" />
-                ))}
-              </div>
-            ) : learningSessions.length === 0 ? (
-              <EmptyState
-                title="No learning sessions yet"
-                body="Your paid, free, and joined sessions will appear here after you start learning."
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {learningSessions.slice(0, 6).map((session) => (
+          {!isLiveClassesView ? (
+            <SectionCard
+              title="My learning sessions"
+              right={learningLoading ? "Loading..." : `${learningSessions.length} sessions`}
+            >
+              {learningLoading ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-100" />
+                  ))}
+                </div>
+              ) : learningSessions.length === 0 ? (
+                <EmptyState
+                  title="No learning sessions yet"
+                  body="Your paid, free, and joined sessions will appear here after you start learning."
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {learningSessions.slice(0, 6).map((session) => (
+                    <Link
+                      key={session.id}
+                      to={PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(session.id)))}
+                      className="group overflow-hidden rounded-2xl border border-outline-variant bg-white transition-all hover:border-emerald-200 hover:shadow-sm"
+                    >
+                      <div className="relative h-28 bg-surface-variant">
+                        <SmartImage
+                          src={session.thumbnail}
+                          alt={session.title}
+                          className="h-full w-full object-cover"
+                          fallbackClassName="h-full w-full bg-gradient-to-br from-slate-900 via-emerald-800 to-teal-500"
+                        />
+                        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-[#00342b]">
+                          {session.isFree ? "Free" : session.isPaid ? "Paid" : session.price || "Session"}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <div className="text-sm font-extrabold leading-snug text-on-surface line-clamp-2">
+                          {session.title}
+                        </div>
+                        <div className="mt-1 text-xs font-semibold text-on-surface-variant line-clamp-1">
+                          {session.instructorName || session.instructor || "LurnStack Trainer"}
+                        </div>
+                        <div className="mt-3 text-[11px] font-bold text-emerald-800">
+                          {formatIST(session.liveClass?.scheduledAt || session.scheduledAt)}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {!learningLoading && learningSessions.length > 6 ? (
+                <div className="mt-5">
                   <Link
-                    key={session.id}
-                    to={PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(session.id)))}
-                    className="group overflow-hidden rounded-2xl border border-outline-variant bg-white transition-all hover:border-emerald-200 hover:shadow-sm"
+                    to={PATHS.SESSIONS}
+                    className="inline-flex items-center gap-2 text-sm font-extrabold text-[#004d3d] hover:underline"
                   >
-                    <div className="relative h-28 bg-surface-variant">
-                      <SmartImage
-                        src={session.thumbnail}
-                        alt={session.title}
-                        className="h-full w-full object-cover"
-                        fallbackClassName="h-full w-full bg-gradient-to-br from-slate-900 via-emerald-800 to-teal-500"
-                      />
-                      <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-[#00342b]">
-                        {session.isFree ? "Free" : session.isPaid ? "Paid" : session.price || "Session"}
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      <div className="text-sm font-extrabold leading-snug text-on-surface line-clamp-2">
-                        {session.title}
-                      </div>
-                      <div className="mt-1 text-xs font-semibold text-on-surface-variant line-clamp-1">
-                        {session.instructorName || session.instructor || "LurnStack Trainer"}
-                      </div>
-                      <div className="mt-3 text-[11px] font-bold text-emerald-800">
-                        {formatIST(session.liveClass?.scheduledAt || session.scheduledAt)}
-                      </div>
-                    </div>
+                    View all sessions <FiArrowRight />
                   </Link>
-                ))}
-              </div>
-            )}
-            {!learningLoading && learningSessions.length > 6 ? (
-              <div className="mt-5">
-                <Link
-                  to={PATHS.SESSIONS}
-                  className="inline-flex items-center gap-2 text-sm font-extrabold text-[#004d3d] hover:underline"
-                >
-                  View all sessions <FiArrowRight />
-                </Link>
-              </div>
-            ) : null}
-          </SectionCard>
+                </div>
+              ) : null}
+            </SectionCard>
+          ) : null}
 
+          {isLiveClassesView ? (
           <SectionCard
             title="Upcoming live classes"
             right={loading ? "Loading..." : `${upcomingClasses.length} scheduled`}
@@ -404,11 +415,13 @@ export default function StudentDashboardPage() {
               )}
             </div>
           </SectionCard>
+          ) : null}
 
-          <SectionCard
-            title="My enrolled courses"
-            right={loading ? "Loading..." : `${enrolledCourses.length} courses`}
-          >
+          {!isLiveClassesView ? (
+            <SectionCard
+              title="My enrolled courses"
+              right={loading ? "Loading..." : `${enrolledCourses.length} courses`}
+            >
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {(loading ? Array.from({ length: 3 }) : enrolledCourses).map((c, idx) => (
                 <div
@@ -439,8 +452,10 @@ export default function StudentDashboardPage() {
                 <EmptyState title="No enrolled courses" body="Enroll in a course to see it here." />
               </div>
             ) : null}
-          </SectionCard>
+            </SectionCard>
+          ) : null}
 
+          {isLiveClassesView ? (
           <SectionCard
             title="Completed classes"
             right={loading ? "Loading..." : `${completedClasses.length} classes`}
@@ -493,8 +508,10 @@ export default function StudentDashboardPage() {
               )}
             </div>
           </SectionCard>
+          ) : null}
         </section>
 
+        {isLiveClassesView ? (
         <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
           <div className="rounded-2xl bg-surface p-5 sticky top-24 shadow-sm">
             <div className="flex items-center justify-between gap-3">
@@ -556,6 +573,7 @@ export default function StudentDashboardPage() {
             </div>
           </div>
         </aside>
+        ) : null}
       </div>
     </main>
   );

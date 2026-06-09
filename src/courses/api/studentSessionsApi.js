@@ -134,6 +134,16 @@ function formatINRFromPaise(amountPaise) {
 }
 
 function normalizeSession(raw = {}) {
+  const id =
+    raw.id ??
+    raw._id ??
+    raw.sessionId ??
+    raw.session_id ??
+    raw.liveClassId ??
+    raw.live_class_id ??
+    raw.courseId ??
+    raw.course_id ??
+    "";
   const category =
     raw.category ||
     raw.courseCategory ||
@@ -172,25 +182,25 @@ function normalizeSession(raw = {}) {
   const recurrenceType = raw.recurrenceType || raw.recurrence_type || raw.repeatType || "";
   const bookingStatus = raw.bookingStatus || raw.booking_status || raw.booking?.status || "";
   const paymentStatus = raw.paymentStatus || raw.payment_status || raw.payment?.status || "";
+  const pricingState = String(raw.pricingState || raw.pricing_state || "").trim().toUpperCase();
   const isFree =
     raw.isFree === true ||
     raw.is_free === true ||
-    raw.pricingState === "FREE" ||
-    (amountPaise <= 0 && !raw.paymentRequired && !raw.payment_required);
+    pricingState === "FREE" ||
+    amountPaise <= 0;
   const isPaid =
     raw.isPaid === true ||
     raw.paid === true ||
     bookingStatus === "paid" ||
     paymentStatus === "captured" ||
     paymentStatus === "paid" ||
-    hasPaidSessionAccess(raw.id);
-  const pricingState = String(raw.pricingState || raw.pricing_state || "").trim().toUpperCase();
+    hasPaidSessionAccess(id);
   const paymentRequiredRaw = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
-  const paymentRequired = isFree ? false : !!paymentRequiredRaw && pricingState !== "FREE";
+  const paymentRequired = amountPaise > 0 && !isFree && !!paymentRequiredRaw && pricingState !== "FREE";
   const currency = raw.currency || "INR";
 
   return {
-    id: raw.id,
+    id,
     thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
     thumbnailBg: "from-emerald-950 via-teal-800 to-cyan-600",
     category,
@@ -230,8 +240,8 @@ function normalizeSession(raw = {}) {
     recurrenceType,
     cancellationReason,
     liveClass: {
-      id: raw.id,
-      courseId: raw.id,
+      id,
+      courseId: id,
       courseName: raw.courseTitle || raw.course?.title || "",
       title: raw.classTitle || raw.title || "",
       instructorName: raw.trainerName || raw.trainer?.name || "Trainer",

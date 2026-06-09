@@ -102,25 +102,25 @@ export default function SiteNavbar() {
 
   if (isCheckout) {
     return (
-      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#1a8003]/70 bg-[#1a8003] text-gray-950 shadow-sm">
+      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-gray-200/80 bg-[#fbfcfd] text-gray-950 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
         <nav className="mx-auto flex h-full max-w-container-max items-center px-4 sm:px-6 lg:px-margin-desktop">
           <div className="flex items-center justify-between gap-6">
             <NavLink
               to={PATHS.HOME}
-              className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5"
+              className="inline-flex items-center"
               aria-label="LurnStack"
             >
               <img
                 src={logo}
                 alt="LurnStack"
-                className="h-11 w-auto object-contain"
+                className="h-16 w-auto object-contain"
                 loading="eager"
               />
             </NavLink>
             <button
               type="button"
               onClick={() => navigate(PATHS.HOME)}
-              className="font-label-sm text-label-sm text-gray-900 hover:text-black hover:underline"
+              className="font-label-sm text-label-sm text-gray-700 hover:text-gray-950 hover:underline"
             >
               Cancel
             </button>
@@ -132,20 +132,20 @@ export default function SiteNavbar() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-[#1a8003]/70 bg-[#1a8003] text-gray-950 shadow-sm">
+      <header className="fixed inset-x-0 top-0 z-50 h-[89px] overflow-visible border-b border-gray-200/80 bg-[#fbfcfd] text-gray-950 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
         <nav className="mx-auto flex h-full max-w-container-max items-center px-4 sm:px-6 lg:px-margin-desktop">
           <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-6">
             <div className="flex items-center gap-12 min-w-0">
               <NavLink
                 to={PATHS.HOME}
-                className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5 sm:h-16 sm:w-16"
+                className="inline-flex shrink-0 items-center"
                 onClick={closeMobileMenu}
                 aria-label="LurnStack"
               >
                 <img
                   src={logo}
                   alt="LurnStack"
-                  className="h-10 w-auto object-contain sm:h-12"
+                  className="h-14 w-auto object-contain sm:h-[72px]"
                   loading="eager"
                 />
               </NavLink>
@@ -158,6 +158,11 @@ export default function SiteNavbar() {
                     onSubmit={submitSearch}
                     placeholder="What would you like to learn?"
                     className="w-[360px] max-w-[40vw]"
+                    isAuthenticated={isAuthenticated}
+                    onSuggestionSelect={() => {
+                      setSearchQuery("");
+                      closeMobileMenu();
+                    }}
                   />
                 </div>
               ) : null}
@@ -176,20 +181,25 @@ export default function SiteNavbar() {
 
             <div className="hidden md:flex justify-center min-w-0">
               {!isAuthenticated ? (
-                <NavbarSearch
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onSubmit={submitSearch}
-                  placeholder="Search courses, skills, instructors..."
-                  className="w-full max-w-[520px]"
-                />
+                  <NavbarSearch
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onSubmit={submitSearch}
+                    placeholder="Search courses, skills, instructors..."
+                    className="w-full max-w-[520px]"
+                    isAuthenticated={isAuthenticated}
+                    onSuggestionSelect={() => {
+                      setSearchQuery("");
+                      closeMobileMenu();
+                    }}
+                  />
               ) : null}
             </div>
 
             <div className="flex items-center justify-end gap-4">
               <NavLink
                 to={PATHS.CART}
-                className="w-11 h-11 rounded-full border border-black/10 bg-white/85 hover:bg-white transition-colors flex items-center justify-center text-gray-900 hover:text-black"
+                className="w-11 h-11 rounded-full border border-gray-200 bg-gray-50 hover:bg-white hover:border-gray-300 transition-colors flex items-center justify-center text-gray-800 hover:text-gray-950"
                 aria-label="Cart"
               >
                 <span id="cart-icon" className="relative inline-flex items-center justify-center">
@@ -207,7 +217,7 @@ export default function SiteNavbar() {
                   <button
                     type="button"
                     onClick={() => setProfileOpen((v) => !v)}
-                    className="w-11 h-11 rounded-full border border-white/90 bg-white shadow-sm hover:bg-white transition-colors flex items-center justify-center ring-1 ring-black/5"
+                    className="w-11 h-11 rounded-full transition-colors flex items-center justify-center"
                     aria-label="Profile menu"
                   >
                     <span className="w-8 h-8 rounded-full bg-[#004d3d] text-white flex items-center justify-center font-extrabold text-xs">
@@ -284,22 +294,22 @@ export default function SiteNavbar() {
                 <div className="hidden sm:flex items-center gap-2">
                   <NavLink
                     to={PATHS.LOGIN}
-                    className="font-label-sm text-label-sm px-4 py-2.5 rounded-full border border-black/10 bg-white/90 text-gray-900 hover:bg-white hover:shadow-md hover:shadow-black/10 transition-all active:scale-95 duration-200 text-[12px]"
+                    className="font-label-sm text-label-sm px-4 py-2.5 rounded-full border border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:text-gray-950 hover:shadow-sm transition-all active:scale-95 duration-200 text-[12px]"
                   >
                     Login
                   </NavLink>
                   <NavLink
                     to={PATHS.SIGNUP}
-                    className="font-label-sm text-label-sm px-4 py-2.5 bg-black text-white rounded-full hover:bg-gray-900 hover:shadow-lg hover:shadow-black/10 transition-all active:scale-95 duration-200 text-[12px]"
+                    className="font-label-sm text-label-sm px-4 py-2.5 bg-[#004d3d] text-white rounded-full hover:bg-[#003d31] hover:shadow-lg hover:shadow-emerald-950/10 transition-all active:scale-95 duration-200 text-[12px]"
                   >
-                    Register
+                    Sign up
                   </NavLink>
                 </div>
               )}
 
               <button
                 onClick={toggleMobileMenu}
-                className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-black/10 transition-colors"
+                className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 aria-label="Toggle menu"
               >
                 <span
@@ -416,7 +426,7 @@ export default function SiteNavbar() {
                         Login
                       </MobileDrawerLink>
                       <MobileDrawerLink to={PATHS.SIGNUP} onClick={closeMobileMenu}>
-                        Register
+                        Sign up
                       </MobileDrawerLink>
                     </>
                   )}

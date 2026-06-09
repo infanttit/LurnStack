@@ -82,10 +82,10 @@ export default function SearchPage() {
                 Browse Courses
               </Link>
               <Link
-                to="/categories"
+                to="/courses"
                 className="px-4 py-2 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container-low transition-colors"
               >
-                Browse Categories
+                Browse Courses
               </Link>
             </div>
           </div>

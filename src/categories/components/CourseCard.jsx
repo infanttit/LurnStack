@@ -112,7 +112,8 @@ export default function CourseCard({
   const effectivePaid = isPaid || paymentVerified || hasPaidSessionAccess(id);
   const sessionIsFree =
     isFree === true ||
-    String(pricingState || "").trim().toUpperCase() === "FREE";
+    String(pricingState || "").trim().toUpperCase() === "FREE" ||
+    Number(amountPaise || 0) <= 0;
   const needsPayment = createdByTrainer && !sessionIsFree && paymentRequired && !effectivePaid;
   const canJoin = createdByTrainer && !needsPayment && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
   const timerLabel = !startMs
@@ -396,14 +397,23 @@ export default function CourseCard({
 
           {/* Mobile actions */}
           <div className={["grid gap-2 mt-auto pt-2 sm:hidden", createdByTrainer ? "grid-cols-2" : "grid-cols-1"].join(" ")}>
-            {createdByTrainer ? (
+            {createdByTrainer && needsPayment ? (
+              <button
+                type="button"
+                onClick={handlePayForClass}
+                disabled={paymentAction === "pay" || isEnded || unavailable}
+                className="w-full h-9 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {paymentAction === "pay" ? "Opening..." : "Pay Now"}
+              </button>
+            ) : createdByTrainer ? (
               <button
                 type="button"
                 onClick={handleJoinClass}
-                disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
+                disabled={paymentAction === "pay" || isEnded || unavailable || !canJoin}
                 className="w-full h-9 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
+                {paymentAction === "pay" ? "Opening..." : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
               </button>
             ) : null}
             <button
@@ -510,14 +520,23 @@ export default function CourseCard({
               </ul>
 
               <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[360px]:grid-cols-2" : "grid-cols-1"].join(" ")}>
-                {createdByTrainer ? (
+                {createdByTrainer && needsPayment ? (
+                  <button
+                    type="button"
+                    onClick={handlePayForClass}
+                    disabled={paymentAction === "pay" || isEnded || unavailable}
+                    className="w-full h-8 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {paymentAction === "pay" ? "Opening..." : "Pay Now"}
+                  </button>
+                ) : createdByTrainer ? (
                   <button
                     type="button"
                     onClick={handleJoinClass}
-                    disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
+                    disabled={paymentAction === "pay" || isEnded || unavailable || !canJoin}
                     className="w-full h-8 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
+                    {paymentAction === "pay" ? "Opening..." : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
                   </button>
                 ) : null}
                 <button
@@ -641,14 +660,23 @@ export default function CourseCard({
               </ul>
 
               <div className={["grid gap-2 mt-4", createdByTrainer ? "grid-cols-1 min-[420px]:grid-cols-2" : "grid-cols-1"].join(" ")}>
-                {createdByTrainer ? (
+                {createdByTrainer && needsPayment ? (
+                  <button
+                    type="button"
+                    onClick={handlePayForClass}
+                    disabled={paymentAction === "pay" || isEnded || unavailable}
+                    className="w-full h-10 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {paymentAction === "pay" ? "Opening..." : "Pay Now"}
+                  </button>
+                ) : createdByTrainer ? (
                   <button
                     type="button"
                     onClick={handleJoinClass}
-                    disabled={paymentAction === "pay" || isEnded || unavailable || (!needsPayment && !canJoin)}
+                    disabled={paymentAction === "pay" || isEnded || unavailable || !canJoin}
                     className="w-full h-10 flex items-center justify-center bg-[#00342b] hover:bg-[#004d40] text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {paymentAction === "pay" ? "Opening..." : needsPayment ? "Pay to Join" : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
+                    {paymentAction === "pay" ? "Opening..." : canJoin ? "Join" : sessionIsFree ? "Locked" : effectivePaid ? "Paid" : "Locked"}
                   </button>
                 ) : null}
                 <button

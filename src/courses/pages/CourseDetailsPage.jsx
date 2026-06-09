@@ -398,12 +398,14 @@ export default function CourseDetailsPage() {
 
   useOfferCampaignClick(offerTargetType, detailId);
 
+  const remoteCourseMatches = remoteCourse && String(remoteCourse.id) === String(detailId);
   const course = useMemo(() => {
     const fromState = location?.state?.course;
     if (fromState && String(fromState.id) === String(detailId)) return fromState;
-    if (sessionId) return remoteCourse;
-    return remoteCourse || getCourseById(detailId);
-  }, [detailId, location?.state, remoteCourse, sessionId]);
+    if (remoteCourseMatches) return remoteCourse;
+    if (sessionId) return null;
+    return getCourseById(detailId);
+  }, [detailId, location?.state, remoteCourse, remoteCourseMatches, sessionId]);
   const isInCart = useMemo(
     () => items.some((item) => String(item.sessionId || item.id) === String(course?.id || "")),
     [course?.id, items]
@@ -492,7 +494,8 @@ export default function CourseDetailsPage() {
     const sessionIsFree =
       course.isFree === true ||
       course.is_free === true ||
-      String(course.pricingState || course.pricing_state || "").trim().toUpperCase() === "FREE";
+      String(course.pricingState || course.pricing_state || "").trim().toUpperCase() === "FREE" ||
+      Number(course.amountPaise || course.amount_paise || liveClass?.amountPaise || 0) <= 0;
     const effectivePaid = course.isPaid || paymentVerified || hasPaidSessionAccess(liveClass?.id || course.id);
     const needsPayment = !sessionIsFree && course.paymentRequired && !effectivePaid;
     const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
