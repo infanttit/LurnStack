@@ -73,11 +73,11 @@ export default function CheckoutPage() {
             {step === 1 && (
               <div className="pb-8">
                 <p className="text-sm text-on-surface-variant leading-relaxed mb-6 max-w-xl">
-                  A Udemy account is required to access your purchased courses. Please
+                  A LurnStack account is required to access your purchased courses. Please
                   verify that your email address is correct, as we'll use it to send your order
                   confirmation. By signing up, you agree to our{" "}
                   <Link to="/terms" className="text-primary underline hover:no-underline">
-                    Terms of Use
+                    Terms and Conditions
                   </Link>{" "}
                   and{" "}
                   <Link to="/privacy" className="text-primary underline hover:no-underline">

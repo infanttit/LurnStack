@@ -16,6 +16,7 @@ export const PATHS = {
   CHECKOUT: "/checkout",
   TERMS: "/terms",
   PRIVACY: "/privacy",
+  DATA_DELETION: "/data-deletion",
   PROFILE: "/profile",
   STUDENT_ATTENDANCE: "/profile#attendance",
   TRAINER_ATTENDANCE: "/trainer/attendance",
@@ -29,6 +30,6 @@ export const PATHS = {
 
 export function categoryHashPath(categoryId) {
   const id = String(categoryId || "").trim();
-  if (!id) return PATHS.CATEGORIES;
-  return `${PATHS.CATEGORIES}#${encodeURIComponent(id)}`;
+  if (!id) return PATHS.COURSES;
+  return `${PATHS.COURSES}?category=${encodeURIComponent(id)}`;
 }

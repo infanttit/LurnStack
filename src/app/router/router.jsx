@@ -2,7 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "../AppShell";
 import LandingPage from "../../pages/LandingPage";
 import SimplePage from "../../pages/SimplePage";
-import CategoriesPage from "../../categories/pages/Categories";
+import PrivacyPolicyPage from "../../pages/PrivacyPolicyPage";
+import TermsAndConditionsPage from "../../pages/TermsAndConditionsPage";
 import SignupPage from "../../auth/pages/SignupPage";
 import LoginPage from "../../auth/pages/LoginPage";
 import ForgotPasswordPage from "../../auth/pages/ForgotPasswordPage";
@@ -51,8 +52,8 @@ export default function AppRouter() {
         />
         <Route path={PATHS.COURSES} element={<CoursesPage />} />
         <Route path={PATHS.COURSE_DETAILS} element={<CourseDetailsPage />} />
-        <Route path={PATHS.CATEGORIES} element={<CategoriesPage />} />
-        <Route path={PATHS.CATEGORY_DETAILS} element={<CategoriesPage />} />
+        <Route path={PATHS.CATEGORIES} element={<Navigate to={PATHS.COURSES} replace />} />
+        <Route path={PATHS.CATEGORY_DETAILS} element={<Navigate to={PATHS.COURSES} replace />} />
         <Route path={PATHS.SEARCH} element={<SearchPage />} />
         <Route path={PATHS.SESSIONS} element={<StudentSessionsPage />} />
         <Route path={PATHS.SESSION_DETAILS} element={<CourseDetailsPage />} />
@@ -67,10 +68,14 @@ export default function AppRouter() {
             </RequireAuth>
           )}
         />
-        <Route path={PATHS.TERMS} element={<SimplePage title="Terms of Use" />} />
+        <Route path={PATHS.TERMS} element={<TermsAndConditionsPage />} />
         <Route
           path={PATHS.PRIVACY}
-          element={<SimplePage title="Privacy Policy" />}
+          element={<PrivacyPolicyPage />}
+        />
+        <Route
+          path={PATHS.DATA_DELETION}
+          element={<Navigate to={PATHS.PRIVACY} replace />}
         />
         <Route path={PATHS.PLANS} element={<SimplePage title="Plans" />} />
         <Route path={PATHS.LOGIN} element={<LoginPage />} />

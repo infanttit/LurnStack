@@ -17,7 +17,7 @@ export function openPendingMeetingWindow() {
             }
             body {
               color: #073b32;
-              font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              font-family: Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             }
             .ls-shell {
               min-height: 100vh;
@@ -220,7 +220,7 @@ function renderMobileMeetingPrompt(meetingWindow, meetingLink) {
         }
         body {
           color: #073b32;
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
         .ls-shell {
           min-height: 100vh;

@@ -12,6 +12,17 @@ import { getPublicUpcomingSessions, getStudentSessions } from "../../courses/api
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
 
 const authenticatedHeroImages = [heroLoginImage, heroLoginImageAlt];
+const HERO_INTRO_SEEN_KEY = "lurnstack:hero:intro-seen:v1";
+
+function hasSeenHeroIntro() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(HERO_INTRO_SEEN_KEY) === "true";
+}
+
+function rememberHeroIntroSeen() {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(HERO_INTRO_SEEN_KEY, "true");
+}
 
 function formatSessionTime(iso) {
   const date = new Date(iso);
@@ -120,7 +131,9 @@ function UpcomingSessionsTicker() {
                 : "bg-sky-500 shadow-[0_0_0_4px_rgba(14,165,233,0.12)]";
               const badgeClass = session.isLive
                 ? "auth-live-badge bg-red-600 text-white ring-red-200"
-                : "bg-white text-sky-800 ring-sky-100";
+                : session?.isFree
+                  ? "bg-emerald-600 text-white ring-emerald-200 shadow-[0_6px_16px_rgba(16,185,129,0.22)]"
+                  : "bg-indigo-600 text-white ring-indigo-200 shadow-[0_6px_16px_rgba(79,70,229,0.22)]";
               return (
                 <Link
                   key={`${session.id}-${index}`}
@@ -149,7 +162,7 @@ export default function HeroSection() {
   const { isAuthenticated } = useAuth();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [authHeroImageIndex, setAuthHeroImageIndex] = useState(0);
-  const [bannerGone, setBannerGone] = useState(false);
+  const [bannerGone, setBannerGone] = useState(() => isAuthenticated || hasSeenHeroIntro());
   const [displayedHeading1, setDisplayedHeading1] = useState("");
   const [displayedHeading2, setDisplayedHeading2] = useState("");
   const [displayedDescription, setDisplayedDescription] = useState("");
@@ -159,7 +172,21 @@ export default function HeroSection() {
   const descriptionText = "Access elite education from global experts. Our structured paths are meticulously designed for those aiming to master high-impact skills in technology and design.";
 
   useEffect(() => {
-    if (isAuthenticated) return;
+    if (isAuthenticated) {
+      rememberHeroIntroSeen();
+      setBannerGone(true);
+      return;
+    }
+
+    if (hasSeenHeroIntro()) {
+      setBannerGone(true);
+      setDisplayedHeading1(headingText);
+      setDisplayedHeading2(headingText2);
+      setDisplayedDescription(descriptionText);
+      return;
+    }
+
+    rememberHeroIntroSeen();
 
     // Keep banner visible for 5s, then begin the handoff
     const liftTimer = setTimeout(() => {
@@ -209,7 +236,7 @@ export default function HeroSection() {
       clearTimeout(descTimer);
       clearTimeout(doneTimer);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, descriptionText, headingText, headingText2]);
 
   // Authenticated hero image rotation
   useEffect(() => {

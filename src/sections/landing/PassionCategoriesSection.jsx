@@ -243,7 +243,7 @@ export default function PassionCategoriesSection() {
             className="relative z-20 mt-10"
           >
             <Link
-              to="/categories"
+              to="/courses"
               className="group inline-flex items-center gap-2 rounded-lg bg-[#54d410] px-5 py-3 text-sm font-black text-gray-950 shadow-[0_14px_28px_rgba(84,212,16,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(84,212,16,0.32)]"
             >
               All Categories

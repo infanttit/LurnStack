@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FiGlobe, FiMail, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
 import logo from "../../assets/Logo/Logo4.png";
 
@@ -6,7 +6,7 @@ function FooterLink({ to, children }) {
   return (
     <Link
       to={to}
-      className="text-sm text-black/70 hover:text-black transition-colors duration-200"
+      className="text-sm text-gray-600 hover:text-gray-950 transition-colors duration-200"
     >
       {children}
     </Link>
@@ -18,7 +18,7 @@ function SocialBtn({ to, label, children }) {
     <Link
       to={to}
       aria-label={label}
-      className="w-8 h-8 rounded-full border border-black/20 flex items-center justify-center text-black hover:text-black hover:border-black/40 hover:bg-white/35 transition-all duration-200"
+      className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:text-[#004d3d] hover:border-[#004d3d]/30 hover:bg-emerald-50 transition-all duration-200"
     >
       {children}
     </Link>
@@ -37,16 +37,6 @@ const NAV = [
     ],
   },
   {
-    heading: "Categories",
-    links: [
-      { label: "Development", to: "/categories/development" },
-      { label: "AI & Machine Learning", to: "/categories/ai-ml" },
-      { label: "Design", to: "/categories/design" },
-      { label: "Business", to: "/categories/business" },
-      { label: "Marketing", to: "/categories/marketing" },
-    ],
-  },
-  {
     heading: "Company",
     links: [
       { label: "About Us", to: "/about" },
@@ -62,14 +52,14 @@ const NAV = [
       { label: "Help Center", to: "/help" },
       { label: "Community", to: "/community" },
       { label: "Privacy Policy", to: "/privacy" },
-      { label: "Terms of Use", to: "/terms" },
+      { label: "Terms and Conditions", to: "/terms" },
     ],
   },
 ];
 
 export default function SiteFooter() {
   return (
-    <footer className="max-w-full overflow-hidden bg-[#1a8003] text-black">
+    <footer className="max-w-full overflow-hidden border-t border-gray-200/80 bg-[#fbfcfd] text-gray-950 shadow-[0_-12px_36px_rgba(15,23,42,0.06)]">
       {/* Top section */}
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-12 sm:px-6 sm:pt-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-12">
@@ -78,22 +68,22 @@ export default function SiteFooter() {
           <div className="lg:col-span-4 space-y-5">
             {/* Logo */}
             <div>
-              <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
+              <div className="inline-flex items-center">
                 <img
                   src={logo}
                   alt="LurnStack"
-                  className="h-14 w-auto object-contain"
+                  className="h-20 w-auto object-contain"
                   loading="lazy"
                 />
                 <span className="sr-only">LurnStack</span>
               </div>
-              <p className="mt-3 max-w-xs break-words text-sm leading-relaxed text-black/70">
+              <p className="mt-3 max-w-xs break-words text-sm leading-relaxed text-gray-600">
                 Industry-aligned courses, expert mentors, and verified certificates to power your next career leap.
               </p>
             </div>
 
             {/* Rating badge */}
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-black/10 bg-white/40">
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-gray-50">
               <div className="flex items-center gap-0.5">
                 {[1,2,3,4,5].map((s) => (
                   <svg key={s} className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20">
@@ -101,8 +91,8 @@ export default function SiteFooter() {
                   </svg>
                 ))}
               </div>
-              <span className="text-xs font-bold text-black">4.9</span>
-              <span className="text-xs text-black/70">Â· 50,000+ students</span>
+              <span className="text-xs font-bold text-gray-950">4.9</span>
+              <span className="text-xs text-gray-600">&middot; 50,000+ students</span>
             </div>
 
             {/* Socials */}
@@ -123,18 +113,18 @@ export default function SiteFooter() {
 
             {/* Newsletter */}
             <div>
-              <p className="text-xs font-semibold text-black uppercase tracking-wider mb-2">
+              <p className="text-xs font-semibold text-gray-950 uppercase tracking-wider mb-2">
                 Weekly learning digest
               </p>
               <div className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-[1fr_auto]">
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="min-w-0 bg-white/70 border border-black/10 rounded-lg px-3 py-2 text-sm text-black placeholder-black/45 focus:outline-none focus:border-black/40 transition-colors"
+                  className="min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-950 placeholder:text-gray-400 focus:outline-none focus:border-[#004d3d] focus:ring-4 focus:ring-emerald-900/10 transition-colors"
                 />
                 <button
                   type="button"
-                  className="px-3 py-2 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-900 transition-colors whitespace-nowrap"
+                  className="px-3 py-2 bg-[#004d3d] text-white rounded-lg text-sm font-bold hover:bg-[#003d31] transition-colors whitespace-nowrap"
                 >
                   Subscribe
                 </button>
@@ -146,7 +136,7 @@ export default function SiteFooter() {
           <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
             {NAV.map((col) => (
               <div key={col.heading} className="space-y-3">
-                <h5 className="text-xs font-bold text-black uppercase tracking-widest">
+                <h5 className="text-xs font-bold text-gray-950 uppercase tracking-widest">
                   {col.heading}
                 </h5>
                 <ul className="space-y-2.5">
@@ -162,23 +152,23 @@ export default function SiteFooter() {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-black/10" />
+        <div className="border-t border-gray-200" />
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-black/60">
-            Â© {new Date().getFullYear()} Tamil info technology. All rights reserved.
+          <p className="text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} LurnStack. All rights reserved.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-black/60 sm:justify-end">
+          <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-gray-500 sm:justify-end">
             <FiGlobe className="text-[12px]" />
             <span>English</span>
-            <span className="mx-3">Â·</span>
-            <Link to="/privacy" className="hover:text-black transition-colors">Privacy</Link>
-            <span className="mx-3">Â·</span>
-            <Link to="/cookies" className="hover:text-black transition-colors">Cookies</Link>
-            <span className="mx-3">Â·</span>
-            <Link to="/terms" className="hover:text-black transition-colors">Terms</Link>
+            <span className="mx-3">&middot;</span>
+            <Link to="/privacy" className="hover:text-gray-950 transition-colors">Privacy Policy</Link>
+            <span className="mx-3">&middot;</span>
+            <Link to="/cookies" className="hover:text-gray-950 transition-colors">Cookies</Link>
+            <span className="mx-3">&middot;</span>
+            <Link to="/terms" className="hover:text-gray-950 transition-colors">Terms and Conditions</Link>
           </div>
         </div>
       </div>

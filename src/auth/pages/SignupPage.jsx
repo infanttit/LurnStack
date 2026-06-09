@@ -492,7 +492,7 @@ const PolicyModal = ({ type, onClose, onAccept }) => {
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white">
           <div>
             <h2 className="text-2xl font-extrabold text-[#004d3d]">
-              {isTerms ? "Terms of Service" : "Privacy Policy"}
+              {isTerms ? "Terms and Conditions" : "Privacy Policy"}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {isTerms ? "Please review our guidelines" : "How we handle your data"}
@@ -528,7 +528,7 @@ const PolicyModal = ({ type, onClose, onAccept }) => {
                 </h3>
                 <p>
                   By creating an account on LurnStack, you agree to be bound by these
-                  Terms of Service and all applicable laws and regulations.
+                  Terms and Conditions and all applicable laws and regulations.
                 </p>
               </section>
               <section>
@@ -765,7 +765,7 @@ export default function SignupPage() {
 
   const ensurePolicyAccepted = () => {
     if (!form.agree) {
-      setToastMessage("Please agree to the Terms & Privacy Policy.");
+      setToastMessage("Please agree to the Terms and Conditions and Privacy Policy.");
       setToastTone("warn");
       return false;
     }
@@ -1235,7 +1235,7 @@ export default function SignupPage() {
                         onClick={() => setActiveModal("terms")}
                         className="font-bold text-slate-600 hover:text-[#004d3d] transition-colors underline decoration-slate-200 underline-offset-2"
                       >
-                        Terms
+                        Terms and Conditions
                       </button>{" "}
                       and{" "}
                       <button
@@ -1243,7 +1243,7 @@ export default function SignupPage() {
                         onClick={() => setActiveModal("privacy")}
                         className="font-bold text-slate-600 hover:text-[#004d3d] transition-colors underline decoration-slate-200 underline-offset-2"
                       >
-                        Privacy
+                        Privacy Policy
                       </button>
                       .
                     </span>

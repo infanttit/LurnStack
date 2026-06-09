@@ -119,7 +119,7 @@ function CategoryCard({ category }) {
       variants={cardVariants}
       whileHover={{ y: -8 }}
       onClick={() =>
-        navigate(`/categories#${id}`, {
+        navigate(`/courses?category=${encodeURIComponent(id)}`, {
           state: { category: name, gradient, courses: courseCount, categoryId: id },
         })
       }
@@ -310,7 +310,7 @@ export default function CategoriesSection() {
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
-                to="/categories"
+                to="/courses"
                 className="group inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg font-medium text-sm text-white shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300"
               >
                 Browse All Categories

@@ -28,12 +28,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const FacebookIcon = () => (
-  <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-  </svg>
-);
-
 /* ─── Logo ───────────────────────────────────────────────────── */
 const Logo = ({ dark = false }) => (
   <Link to="/" className="inline-flex items-center" aria-label="LurnStack home">
@@ -125,6 +119,7 @@ export default function LoginPage() {
     if (target && target !== PATHS.DASHBOARD && target !== PATHS.LOGIN) return target;
     return PATHS.HOME;
   })();
+  const googleRedirectTo = redirectTo === PATHS.HOME ? PATHS.DASHBOARD : redirectTo;
 
   useEffect(() => {
     if (!externalToken && !externalError) return undefined;
@@ -143,7 +138,7 @@ export default function LoginPage() {
         await signInWithToken({ token: externalToken, remember: true });
         if (active) {
           window.history.replaceState({}, document.title, window.location.pathname);
-          navigate(redirectTo, { replace: true });
+          navigate(googleRedirectTo, { replace: true });
         }
       } catch (err) {
         if (active) {
@@ -162,12 +157,12 @@ export default function LoginPage() {
     return () => {
       active = false;
     };
-  }, [externalError, externalToken, isAuthenticated, navigate, redirectTo, signInWithToken]);
+  }, [externalError, externalToken, googleRedirectTo, isAuthenticated, navigate, signInWithToken]);
 
   if (isAuthenticated) {
     return (
       <Navigate
-        to={userRole === "student" ? redirectTo : PATHS.HOME}
+        to={userRole === "student" ? (externalToken ? googleRedirectTo : redirectTo) : PATHS.HOME}
         replace
       />
     );
@@ -223,14 +218,8 @@ export default function LoginPage() {
     if (redirectTo && redirectTo !== PATHS.HOME) {
       loginUrl.searchParams.set("redirect", redirectTo);
     }
-    const isLocal =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
     const configuredBaseUrl = String(env.apiBaseUrl || "").replace(/\/+$/, "");
-    const baseUrl =
-      isLocal && configuredBaseUrl === "https://api.lurnstack.com"
-        ? "http://localhost:5000"
-        : configuredBaseUrl;
+    const baseUrl = configuredBaseUrl || "https://api.lurnstack.com";
     const redirectToLogin = loginUrl.toString();
     const authUrl = `${baseUrl}/api/auth/google?redirect=${encodeURIComponent(redirectToLogin)}`;
 
@@ -359,7 +348,7 @@ export default function LoginPage() {
                 <div className="relative flex justify-center"><span className="px-4 bg-white text-slate-400 text-[8px] uppercase tracking-[0.2em] font-bold">OR CONTINUE WITH</span></div>
               </div>
 
-              <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3 anim-3">
+              <div className="grid grid-cols-1 gap-3 anim-3">
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
@@ -368,10 +357,6 @@ export default function LoginPage() {
                 >
                   <GoogleIcon />
                   <span>{socialLoading ? "Opening..." : "Google"}</span>
-                </button>
-                <button type="button" className="h-9 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold transition-all shadow-sm">
-                  <FacebookIcon />
-                  <span>Facebook</span>
                 </button>
               </div>
 
