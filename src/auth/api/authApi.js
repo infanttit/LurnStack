@@ -151,3 +151,23 @@ export async function resetPasswordApi({ token, newPassword }) {
     throw new Error(getAxiosErrorMessage(err, "Unable to reset password. Please try again."));
   }
 }
+
+export async function updateProfileApi(data) {
+  try {
+    const res = await axiosClient.put("/api/auth/profile", data);
+    const result = unwrap(res);
+    return normalizeProfile(result);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to update profile."));
+  }
+}
+
+export async function deleteAccountApi() {
+  try {
+    const res = await axiosClient.delete("/api/auth/profile");
+    return unwrap(res);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to delete account."));
+  }
+}
+

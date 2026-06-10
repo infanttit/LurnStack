@@ -10,18 +10,23 @@ import {
   HiOutlinePhone,
   HiOutlineShieldCheck,
   HiOutlineUserCircle,
+  HiOutlinePencilSquare,
+  HiOutlineTrash,
+  HiOutlineCheck,
+  HiOutlineXMark,
+  HiOutlineExclamationTriangle,
 } from "react-icons/hi2";
 import { useAuth } from "../model/AuthContext";
-import { getAuthProfileApi } from "../api/authApi";
+import { getAuthProfileApi, updateProfileApi, deleteAccountApi } from "../api/authApi";
 import { PATHS } from "../../app/router/paths";
 import {
   formatAttendanceStatus,
   getStudentAttendanceOverview,
 } from "../../courses/api/studentAttendanceApi";
 
-const ENABLE_REMOTE_PROFILE = process.env.REACT_APP_ENABLE_REMOTE_PROFILE === "true";
+const ENABLE_REMOTE_PROFILE = String(process.env.REACT_APP_ENABLE_REMOTE_PROFILE || "").trim() === "true";
 const DISABLE_STUDENT_ATTENDANCE_HISTORY =
-  process.env.REACT_APP_ENABLE_STUDENT_ATTENDANCE_HISTORY === "false";
+  String(process.env.REACT_APP_ENABLE_STUDENT_ATTENDANCE_HISTORY || "").trim() === "false";
 
 function initials(name) {
   const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
@@ -69,6 +74,267 @@ function DetailCard({ icon: Icon, label, value }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function EditableDetailCard({ icon: Icon, label, value, onSave, onDelete, isRequired = false, placeholder = "" }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(value || "");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setInputValue(value || "");
+  }, [value]);
+
+  const handleSave = async () => {
+    const trimmed = inputValue.trim();
+    if (isRequired && !trimmed) {
+      alert(`${label} cannot be empty.`);
+      return;
+    }
+    setLoading(true);
+    try {
+      await onSave(trimmed);
+      setIsEditing(false);
+    } catch (err) {
+      // Error is handled by parent, reset value
+      setInputValue(value || "");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setInputValue(value || "");
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="group relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#004d3d]">
+            <Icon className="text-xl" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+              {label}
+            </div>
+            {isEditing ? (
+              <div className="mt-1 flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={inputValue}
+                  disabled={loading}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full rounded-lg border border-slate-300 px-2.5 py-1 text-sm font-semibold text-slate-900 focus:border-[#004d3d] focus:outline-none focus:ring-1 focus:ring-[#004d3d] disabled:opacity-50"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                  title="Save"
+                >
+                  <HiOutlineCheck className="text-base" />
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={loading}
+                  className="rounded-lg bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                  title="Cancel"
+                >
+                  <HiOutlineXMark className="text-base" />
+                </button>
+              </div>
+            ) : (
+              <div className="mt-1 break-words text-sm font-bold text-slate-900">
+                {value || <span className="text-slate-400 font-medium italic">Not available</span>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {!isEditing && (
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 shrink-0">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-all"
+              title={`Edit ${label}`}
+            >
+              <HiOutlinePencilSquare className="text-base" />
+            </button>
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all"
+                title={`Clear ${label}`}
+              >
+                <HiOutlineTrash className="text-base" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DeletionModal({ isOpen, onClose, onConfirm }) {
+  const [confirmInput, setConfirmInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setConfirmInput("");
+      setLoading(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    if (confirmInput !== "DELETE MY ACCOUNT") return;
+    setLoading(true);
+    await onConfirm();
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-6 shadow-2xl transition-all duration-300 border border-slate-100 modal-anim">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 mb-4 ring-8 ring-red-50/50">
+            <HiOutlineExclamationTriangle className="text-3xl" />
+          </div>
+          <h3 className="text-xl font-black text-slate-900">Delete Account</h3>
+          <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">
+            This action is irreversible. All of your course progress, attendance history, and certificates will be permanently deleted.
+          </p>
+
+          <div className="mt-4 w-full rounded-2xl bg-red-50/50 p-4 border border-red-100/50 text-left text-xs font-semibold text-red-800 space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5">•</span>
+              <span>Your profile data will be permanently cleared.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5">•</span>
+              <span>All active course enrollments will be terminated.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5">•</span>
+              <span>You will be logged out of this session immediately.</span>
+            </div>
+          </div>
+
+          <div className="mt-5 w-full text-left">
+            <label className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+              Type "DELETE MY ACCOUNT" to confirm
+            </label>
+            <input
+              type="text"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder="DELETE MY ACCOUNT"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 placeholder-slate-400 outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-500/5"
+            />
+          </div>
+
+          <div className="mt-6 flex w-full flex-col sm:flex-row gap-3">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="w-full rounded-2xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={confirmInput !== "DELETE MY ACCOUNT" || loading}
+              className="w-full rounded-2xl bg-red-600 py-3 text-sm font-bold text-white shadow-xl shadow-red-900/10 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Deleting..." : "Permanently Delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <style>{`
+        @keyframes modal-in {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-anim { animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+      `}</style>
+    </div>
+  );
+}
+
+function Toast({ message, onClose, tone = "warn" }) {
+  useEffect(() => {
+    if (!message) return undefined;
+    const t = window.setTimeout(onClose, 4000);
+    return () => window.clearTimeout(t);
+  }, [message, onClose]);
+
+  if (!message) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[200]">
+      <div className="toast-slide w-[320px] max-w-[calc(100vw-2rem)] bg-[#121212] text-white rounded-[12px] shadow-2xl border border-white/10 overflow-hidden">
+        <div className="px-4 py-3 flex items-start gap-3">
+          <div className="mt-0.5 shrink-0">
+            {tone === "warn" ? (
+              <div className="w-5 h-5 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center text-[12px] font-black">
+                !
+              </div>
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-300 flex items-center justify-center text-[12px] font-black">
+                ✓
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase tracking-widest font-bold text-white/70">
+              {tone === "warn" ? "Warning" : "Success"}
+            </div>
+            <div className="mt-0.5 text-[12px] leading-snug text-white/95">
+              {message}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close toast"
+            className="shrink-0 w-8 h-8 rounded-lg hover:bg-white/5 transition-colors text-white/70 hover:text-white flex items-center justify-center"
+          >
+            ×
+          </button>
+        </div>
+        <div className="h-1 bg-white/10">
+          <div className={`toast-bar h-full ${tone === "warn" ? "bg-red-500" : "bg-emerald-500"}`} />
+        </div>
+      </div>
+      <style>{`
+        @keyframes toast-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .toast-slide { animation: toast-in 0.25s ease-out both; }
+        @keyframes toast-bar {
+          from { transform: scaleX(1); }
+          to { transform: scaleX(0); }
+        }
+        .toast-bar {
+          transform-origin: left;
+          animation: toast-bar 4s linear both;
+        }
+      `}</style>
     </div>
   );
 }
@@ -126,6 +392,77 @@ export default function ProfilePage() {
   const [attendanceCourses, setAttendanceCourses] = useState([]);
   const [attendanceNotice, setAttendanceNotice] = useState("");
   const [notice, setNotice] = useState("");
+
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastTone, setToastTone] = useState("warn");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleUpdateName = async (newName) => {
+    try {
+      const updated = await updateProfileApi({ fullName: newName });
+      setRemoteProfile(updated);
+      setToastTone("success");
+      setToastMessage("Name updated successfully!");
+    } catch (err) {
+      setToastTone("warn");
+      setToastMessage(err.message || "Failed to update name.");
+      throw err;
+    }
+  };
+
+  const handleUpdateEmail = async (newEmail) => {
+    try {
+      const updated = await updateProfileApi({ email: newEmail });
+      setRemoteProfile(updated);
+      setToastTone("success");
+      setToastMessage("Email address updated successfully!");
+    } catch (err) {
+      setToastTone("warn");
+      setToastMessage(err.message || "Failed to update email address.");
+      throw err;
+    }
+  };
+
+  const handleUpdatePhone = async (newPhone) => {
+    try {
+      const updated = await updateProfileApi({ phoneNumber: newPhone });
+      setRemoteProfile(updated);
+      setToastTone("success");
+      setToastMessage("Phone number updated successfully!");
+    } catch (err) {
+      setToastTone("warn");
+      setToastMessage(err.message || "Failed to update phone number.");
+      throw err;
+    }
+  };
+
+  const handleClearPhone = async () => {
+    if (!window.confirm("Are you sure you want to clear your phone number?")) return;
+    try {
+      const updated = await updateProfileApi({ phoneNumber: null });
+      setRemoteProfile(updated);
+      setToastTone("success");
+      setToastMessage("Phone number cleared successfully!");
+    } catch (err) {
+      setToastTone("warn");
+      setToastMessage(err.message || "Failed to clear phone number.");
+    }
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    try {
+      await deleteAccountApi();
+      setToastTone("success");
+      setToastMessage("Your account has been deleted successfully.");
+      setTimeout(async () => {
+        await signOut();
+        navigate(PATHS.HOME);
+      }, 1500);
+    } catch (err) {
+      setToastTone("warn");
+      setToastMessage(err.message || "Failed to delete account. Please try again.");
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -268,9 +605,31 @@ export default function ProfilePage() {
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <DetailCard icon={HiOutlineUserCircle} label="Full name" value={profile.fullName} />
-                <DetailCard icon={HiOutlineEnvelope} label="Email address" value={profile.email} />
-                <DetailCard icon={HiOutlinePhone} label="Phone number" value={profile.phoneNumber} />
+                <EditableDetailCard
+                  icon={HiOutlineUserCircle}
+                  label="Full name"
+                  value={profile.fullName}
+                  onSave={handleUpdateName}
+                  isRequired={true}
+                  placeholder="Enter full name"
+                />
+                <EditableDetailCard
+                  icon={HiOutlineEnvelope}
+                  label="Email address"
+                  value={profile.email}
+                  onSave={handleUpdateEmail}
+                  isRequired={true}
+                  placeholder="Enter email address"
+                />
+                <EditableDetailCard
+                  icon={HiOutlinePhone}
+                  label="Phone number"
+                  value={profile.phoneNumber === "Not available" ? "" : profile.phoneNumber}
+                  onSave={handleUpdatePhone}
+                  onDelete={profile.phoneNumber && profile.phoneNumber !== "Not available" ? handleClearPhone : null}
+                  isRequired={false}
+                  placeholder="Enter phone number"
+                />
                 <DetailCard icon={HiOutlineIdentification} label="Account role" value={roleLabel} />
                 <DetailCard icon={HiOutlineCalendarDays} label="Joined on" value={formatDate(profile.createdAt)} />
                 <DetailCard icon={HiOutlineShieldCheck} label="Security status" value="Protected session" />
@@ -397,6 +756,29 @@ export default function ProfilePage() {
               )}
             </div>
             </section>
+
+            {/* Danger Zone Section */}
+            <section className="rounded-3xl border border-red-200 bg-red-50/20 p-5 shadow-sm sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h2 className="text-xl font-black text-red-950 flex items-center gap-2">
+                    <HiOutlineExclamationTriangle className="text-red-600" />
+                    Danger Zone
+                  </h2>
+                  <p className="text-sm font-medium text-red-800/80">
+                    Permanently delete your LurnStack account and all of your data. This action is irreversible.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-extrabold text-white transition-all hover:bg-red-700 shadow-md shadow-red-900/10 active:scale-[0.98]"
+                >
+                  <HiOutlineTrash className="text-base" />
+                  Delete Account
+                </button>
+              </div>
+            </section>
           </div>
 
           <aside className="space-y-5">
@@ -436,6 +818,20 @@ export default function ProfilePage() {
           </aside>
         </div>
       </section>
+
+      {/* Styled Confirmation Modal */}
+      <DeletionModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDeleteAccount}
+      />
+
+      {/* Custom Toast Alerts */}
+      <Toast
+        message={toastMessage}
+        tone={toastTone}
+        onClose={() => setToastMessage("")}
+      />
     </main>
   );
 }
