@@ -18,7 +18,10 @@ import {
   getPublicSessionById,
   getStudentSessionById,
   joinStudentSession,
+  getCourseAccessId,
+  hasPaidCourseAccess,
   hasPaidSessionAccess,
+  rememberPaidCourseAccess,
   rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
@@ -30,6 +33,7 @@ import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
 import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
 import useOfferCampaignClick from "../hooks/useOfferCampaignClick";
+import { rememberRecentlyJoinedSession } from "../../my-learning/utils/learningModel";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -59,8 +63,8 @@ function toCartItem(course) {
 
 function isCourseSessionCompleted(course) {
   const liveClass = course?.liveClass;
-  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, Date.now(), { defaultRecurring: false });
-  return startMs > 0 && Date.now() > endMs;
+  const occurrence = getSessionOccurrenceTiming(liveClass, Date.now(), { defaultRecurring: false });
+  return !occurrence.isRecurring && occurrence.startMs > 0 && Date.now() > occurrence.endMs;
 }
 
 const MOCK_SECTIONS = [
@@ -485,18 +489,30 @@ export default function CourseDetailsPage() {
 
   if (course.createdByTrainer) {
     const liveClass = course.liveClass || liveClasses[0] || null;
-    const sessionCompleted = isCourseSessionCompleted({ ...course, liveClass });
     const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
     const unavailable = isSessionUnavailable(liveClass);
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
-    const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+    const currentOccurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+    const occurrence = getSessionOccurrenceTiming(liveClass, now, {
+      defaultRecurring: false,
+      rollForwardAfterEnd: true,
+    });
     const { startMs, endMs } = occurrence;
+    const todayCompleted =
+      currentOccurrence.startMs > 0 && now > currentOccurrence.endMs && currentOccurrence.isRecurring;
+    const sessionCompleted = !occurrence.isRecurring && startMs > 0 && now > endMs;
+    const courseAccessId = getCourseAccessId({ ...course, liveClass }) || course.id;
     const sessionIsFree =
       course.isFree === true ||
       course.is_free === true ||
       String(course.pricingState || course.pricing_state || "").trim().toUpperCase() === "FREE" ||
       Number(course.amountPaise || course.amount_paise || liveClass?.amountPaise || 0) <= 0;
-    const effectivePaid = course.isPaid || paymentVerified || hasPaidSessionAccess(liveClass?.id || course.id);
+    const effectivePaid =
+      course.isPaid ||
+      course.hasCourseAccess ||
+      paymentVerified ||
+      hasPaidCourseAccess(courseAccessId) ||
+      hasPaidSessionAccess(liveClass?.id || course.id);
     const needsPayment = !sessionIsFree && course.paymentRequired && !effectivePaid;
     const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
     const attendanceStatus =
@@ -520,8 +536,10 @@ export default function CourseDetailsPage() {
         ? "Class cancelled"
         : needsPayment
           ? "Payment required before joining."
-        : now > endMs
+        : sessionCompleted
           ? "Today's session completed."
+          : todayCompleted
+            ? "Today's session completed. Next class opens on the next scheduled day."
           : now < startMs
             ? `Join opens when class starts - ${formatDuration(startMs - now)} left`
             : "Live now";
@@ -551,7 +569,10 @@ export default function CourseDetailsPage() {
       setSessionAction("pay");
       try {
         const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-        const booking = await createStudentSessionBooking(liveClass.id, { sessionDate });
+        const booking = await createStudentSessionBooking(liveClass.id, {
+          sessionDate,
+          courseId: courseAccessId,
+        });
         if (!booking.alreadyPaid) {
           const payment = await openRazorpayCheckout({
             keyId: booking.keyId,
@@ -566,13 +587,18 @@ export default function CourseDetailsPage() {
             razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
             razorpayPaymentId: payment.razorpay_payment_id,
             razorpaySignature: payment.razorpay_signature,
+            sessionId: liveClass.id,
+            courseId: booking.courseAccessId || courseAccessId,
           });
         }
         setPaymentVerified(true);
         rememberPaidSessionAccess(liveClass.id || course.id);
+        rememberPaidCourseAccess(booking.courseAccessId || courseAccessId, {
+          sessionId: liveClass.id || course.id,
+        });
         setAuthPrompt({
           title: "Payment verified",
-          message: "You can join when the class access window opens.",
+          message: "Course access verified. You can join all sessions in this course until it ends.",
         });
       } catch (err) {
         setAuthPrompt({
@@ -587,7 +613,7 @@ export default function CourseDetailsPage() {
     return (
       <>
       <main className="min-h-screen bg-[#f4f7f6]">
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-7 sm:py-10">
           <button
             type="button"
             onClick={() => navigate("/courses")}
@@ -596,9 +622,9 @@ export default function CourseDetailsPage() {
             Back to courses
           </button>
 
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
-            <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm">
-              <div className="aspect-[16/8] bg-slate-100">
+          <div className="mt-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_330px] gap-5 items-start">
+            <div className="rounded-xl bg-white border border-slate-200 overflow-hidden shadow-sm">
+              <div className="h-[190px] sm:h-[235px] lg:h-[270px] bg-slate-100">
                 {course.thumbnail ? (
                   <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                 ) : (
@@ -606,25 +632,25 @@ export default function CourseDetailsPage() {
                 )}
               </div>
 
-              <div className="p-5 sm:p-7">
-                <div className="inline-flex rounded-full bg-emerald-100 text-emerald-900 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest">
+              <div className="p-4 sm:p-5">
+                <div className="inline-flex rounded-full bg-emerald-100 text-emerald-900 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest">
                   Expert-led session
                 </div>
-                <h1 className="mt-4 text-2xl sm:text-4xl font-extrabold text-slate-950 leading-tight">
+                <h1 className="mt-3 text-2xl sm:text-[30px] font-extrabold text-slate-950 leading-tight">
                   {course.title}
                 </h1>
-                <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
+                <p className="mt-2.5 text-sm text-slate-600 leading-relaxed">
                   {course.description}
                 </p>
 
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {[
                     ["Trainer", course.instructor],
                     ["Level", course.level || "All Levels"],
                     ["Duration", liveClass?.durationMinutes ? `${liveClass.durationMinutes} min` : course.hours],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    <div key={label} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                         {label}
                       </div>
                       <div className="mt-1 text-sm font-extrabold text-slate-900">{value}</div>
@@ -632,13 +658,13 @@ export default function CourseDetailsPage() {
                   ))}
                 </div>
 
-                <div className="mt-7">
-                  <h2 className="text-lg font-extrabold text-slate-950">What students get</h2>
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="mt-6">
+                  <h2 className="text-base font-extrabold text-slate-950">What students get</h2>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {(course.bullets || []).map((item) => (
-                      <div key={item} className="rounded-xl border border-slate-200 bg-white p-4 flex gap-3">
-                        <HiOutlineCheckCircle className="mt-0.5 text-xl text-emerald-600 flex-shrink-0" />
-                        <span className="text-sm text-slate-600 leading-snug">{item}</span>
+                      <div key={item} className="rounded-lg border border-slate-200 bg-white p-3 flex gap-2.5">
+                        <HiOutlineCheckCircle className="mt-0.5 text-lg text-emerald-600 flex-shrink-0" />
+                        <span className="text-[13px] text-slate-600 leading-snug">{item}</span>
                       </div>
                     ))}
                   </div>
@@ -646,45 +672,65 @@ export default function CourseDetailsPage() {
               </div>
             </div>
 
-            <aside className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 shadow-sm lg:sticky lg:top-24">
-              <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
-                Next live class
-              </div>
-              <h2 className="mt-2 text-xl font-extrabold text-slate-950">
-                {liveClass?.title || course.title}
-              </h2>
-              <div className="mt-4 space-y-3 text-sm text-slate-600">
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Date and time
+            <aside className="rounded-xl bg-white border border-slate-200 shadow-sm lg:sticky lg:top-24 overflow-hidden">
+              <div className="border-b border-slate-100 bg-gradient-to-br from-white to-emerald-50 px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
+                    {todayCompleted ? "Next recurring class" : "Next live class"}
                   </div>
-                  <div className="mt-1 font-extrabold text-slate-900">{when} IST</div>
-                </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Payment
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <span className="font-extrabold text-slate-900">{course.price || "Free"}</span>
-                    <span className={[
-                      "rounded-full px-2.5 py-1 text-[11px] font-extrabold",
-                      needsPayment ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800",
-                    ].join(" ")}>
-                      {needsPayment ? "Payment required" : sessionIsFree ? "Free" : "Paid"}
+                  {occurrence.isRecurring ? (
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 ring-1 ring-emerald-100">
+                      Daily
                     </span>
-                  </div>
+                  ) : null}
                 </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Meeting
+                <h2 className="mt-2 text-base font-extrabold text-slate-950 leading-snug">
+                  {liveClass?.title || course.title}
+                </h2>
+                {todayCompleted ? (
+                  <div className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-[12px] font-semibold text-slate-600 ring-1 ring-emerald-100">
+                    Today's class is completed. Your paid access continues for the next session.
                   </div>
-                  <div className="mt-1 font-semibold text-slate-700 break-all">
-                    {liveClass?.meetUrl || "Meeting link will be available soon"}
+                ) : null}
+              </div>
+              <div className="p-4">
+                <div className="space-y-2.5 text-sm text-slate-600">
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                      Date and time
+                    </div>
+                    <div className="mt-1 font-extrabold text-slate-900">{when} IST</div>
                   </div>
-                </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                        Payment
+                      </div>
+                      <div className="mt-1 font-extrabold text-slate-900">{course.price || "Free"}</div>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                        Access
+                      </div>
+                      <span className={[
+                        "mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-extrabold",
+                        needsPayment ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800",
+                      ].join(" ")}>
+                        {needsPayment ? "Pay once" : sessionIsFree ? "Free" : "Paid"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                      Meeting
+                    </div>
+                    <div className="mt-1 font-semibold text-slate-700 break-all">
+                      {liveClass?.meetUrl || "Meeting link will be available soon"}
+                    </div>
+                  </div>
                 {isCancelled && cancellationReason ? (
-                  <div className="rounded-xl bg-red-50 border border-red-100 p-4">
-                    <div className="text-[11px] font-extrabold uppercase tracking-widest text-red-500">
+                  <div className="rounded-lg bg-red-50 border border-red-100 p-3">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-red-500">
                       Cancellation reason
                     </div>
                     <div className="mt-1 text-sm font-semibold text-red-700">
@@ -694,7 +740,7 @@ export default function CourseDetailsPage() {
                 ) : null}
                 {!isCancelled ? (
                   <div className={[
-                    "rounded-xl border p-4",
+                    "rounded-lg border p-3",
                     sessionCompleted
                       ? "bg-slate-50 border-slate-200"
                       : canJoin
@@ -702,7 +748,7 @@ export default function CourseDetailsPage() {
                         : "bg-amber-50 border-amber-100",
                   ].join(" ")}>
                     <div className={[
-                      "text-[11px] font-extrabold uppercase tracking-widest",
+                      "text-[10px] font-extrabold uppercase tracking-widest",
                       sessionCompleted ? "text-slate-500" : canJoin ? "text-emerald-700" : "text-amber-700",
                     ].join(" ")}>
                       Session access
@@ -716,8 +762,8 @@ export default function CourseDetailsPage() {
                   </div>
                 ) : null}
                 {attendanceStatus ? (
-                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                    <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                       Attendance
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -732,9 +778,9 @@ export default function CourseDetailsPage() {
                     </div>
                   </div>
                 ) : null}
-              </div>
+                </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-2.5">
                 <button
                   type="button"
                   onClick={async () => {
@@ -772,6 +818,10 @@ export default function CourseDetailsPage() {
                         startsAt: occurrence.scheduledAt,
                         endsAt: occurrence.endsAt,
                       });
+                      rememberRecentlyJoinedSession({ ...course, id: liveClass.id, liveClass }, {
+                        joinedAt: result?.joinedAt || new Date().toISOString(),
+                        attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
+                      });
                       setSessionAttendance(result?.attendance || { attendanceStatus: "pending", firstJoinedAt: result?.joinedAt || "" });
                       if (openMeetingLink(meetingWindow, result?.meetingLink || liveClass?.meetUrl || course?.meetUrl || "")) {
                         startTracking(sessionDate, result);
@@ -786,22 +836,23 @@ export default function CourseDetailsPage() {
                   }}
                   disabled={!liveClass?.id || sessionAction === "join" || sessionAction === "pay" || (!needsPayment && !canJoin) || sessionCompleted}
                   className={[
-                    "h-12 rounded-xl text-sm font-extrabold transition-colors",
+                    "h-11 rounded-lg text-sm font-extrabold transition-colors",
                     liveClass?.id && (canJoin || needsPayment) && !sessionCompleted
                       ? "bg-[#00342b] text-white hover:bg-[#004d40]"
                       : "bg-slate-100 text-slate-400 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay to Join" : canJoin ? "Join class" : sessionCompleted ? "Completed today" : sessionIsFree ? "Join opens soon" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
+                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay once to join" : canJoin ? "Join class" : sessionCompleted ? "Completed" : todayCompleted ? "Next class opens soon" : sessionIsFree ? "Join opens soon" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
                 </button>
                 <button
                   type="button"
                   onClick={(e) => addToCart(e?.currentTarget)}
                   disabled={sessionAction === "card" || isInCart || sessionCompleted}
-                  className="h-12 rounded-xl border border-slate-200 text-slate-900 text-sm font-extrabold hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="h-11 rounded-lg border border-slate-200 text-slate-900 text-sm font-extrabold hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {sessionCompleted ? "Completed today" : isInCart ? "In shopping cart" : sessionAction === "card" ? "Adding..." : "Add to cart"}
+                  {sessionCompleted ? "Session completed" : isInCart ? "In shopping cart" : sessionAction === "card" ? "Adding..." : "Add to cart"}
                 </button>
+              </div>
               </div>
             </aside>
           </div>

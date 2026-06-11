@@ -6,9 +6,12 @@ import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { PATHS } from "../../app/router/paths";
 import {
   createStudentSessionBooking,
+  getCourseAccessId,
   getPublicSessions,
   getStudentSessions,
+  hasPaidAccessForSession,
   joinStudentSession,
+  rememberPaidCourseAccess,
   rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
@@ -19,6 +22,7 @@ import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/me
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
 import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
+import { rememberRecentlyJoinedSession } from "../../my-learning/utils/learningModel";
 
 const COURSE_CATEGORIES = [
   "Trainer Courses",
@@ -267,8 +271,9 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
     course.isFree === true ||
     String(course.pricingState || "").trim().toUpperCase() === "FREE" ||
     Number(course.amountPaise || 0) <= 0;
-  const needsPayment = isTrainerCourse && !sessionIsFree && course.paymentRequired && !course.isPaid;
-  const paymentReady = sessionIsFree || !course.paymentRequired || course.isPaid;
+  const hasPaidAccess = course.isPaid === true || hasPaidAccessForSession(course);
+  const needsPayment = isTrainerCourse && !sessionIsFree && course.paymentRequired && !hasPaidAccess;
+  const paymentReady = sessionIsFree || !course.paymentRequired || hasPaidAccess;
   const paying = actionId === `pay:${course.id}`;
   const canJoin = isTrainerCourse && paymentReady && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
   const accessNotice = isCancelled
@@ -384,7 +389,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
               onClick={onJoinClass}
               className="h-8 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : sessionIsFree ? "Locked" : course.isPaid ? "Paid" : "Locked"}
+              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : sessionIsFree ? "Locked" : hasPaidAccess ? "Paid" : "Locked"}
             </button>
           ) : null}
           <button
@@ -583,6 +588,10 @@ export default function CoursesPage() {
           startsAt: occurrence.scheduledAt,
           endsAt: occurrence.endsAt,
         });
+        rememberRecentlyJoinedSession(course, {
+          joinedAt: result?.joinedAt || new Date().toISOString(),
+          attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
+        });
         setSessions((prev) =>
           prev.map((item) =>
             String(item.id) === String(course.id)
@@ -649,7 +658,11 @@ export default function CoursesPage() {
       setError("");
       try {
         const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-        const booking = await createStudentSessionBooking(course.id, { sessionDate });
+        const courseAccessId = getCourseAccessId(course) || course.id;
+        const booking = await createStudentSessionBooking(course.id, {
+          sessionDate,
+          courseId: courseAccessId,
+        });
         if (!booking.alreadyPaid) {
           const payment = await openRazorpayCheckout({
             keyId: booking.keyId,
@@ -664,26 +677,34 @@ export default function CoursesPage() {
             razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
             razorpayPaymentId: payment.razorpay_payment_id,
             razorpaySignature: payment.razorpay_signature,
+            sessionId: course.id,
+            courseId: booking.courseAccessId || courseAccessId,
           });
         }
         rememberPaidSessionAccess(course.id);
+        rememberPaidCourseAccess(booking.courseAccessId || courseAccessId, {
+          sessionId: course.id,
+        });
         setSessions((prev) =>
           prev.map((item) =>
-            String(item.id) === String(course.id)
+            String(item.id) === String(course.id) ||
+            (!!courseAccessId && getCourseAccessId(item) === courseAccessId)
               ? {
                   ...item,
                   isPaid: true,
+                  hasCourseAccess: true,
                   bookingStatus: "paid",
                   liveClass: {
                     ...item.liveClass,
                     isPaid: true,
+                    hasCourseAccess: true,
                     bookingStatus: "paid",
                   },
                 }
               : item
           )
         );
-        setMessage("Payment verified. You can join when the class access window opens.");
+        setMessage("Course access verified. You can join all sessions in this course until it ends.");
       } catch (err) {
         setError(err?.message || "Payment could not be completed.");
       } finally {
@@ -850,7 +871,7 @@ export default function CoursesPage() {
           ) : null}
 
           {loading ? (
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="h-80 rounded-lg bg-gray-100 animate-pulse" />
               ))}
@@ -901,7 +922,7 @@ export default function CoursesPage() {
               ) : null}
             </div>
           ) : (
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {filteredCourses.map((course) => (
                 <CourseGridCard
                   key={course.id}

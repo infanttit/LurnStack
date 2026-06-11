@@ -443,11 +443,13 @@ function getPhoneValidationMessage(countryCode, rawPhoneNumber) {
   const digits = String(rawPhoneNumber || "").replace(/\D/g, "");
   if (!digits) return "Phone number is required";
   const countryDigits = String(countryCode || "").replace(/\D/g, "");
-  if (countryDigits && digits.startsWith(countryDigits)) {
+
+  const lengths = PHONE_LENGTH_BY_COUNTRY_CODE[countryCode] || [];
+  const maxLength = lengths.length ? Math.max(...lengths) : 15;
+  if (countryDigits && digits.length > maxLength && digits.startsWith(countryDigits)) {
     return "Enter only the phone number after the country code";
   }
 
-  const lengths = PHONE_LENGTH_BY_COUNTRY_CODE[countryCode] || [];
   if (lengths.length && !lengths.includes(digits.length)) {
     const formattedLengths = lengths.length === 1 ? lengths[0] : lengths.join(" or ");
     return `Enter a valid ${formattedLengths}-digit phone number`;

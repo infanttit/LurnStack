@@ -104,6 +104,14 @@ function normalizeProfile(raw) {
     fullName: source.fullName || source.FULL_NAME || source.name || source.NAME || "",
     email: source.email || source.EMAIL_ADDRESS || source.emailAddress || "",
     phoneNumber: source.phoneNumber || source.PHONE_NUMBER || source.mobile || source.phone || "",
+    profilePhotoUrl:
+      source.profilePhotoUrl ||
+      source.profile_photo_url ||
+      source.avatarUrl ||
+      source.avatar_url ||
+      source.photoUrl ||
+      source.photo_url ||
+      "",
     role: String(source.role || source.ROLE || "student").toLowerCase(),
     createdAt: source.createdAt || source.created_at || source.CREATED_AT || "",
     updatedAt: source.updatedAt || source.updated_at || source.UPDATED_AT || "",

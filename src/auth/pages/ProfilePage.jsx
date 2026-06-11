@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
   HiOutlineArrowRightOnRectangle,
@@ -52,24 +52,204 @@ function mergeProfile(storedUser, remoteProfile) {
     fullName: remoteProfile?.fullName || storedUser?.fullName || "LurnStack Learner",
     email: remoteProfile?.email || storedUser?.email || "Not available",
     phoneNumber: remoteProfile?.phoneNumber || storedUser?.phoneNumber || "Not available",
+    profilePhotoUrl: remoteProfile?.profilePhotoUrl || storedUser?.profilePhotoUrl || "",
     role: remoteProfile?.role || storedUser?.role || "student",
     createdAt: remoteProfile?.createdAt || storedUser?.createdAt || "",
     updatedAt: remoteProfile?.updatedAt || storedUser?.updatedAt || "",
   };
 }
 
+function profilePhotoKey(profile) {
+  return `lurnstack:profile-photo:${profile?.id || profile?.email || "me"}`;
+}
+
+function loadLocalProfilePhoto(profile) {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(profilePhotoKey(profile)) || "";
+}
+
+function saveLocalProfilePhoto(profile, photoUrl) {
+  if (typeof window === "undefined") return;
+  const key = profilePhotoKey(profile);
+  if (photoUrl) window.localStorage.setItem(key, photoUrl);
+  else window.localStorage.removeItem(key);
+}
+
+function cropImageToSquare({ source, zoom = 1, offsetX = 0, offsetY = 0, rotation = 0 }) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 512;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Unable to prepare image editor."));
+        return;
+      }
+      ctx.fillStyle = "#f1f5f9";
+      ctx.fillRect(0, 0, size, size);
+      ctx.translate(size / 2, size / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      const rotated = Math.abs(rotation % 180) === 90;
+      const imageW = rotated ? img.height : img.width;
+      const imageH = rotated ? img.width : img.height;
+      const baseScale = Math.max(size / imageW, size / imageH);
+      const scale = baseScale * Number(zoom || 1);
+      ctx.drawImage(
+        img,
+        -img.width * scale / 2 + Number(offsetX || 0),
+        -img.height * scale / 2 + Number(offsetY || 0),
+        img.width * scale,
+        img.height * scale
+      );
+      resolve(canvas.toDataURL("image/jpeg", 0.88));
+    };
+    img.onerror = () => reject(new Error("Please choose a valid image file."));
+    img.src = source;
+  });
+}
+
+function ProfilePhotoEditor({ profile, photoUrl, onSave, onRemove, open, onClose }) {
+  const fileInputRef = useRef(null);
+  const [draft, setDraft] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const previewStyle = draft
+    ? {
+        backgroundImage: `url(${draft})`,
+        backgroundSize: `${zoom * 100}%`,
+        backgroundPosition: `${50 + offsetX / 8}% ${50 + offsetY / 8}%`,
+        transform: `rotate(${rotation}deg)`,
+      }
+    : {};
+
+  useEffect(() => {
+    if (!open) setDraft("");
+  }, [open]);
+
+  if (!open) return null;
+
+  const chooseFile = () => fileInputRef.current?.click();
+
+  const handleFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft(String(reader.result || ""));
+      setZoom(1);
+      setOffsetX(0);
+      setOffsetY(0);
+      setRotation(0);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const savePhoto = async () => {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      const cropped = await cropImageToSquare({ source: draft, zoom, offsetX, offsetY, rotation });
+      await onSave(cropped);
+      setDraft("");
+      onClose?.();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-950/60" onClick={onClose} />
+      <section className="relative w-full max-w-2xl bg-white p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Profile photo</div>
+            <h2 className="mt-1 text-xl font-black text-slate-950">Edit profile picture</h2>
+          </div>
+          <button type="button" onClick={onClose} className="px-2 py-1 text-sm font-black text-slate-500">Close</button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button type="button" onClick={chooseFile} className="h-9 bg-[#004d3d] px-4 text-xs font-black text-white">
+            {photoUrl ? "Change photo" : "Upload photo"}
+          </button>
+          {photoUrl ? (
+            <button
+              type="button"
+              onClick={() => {
+                onRemove();
+                onClose?.();
+              }}
+              className="h-9 border border-red-200 px-4 text-xs font-black text-red-700"
+            >
+              Remove photo
+            </button>
+          ) : null}
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+
+      {draft ? (
+        <div className="mt-6 border-t border-slate-200 pt-5">
+          <div className="grid gap-5 md:grid-cols-[180px_1fr]">
+            <div className="h-44 w-44 overflow-hidden bg-slate-100">
+              <div className="h-full w-full bg-center bg-no-repeat" style={previewStyle} />
+            </div>
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600">Zoom</span>
+                <input type="range" min="1" max="2.8" step="0.05" value={zoom} onChange={(e) => setZoom(e.target.value)} className="mt-2 w-full" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600">Move left / right</span>
+                <input type="range" min="-160" max="160" step="2" value={offsetX} onChange={(e) => setOffsetX(e.target.value)} className="mt-2 w-full" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600">Move up / down</span>
+                <input type="range" min="-160" max="160" step="2" value={offsetY} onChange={(e) => setOffsetY(e.target.value)} className="mt-2 w-full" />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => setRotation((value) => value - 90)} className="h-9 border border-slate-300 px-4 text-xs font-black text-slate-800">
+                  Rotate left
+                </button>
+                <button type="button" onClick={() => setRotation((value) => value + 90)} className="h-9 border border-slate-300 px-4 text-xs font-black text-slate-800">
+                  Rotate right
+                </button>
+                <button type="button" onClick={() => setDraft("")} className="h-9 px-4 text-xs font-black text-slate-500">
+                  Cancel
+                </button>
+                <button type="button" onClick={savePhoto} disabled={saving} className="h-9 bg-[#004d3d] px-4 text-xs font-black text-white disabled:opacity-60">
+                  {saving ? "Saving..." : "Save photo"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      </section>
+    </div>
+  );
+}
+
 function DetailCard({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="border-b border-slate-200 py-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#004d3d]">
-          <Icon className="text-xl" />
+        <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center text-[#004d3d]">
+          <Icon className="text-2xl" />
         </div>
         <div className="min-w-0">
-          <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
             {label}
           </div>
-          <div className="mt-1 break-words text-sm font-bold text-slate-900">
+          <div className="mt-1 break-words text-sm font-semibold text-slate-900">
             {value || "Not available"}
           </div>
         </div>
@@ -111,14 +291,14 @@ function EditableDetailCard({ icon: Icon, label, value, onSave, onDelete, isRequ
   };
 
   return (
-    <div className="group relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-slate-300">
+    <div className="group relative border-b border-slate-200 py-4 transition-colors duration-200 hover:bg-slate-50/60">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#004d3d]">
-            <Icon className="text-xl" />
+          <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center text-[#004d3d]">
+            <Icon className="text-2xl" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
               {label}
             </div>
             {isEditing ? (
@@ -129,13 +309,13 @@ function EditableDetailCard({ icon: Icon, label, value, onSave, onDelete, isRequ
                   disabled={loading}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={placeholder}
-                  className="w-full rounded-lg border border-slate-300 px-2.5 py-1 text-sm font-semibold text-slate-900 focus:border-[#004d3d] focus:outline-none focus:ring-1 focus:ring-[#004d3d] disabled:opacity-50"
+                  className="w-full border-b border-slate-300 bg-transparent px-0 py-1 text-sm font-semibold text-slate-900 focus:border-[#004d3d] focus:outline-none disabled:opacity-50"
                   autoFocus
                 />
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                  className="p-1.5 text-emerald-700 hover:bg-emerald-50 transition-colors disabled:opacity-50"
                   title="Save"
                 >
                   <HiOutlineCheck className="text-base" />
@@ -143,14 +323,14 @@ function EditableDetailCard({ icon: Icon, label, value, onSave, onDelete, isRequ
                 <button
                   onClick={handleCancel}
                   disabled={loading}
-                  className="rounded-lg bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                  className="p-1.5 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                   title="Cancel"
                 >
                   <HiOutlineXMark className="text-base" />
                 </button>
               </div>
             ) : (
-              <div className="mt-1 break-words text-sm font-bold text-slate-900">
+              <div className="mt-1 break-words text-sm font-semibold text-slate-900">
                 {value || <span className="text-slate-400 font-medium italic">Not available</span>}
               </div>
             )}
@@ -158,10 +338,10 @@ function EditableDetailCard({ icon: Icon, label, value, onSave, onDelete, isRequ
         </div>
 
         {!isEditing && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             <button
               onClick={() => setIsEditing(true)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-all"
+              className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-all"
               title={`Edit ${label}`}
             >
               <HiOutlinePencilSquare className="text-base" />
@@ -169,7 +349,7 @@ function EditableDetailCard({ icon: Icon, label, value, onSave, onDelete, isRequ
             {onDelete && (
               <button
                 onClick={onDelete}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all"
+                className="p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all"
                 title={`Clear ${label}`}
               >
                 <HiOutlineTrash className="text-base" />
@@ -396,6 +576,16 @@ export default function ProfilePage() {
   const [toastMessage, setToastMessage] = useState("");
   const [toastTone, setToastTone] = useState("warn");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const profile = useMemo(() => mergeProfile(user, remoteProfile), [user, remoteProfile]);
+  const photoStorageId = profile?.id || profile?.email || "";
+  const [localProfilePhoto, setLocalProfilePhoto] = useState("");
+
+  useEffect(() => {
+    if (photoStorageId) {
+      setLocalProfilePhoto(loadLocalProfilePhoto(profile));
+    }
+  }, [photoStorageId, profile]);
 
   const handleUpdateName = async (newName) => {
     try {
@@ -410,17 +600,26 @@ export default function ProfilePage() {
     }
   };
 
-  const handleUpdateEmail = async (newEmail) => {
+  const handleSaveProfilePhoto = async (photoUrl) => {
     try {
-      const updated = await updateProfileApi({ email: newEmail });
-      setRemoteProfile(updated);
+      saveLocalProfilePhoto(profile, photoUrl);
+      setLocalProfilePhoto(photoUrl);
+      updateProfileApi({ profilePhotoUrl: photoUrl }).catch(() => {});
       setToastTone("success");
-      setToastMessage("Email address updated successfully!");
+      setToastMessage("Profile photo updated successfully!");
     } catch (err) {
       setToastTone("warn");
-      setToastMessage(err.message || "Failed to update email address.");
+      setToastMessage(err.message || "Failed to update profile photo.");
       throw err;
     }
+  };
+
+  const handleRemoveProfilePhoto = () => {
+    saveLocalProfilePhoto(profile, "");
+    setLocalProfilePhoto("");
+    updateProfileApi({ profilePhotoUrl: null }).catch(() => {});
+    setToastTone("success");
+    setToastMessage("Profile photo removed successfully!");
   };
 
   const handleUpdatePhone = async (newPhone) => {
@@ -524,7 +723,7 @@ export default function ProfilePage() {
     };
   }, [user]);
 
-  const profile = useMemo(() => mergeProfile(user, remoteProfile), [user, remoteProfile]);
+  const profilePhotoUrl = localProfilePhoto || profile.profilePhotoUrl || "";
   const roleLabel = String(profile.role || "student").toUpperCase();
   const attendanceTotals = useMemo(() => {
     const totalSessions = attendanceCourses.reduce((sum, course) => sum + Number(course.totalSessions || 0), 0);
@@ -547,16 +746,30 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f7f6]">
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-12">
-        <div className="overflow-hidden rounded-3xl bg-[#00342b] text-white shadow-sm">
-          <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
+    <main className="min-h-screen bg-white">
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="border-b border-slate-200 bg-[#004d3d] px-5 py-7 text-white sm:px-7">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-3xl border border-white/15 bg-white/10 text-3xl font-black">
-                {initials(profile.fullName)}
+              <div className="relative h-24 w-24 flex-shrink-0">
+                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/10 text-3xl font-black">
+                  {profilePhotoUrl ? (
+                    <img src={profilePhotoUrl} alt={profile.fullName} className="h-full w-full object-cover" />
+                  ) : (
+                    initials(profile.fullName)
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoEditor(true)}
+                  className="absolute bottom-0 right-0 grid h-9 w-9 place-items-center rounded-full bg-white text-[#004d3d] shadow-lg ring-2 ring-[#004d3d]"
+                  aria-label="Edit profile photo"
+                >
+                  <HiOutlinePencilSquare className="text-lg" />
+                </button>
               </div>
               <div className="min-w-0">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
                   <HiOutlineCheckBadge className="text-sm" />
                   Verified {roleLabel}
                 </div>
@@ -575,7 +788,7 @@ export default function ProfilePage() {
                 await signOut();
                 navigate(PATHS.HOME);
               }}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 text-sm font-extrabold text-white transition-colors hover:bg-white/15"
+              className="inline-flex h-11 items-center justify-center gap-2 border border-white/25 bg-white/10 px-5 text-sm font-bold text-white transition-colors hover:bg-white/15"
             >
               <HiOutlineArrowRightOnRectangle className="text-lg" />
               Log out
@@ -589,9 +802,9 @@ export default function ProfilePage() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-5">
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-8">
+            <section className="border-y border-slate-200 py-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-black text-slate-950">Profile details</h2>
@@ -599,12 +812,12 @@ export default function ProfilePage() {
                     {loading ? "Fetching latest account information..." : "Latest available account information."}
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-emerald-800">
+                <span className="bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-widest text-emerald-800">
                   {loading ? "Syncing" : "Active"}
                 </span>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="mt-5 grid grid-cols-1 gap-x-8 sm:grid-cols-2">
                 <EditableDetailCard
                   icon={HiOutlineUserCircle}
                   label="Full name"
@@ -613,14 +826,7 @@ export default function ProfilePage() {
                   isRequired={true}
                   placeholder="Enter full name"
                 />
-                <EditableDetailCard
-                  icon={HiOutlineEnvelope}
-                  label="Email address"
-                  value={profile.email}
-                  onSave={handleUpdateEmail}
-                  isRequired={true}
-                  placeholder="Enter email address"
-                />
+                <DetailCard icon={HiOutlineEnvelope} label="Email address" value={profile.email} />
                 <EditableDetailCard
                   icon={HiOutlinePhone}
                   label="Phone number"
@@ -636,7 +842,7 @@ export default function ProfilePage() {
               </div>
             </section>
 
-            <section id="attendance" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <section id="attendance" className="border-y border-slate-200 py-6">
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <div className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
@@ -649,7 +855,7 @@ export default function ProfilePage() {
                       : "Course-wise completed classes, attended classes, and session records."}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-right">
+                <div className="border-l border-slate-200 pl-5 text-right">
                   <div className="text-xl font-black text-slate-950">{attendanceTotals.percentage}%</div>
                   <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Overall</div>
                 </div>
@@ -757,22 +963,21 @@ export default function ProfilePage() {
             </div>
             </section>
 
-            {/* Danger Zone Section */}
-            <section className="rounded-3xl border border-red-200 bg-red-50/20 p-5 shadow-sm sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
+            <section className="border-y border-red-200 py-6">
+              <div className="flex flex-wrap items-center justify-between gap-5">
                 <div className="space-y-1">
                   <h2 className="text-xl font-black text-red-950 flex items-center gap-2">
                     <HiOutlineExclamationTriangle className="text-red-600" />
                     Danger Zone
                   </h2>
-                  <p className="text-sm font-medium text-red-800/80">
+                  <p className="max-w-2xl text-sm font-medium leading-6 text-red-800/80">
                     Permanently delete your LurnStack account and all of your data. This action is irreversible.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-extrabold text-white transition-all hover:bg-red-700 shadow-md shadow-red-900/10 active:scale-[0.98]"
+                  className="inline-flex h-10 items-center justify-center gap-2 bg-red-600 px-5 text-sm font-bold text-white transition-all hover:bg-red-700 active:scale-[0.98]"
                 >
                   <HiOutlineTrash className="text-base" />
                   Delete Account
@@ -781,23 +986,23 @@ export default function ProfilePage() {
             </section>
           </div>
 
-          <aside className="space-y-5">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+          <aside className="space-y-7">
+            <div className="border-y border-slate-200 py-5">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
                 Account summary
               </div>
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="mt-4 divide-y divide-slate-200">
+                <div className="flex items-center justify-between py-3">
                   <span className="text-sm font-bold text-slate-600">Role</span>
                   <span className="text-sm font-black text-slate-950">{roleLabel}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between py-3">
                   <span className="text-sm font-bold text-slate-600">Profile source</span>
                   <span className="text-sm font-black text-slate-950">
                     {remoteProfile ? "API" : "Saved"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between py-3">
                   <span className="text-sm font-bold text-slate-600">Updated</span>
                   <span className="text-sm font-black text-slate-950">
                     {formatDate(profile.updatedAt || profile.createdAt)}
@@ -806,7 +1011,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
+            <div className="border-y border-emerald-200 bg-emerald-50/60 py-5">
               <div className="flex items-center gap-2 text-sm font-black text-emerald-950">
                 <HiOutlineAcademicCap className="text-lg" />
                 Attendance note
@@ -824,6 +1029,15 @@ export default function ProfilePage() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleConfirmDeleteAccount}
+      />
+
+      <ProfilePhotoEditor
+        profile={profile}
+        photoUrl={profilePhotoUrl}
+        onSave={handleSaveProfilePhoto}
+        onRemove={handleRemoveProfilePhoto}
+        open={showPhotoEditor}
+        onClose={() => setShowPhotoEditor(false)}
       />
 
       {/* Custom Toast Alerts */}

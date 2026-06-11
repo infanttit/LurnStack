@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiArrowRight, FiClock, FiCreditCard, FiRefreshCcw, FiSearch } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { FiCalendar, FiRefreshCcw, FiSearch } from "react-icons/fi";
 import { PATHS } from "../app/router/paths";
 import AuthRequiredModal from "../auth/components/AuthRequiredModal";
 import { useAuth } from "../auth";
 import {
   createStudentSessionBooking,
+  getCourseAccessId,
   getPublicUpcomingSessions,
+  hasPaidAccessForSession,
   hasPaidSessionAccess,
   joinStudentSession,
+  rememberPaidCourseAccess,
   rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../courses/api/studentSessionsApi";
@@ -15,6 +19,7 @@ import { openMeetingLink, openPendingMeetingWindow } from "../shared/utils/meeti
 import { openRazorpayCheckout } from "../shared/utils/razorpayCheckout";
 import { formatDuration } from "../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../shared/utils/sessionTiming";
+import { rememberRecentlyJoinedSession } from "../my-learning/utils/learningModel";
 
 function formatIST(iso) {
   const date = new Date(iso);
@@ -39,6 +44,10 @@ function priceLabel(session) {
   return "Paid";
 }
 
+function sessionDetailPath(id) {
+  return PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(id || "")));
+}
+
 function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated }) {
   const occurrence = getSessionOccurrenceTiming(session.liveClass || session, now, { defaultRecurring: false });
   const isUnavailable = isSessionUnavailable(session.liveClass || session);
@@ -47,7 +56,9 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
   const isOpen = occurrence.startMs > 0 && now >= occurrence.startMs && now <= occurrence.endMs;
   const hasValidBooking =
     session.isPaid === true ||
+    session.hasCourseAccess === true ||
     session.bookingStatus === "paid" ||
+    hasPaidAccessForSession(session) ||
     hasPaidSessionAccess(session.id);
   const joinText = session.isFree
     ? isOpen
@@ -60,8 +71,8 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
       : `Buy & Join — ${priceLabel(session)}`;
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all hover:border-emerald-200 hover:shadow-md">
-      <div className="relative aspect-[16/8] overflow-hidden bg-gray-100">
+    <article className="group flex h-full flex-col bg-white transition-all">
+      <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
         {session.thumbnail ? (
           <img
             src={session.thumbnail}
@@ -73,79 +84,63 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
             <span className="text-lg font-black text-white/30">{session.category || "LurnStack"}</span>
           </div>
         )}
-        <div className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-black text-[#00342b] shadow-[0_14px_34px_rgba(3,52,43,0.20)] ring-1 ring-emerald-900/5">
-          {priceLabel(session)}
-        </div>
-        <div className="absolute right-3 top-3 rounded-full bg-[#004d3d] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow">
-          {session.isFree ? "Free" : "Paid"}
-        </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700">
-          {session.category || "Upcoming Session"}
-        </p>
-        <h3 className="mt-2 text-[15px] font-extrabold leading-snug text-gray-950 line-clamp-2">
+      <div className="flex flex-1 flex-col pt-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="line-clamp-1 text-xs font-medium text-slate-500">
+            {session.instructorName || session.instructor || "LurnStack Trainer"}
+          </span>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase text-emerald-800">
+            {session.isFree ? "Free" : priceLabel(session)}
+          </span>
+        </div>
+        <h3 className="mt-3 min-h-[40px] text-[16px] font-black leading-snug text-gray-950 line-clamp-2">
           {session.title}
         </h3>
-        <p className="mt-1 text-[12px] font-medium text-gray-500">
-          Trainer: {session.instructorName || session.instructor || "LurnStack Trainer"}
-        </p>
 
-        <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
-          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-emerald-800">
-            <FiClock className="text-[13px]" />
-            Start Time
-          </div>
-          <div className="mt-1 text-[12px] font-bold text-gray-800">
+        <div className="mt-4 flex items-start gap-2 text-xs font-semibold text-slate-700">
+          <FiCalendar className="mt-0.5 shrink-0 text-[14px]" />
+          <span className="inline-flex items-center gap-1.5">
             {formatIST(occurrence.scheduledAt || session.scheduledAt)}
-          </div>
-          <div className="mt-1 text-[11px] font-semibold text-slate-600">
-            Reminder emails are sent 10 minutes before class starts.
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
-            {session.isFree ? "FREE" : priceLabel(session)}
-          </span>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-800">
-            {occurrence.isRecurring ? "Recurring" : "One-time"}
           </span>
         </div>
 
-        <div className="mt-auto pt-4">
+        <div className="mt-4 flex gap-2" title={joinText}>
           {session.isFree ? (
             <button
               type="button"
               disabled={loadingJoin || isUnavailable || !isOpen}
               onClick={() => onJoin(session)}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#004d3d] text-[13px] font-bold text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+              className="inline-flex h-8 items-center justify-center bg-[#004d3d] px-3 text-[11px] font-black text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
             >
-              {loadingJoin ? "Opening..." : joinText}
-              {!loadingJoin ? <FiArrowRight /> : null}
+              {loadingJoin ? "Opening..." : isOpen ? "Join" : "Join soon"}
             </button>
           ) : hasValidBooking ? (
             <button
               type="button"
               disabled={loadingJoin || isUnavailable || !isOpen}
               onClick={() => onJoin(session)}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#004d3d] text-[13px] font-bold text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+              className="inline-flex h-8 items-center justify-center bg-[#004d3d] px-3 text-[11px] font-black text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
             >
-              {loadingJoin ? "Opening..." : joinText}
-              {!loadingJoin ? <FiArrowRight /> : null}
+              {loadingJoin ? "Opening..." : isOpen ? "Join" : "Join soon"}
             </button>
           ) : (
             <button
               type="button"
               disabled={loadingPay || isUnavailable}
               onClick={() => onPay(session)}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#004d3d] text-[13px] font-bold text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+              className="inline-flex h-8 items-center justify-center bg-[#004d3d] px-3 text-[11px] font-black text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
             >
-              {loadingPay ? "Opening..." : joinText}
-              {!loadingPay ? <FiCreditCard /> : null}
+              {loadingPay ? "Opening..." : "Pay"}
             </button>
           )}
+          <Link
+            to={sessionDetailPath(session.id)}
+            className="inline-flex h-8 items-center justify-center border border-slate-300 px-3 text-[11px] font-black text-slate-900 transition-colors hover:bg-slate-50"
+          >
+            View details
+          </Link>
         </div>
 
         {!isAuthenticated ? (
@@ -221,7 +216,9 @@ export default function StudentSessionsPage() {
     const hasValidBooking =
       session.isFree === true ||
       session.isPaid === true ||
+      session.hasCourseAccess === true ||
       session.bookingStatus === "paid" ||
+      hasPaidAccessForSession(session) ||
       hasPaidSessionAccess(session.id);
 
     if (!hasValidBooking) {
@@ -242,6 +239,10 @@ export default function StudentSessionsPage() {
         scheduledAt: occurrence.scheduledAt,
         startsAt: occurrence.scheduledAt,
         endsAt: occurrence.endsAt,
+      });
+      rememberRecentlyJoinedSession(session, {
+        joinedAt: result?.joinedAt || new Date().toISOString(),
+        attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
       });
       const meetingLink = result?.meetingLink || live?.meetUrl || session?.liveClass?.meetUrl || "";
       if (openMeetingLink(meetingWindow, meetingLink)) {
@@ -281,7 +282,9 @@ export default function StudentSessionsPage() {
     const hasValidBooking =
       session.isFree === true ||
       session.isPaid === true ||
+      session.hasCourseAccess === true ||
       session.bookingStatus === "paid" ||
+      hasPaidAccessForSession(session) ||
       hasPaidSessionAccess(session.id);
     if (hasValidBooking) {
       setError("You already have access to this session. Please join instead of paying again.");
@@ -298,7 +301,11 @@ export default function StudentSessionsPage() {
     setError("");
     try {
       const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
-      const booking = await createStudentSessionBooking(session.id, { sessionDate });
+      const courseAccessId = getCourseAccessId(session) || session.id;
+      const booking = await createStudentSessionBooking(session.id, {
+        sessionDate,
+        courseId: courseAccessId,
+      });
       if (!booking.alreadyPaid) {
         const payment = await openRazorpayCheckout({
           keyId: booking.keyId,
@@ -313,17 +320,23 @@ export default function StudentSessionsPage() {
           razorpayOrderId: payment.razorpay_order_id || booking.razorpayOrderId,
           razorpayPaymentId: payment.razorpay_payment_id,
           razorpaySignature: payment.razorpay_signature,
+          sessionId: session.id,
+          courseId: booking.courseAccessId || courseAccessId,
         });
       }
       rememberPaidSessionAccess(session.id);
+      rememberPaidCourseAccess(booking.courseAccessId || courseAccessId, {
+        sessionId: session.id,
+      });
       setSessions((prev) =>
         prev.map((item) =>
-          String(item.id) === String(session.id)
-            ? { ...item, isPaid: true, bookingStatus: "paid" }
+          String(item.id) === String(session.id) ||
+          (!!courseAccessId && getCourseAccessId(item) === courseAccessId)
+            ? { ...item, isPaid: true, hasCourseAccess: true, bookingStatus: "paid" }
             : item
         )
       );
-      setMessage("Payment verified. You can join when the access window opens.");
+      setMessage("Course access verified. You can join all sessions in this course until it ends.");
     } catch (err) {
       setError(err?.message || "Payment could not be completed.");
     } finally {
@@ -391,9 +404,9 @@ export default function StudentSessionsPage() {
 
       <section className="mt-8">
         {loading ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="h-[420px] animate-pulse rounded-2xl bg-slate-100" />
+              <div key={index} className="h-[330px] animate-pulse bg-slate-100" />
             ))}
           </div>
         ) : filteredSessions.length === 0 ? (
@@ -408,7 +421,7 @@ export default function StudentSessionsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
             {filteredSessions.map((session) => (
               <SessionCard
                 key={session.id}

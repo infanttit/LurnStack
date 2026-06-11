@@ -116,7 +116,7 @@ export default function LoginPage() {
         : typeof redirect === "string" && redirect.trim()
           ? redirect
           : "";
-    if (target && target !== PATHS.DASHBOARD && target !== PATHS.LOGIN) return target;
+    if (target && target !== PATHS.LOGIN) return target;
     return PATHS.HOME;
   })();
   const googleRedirectTo = redirectTo === PATHS.HOME ? PATHS.DASHBOARD : redirectTo;

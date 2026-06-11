@@ -170,7 +170,7 @@ export default function SiteNavbar() {
               <div className="hidden md:flex items-center gap-8">
                 <NavItem to={PATHS.COURSES}>Courses</NavItem>
                 {isAuthenticated ? (
-                  <NavItem to={PATHS.LIVE_CLASSES}>Live Classes</NavItem>
+                  <NavItem to={PATHS.LIVE_CLASSES}>TIT class</NavItem>
                 ) : null}
                 {isAuthenticated ? (
                   <NavItem to={PATHS.DASHBOARD}>My Learning</NavItem>
@@ -389,7 +389,7 @@ export default function SiteNavbar() {
                   </MobileDrawerButton>
                   {isAuthenticated ? (
                     <MobileDrawerLink to={PATHS.LIVE_CLASSES} onClick={closeMobileMenu}>
-                      Live Classes
+                      TIT class
                     </MobileDrawerLink>
                   ) : null}
                   {isAuthenticated ? (
