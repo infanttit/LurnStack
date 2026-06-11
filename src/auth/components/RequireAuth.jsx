@@ -3,8 +3,16 @@ import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 
 export default function RequireAuth({ children, role }) {
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, bootstrapped } = useAuth();
   const location = useLocation();
+
+  if (!bootstrapped) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center text-sm font-semibold text-slate-500">
+        Loading your session...
+      </div>
+    );
+  }
 
   if (isAuthenticated && (!role || userRole === role)) return children;
 

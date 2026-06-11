@@ -5,6 +5,7 @@ import { getDurationMinutes, toKolkataIso, toMs } from "../../live-classes/lib/t
 import { normalizeAttendance } from "./studentAttendanceApi";
 
 const PAID_SESSION_ACCESS_KEY = "lurnstack:paid-session-access:v1";
+const PAID_COURSE_ACCESS_KEY = "lurnstack:paid-course-access:v1";
 
 function isBrowserOffline() {
   return typeof navigator !== "undefined" && navigator.onLine === false;
@@ -28,10 +29,69 @@ function readPaidSessionAccess() {
   }
 }
 
+function readPaidCourseAccess() {
+  if (typeof window === "undefined") return {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PAID_COURSE_ACCESS_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getCourseAccessId(source = {}) {
+  const raw = source?.raw || source || {};
+  const course = raw.course || raw.Course || source?.course || source?.Course || {};
+  const liveClass = raw.liveClass || raw.live_class || source?.liveClass || {};
+  const value =
+    raw.courseAccessId ||
+    raw.course_access_id ||
+    raw.accessCourseId ||
+    raw.access_course_id ||
+    raw.trainerCourseId ||
+    raw.trainer_course_id ||
+    raw.parentCourseId ||
+    raw.parent_course_id ||
+    raw.batchCourseId ||
+    raw.batch_course_id ||
+    raw.batchId ||
+    raw.batch_id ||
+    raw.courseId ||
+    raw.course_id ||
+    course.id ||
+    course._id ||
+    course.courseId ||
+    course.course_id ||
+    course.trainerCourseId ||
+    course.trainer_course_id ||
+    liveClass.courseAccessId ||
+    liveClass.course_access_id ||
+    liveClass.courseId ||
+    liveClass.course_id ||
+    source.courseAccessId ||
+    source.courseId ||
+    source.trainerCourseId ||
+    "";
+  return String(value || "").trim();
+}
+
 export function hasPaidSessionAccess(sessionId) {
   const id = String(sessionId || "").trim();
   if (!id) return false;
   return !!readPaidSessionAccess()[id];
+}
+
+export function hasPaidCourseAccess(courseId) {
+  const id = String(courseId || "").trim();
+  if (!id) return false;
+  return !!readPaidCourseAccess()[id];
+}
+
+export function hasPaidAccessForSession(session = {}) {
+  return (
+    hasPaidCourseAccess(getCourseAccessId(session)) ||
+    hasPaidSessionAccess(session?.id || session?.sessionId || session?.liveClass?.id)
+  );
 }
 
 export function rememberPaidSessionAccess(sessionId) {
@@ -52,6 +112,34 @@ export function rememberPaidSessionAccess(sessionId) {
   } catch {
     // Local persistence is a convenience only; backend remains the source of truth.
   }
+}
+
+export function rememberPaidCourseAccess(courseId, { sessionId = "" } = {}) {
+  const id = String(courseId || "").trim();
+  if (!id || typeof window === "undefined") return;
+  try {
+    const current = readPaidCourseAccess();
+    window.localStorage.setItem(
+      PAID_COURSE_ACCESS_KEY,
+      JSON.stringify({
+        ...current,
+        [id]: {
+          paidAt: new Date().toISOString(),
+          accessScope: "course",
+          sessionId: String(sessionId || "").trim(),
+        },
+      })
+    );
+  } catch {
+    // Backend access remains authoritative; this only keeps the UI in sync after payment.
+  }
+}
+
+export function rememberPaidAccessForSession(session = {}) {
+  const sessionId = String(session?.id || session?.sessionId || session?.liveClass?.id || "").trim();
+  const courseId = getCourseAccessId(session);
+  if (sessionId) rememberPaidSessionAccess(sessionId);
+  if (courseId) rememberPaidCourseAccess(courseId, { sessionId });
 }
 
 function getMeetingLink(payload) {
@@ -144,6 +232,7 @@ function normalizeSession(raw = {}) {
     raw.courseId ??
     raw.course_id ??
     "";
+  const courseAccessId = getCourseAccessId({ ...raw, id });
   const category =
     raw.category ||
     raw.courseCategory ||
@@ -190,10 +279,15 @@ function normalizeSession(raw = {}) {
     amountPaise <= 0;
   const isPaid =
     raw.isPaid === true ||
+    raw.hasCourseAccess === true ||
+    raw.has_course_access === true ||
+    raw.courseAccess === true ||
+    raw.course_access === true ||
     raw.paid === true ||
     bookingStatus === "paid" ||
     paymentStatus === "captured" ||
     paymentStatus === "paid" ||
+    hasPaidCourseAccess(courseAccessId) ||
     hasPaidSessionAccess(id);
   const paymentRequiredRaw = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
   const paymentRequired = amountPaise > 0 && !isFree && !!paymentRequiredRaw && pricingState !== "FREE";
@@ -201,6 +295,8 @@ function normalizeSession(raw = {}) {
 
   return {
     id,
+    courseAccessId,
+    courseId: courseAccessId,
     thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
     thumbnailBg: "from-emerald-950 via-teal-800 to-cyan-600",
     category,
@@ -241,7 +337,8 @@ function normalizeSession(raw = {}) {
     cancellationReason,
     liveClass: {
       id,
-      courseId: id,
+      courseId: courseAccessId || id,
+      courseAccessId,
       courseName: raw.courseTitle || raw.course?.title || "",
       title: raw.classTitle || raw.title || "",
       instructorName: raw.trainerName || raw.trainer?.name || "Trainer",
@@ -271,8 +368,12 @@ function normalizeSession(raw = {}) {
 
 function normalizeBookingPayload(payload = {}) {
   const source = payload.data || payload || {};
+  const sessionId = source.sessionId || source.session_id || source.liveClassId || source.live_class_id || "";
+  const courseAccessId = getCourseAccessId(source);
   return {
     bookingId: source.bookingId || source.booking_id || source.id || "",
+    sessionId,
+    courseAccessId,
     razorpayOrderId: source.razorpayOrderId || source.razorpay_order_id || source.orderId || source.order_id || "",
     amountPaise: toAmountPaise(source),
     currency: source.currency || "INR",
@@ -382,6 +483,8 @@ export async function getStudentSessionCards() {
     return cards.map((card) =>
       normalizeSession({
         id: card.sessionId,
+        courseId: card.courseId || card.course_id || card.trainerCourseId || card.trainer_course_id,
+        courseAccessId: card.courseAccessId || card.course_access_id,
         courseTitle: card.courseTitle,
         classTitle: card.classTitle,
         category: card.category,
@@ -431,19 +534,45 @@ export async function addStudentSessionCard(sessionId) {
   }
 }
 
-export async function createStudentSessionBooking(sessionId, { sessionDate = "" } = {}) {
+export async function createStudentSessionBooking(sessionId, { sessionDate = "", courseId = "" } = {}) {
   if (isBrowserOffline()) throw new Error("You are offline. Payment cannot be started right now.");
-  try {
-    const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(sessionId)}/bookings`, {
+  const safeCourseId = String(courseId || "").trim();
+  const createBooking = (accessScope) =>
+    axiosClient.post(`/api/student/sessions/${encodeURIComponent(sessionId)}/bookings`, {
       sessionDate,
-      accessScope: "session",
+      accessScope,
+      ...(accessScope === "course" && safeCourseId ? { courseId: safeCourseId } : {}),
     });
+
+  try {
+    const res = await createBooking(safeCourseId ? "course" : "session");
     return normalizeBookingPayload(unwrap(res));
   } catch (err) {
+    let finalErr = err;
     const status = getAxiosErrorStatus(err);
     const message = getAxiosErrorMessage(err, "");
-    if ((status === 400 || status === 409) && /(already|paid|purchased|booked|active access)/i.test(message)) {
+    const canFallbackToSession =
+      safeCourseId &&
+      (status === 400 || status === 404 || status === 405 || status === 422) &&
+      /(accessScope|access scope|courseId|course id|scope|invalid|not supported|unknown)/i.test(message);
+
+    if (canFallbackToSession) {
+      try {
+        const res = await createBooking("session");
+        return normalizeBookingPayload(unwrap(res));
+      } catch (fallbackErr) {
+        finalErr = fallbackErr;
+      }
+    }
+
+    const finalStatus = getAxiosErrorStatus(finalErr);
+    const finalMessage = getAxiosErrorMessage(finalErr, "");
+    if (
+      (finalStatus === 400 || finalStatus === 409) &&
+      /(already|paid|purchased|booked|active access)/i.test(finalMessage)
+    ) {
       rememberPaidSessionAccess(sessionId);
+      if (safeCourseId) rememberPaidCourseAccess(safeCourseId, { sessionId });
       return {
         bookingId: "",
         razorpayOrderId: "",
@@ -454,7 +583,7 @@ export async function createStudentSessionBooking(sessionId, { sessionDate = "" 
         alreadyPaid: true,
       };
     }
-    throw new Error(getAxiosErrorMessage(err, "Unable to start payment. Please try again."));
+    throw new Error(getAxiosErrorMessage(finalErr, "Unable to start payment. Please try again."));
   }
 }
 
@@ -463,6 +592,8 @@ export async function verifyRazorpayPayment({
   razorpayOrderId,
   razorpayPaymentId,
   razorpaySignature,
+  sessionId: requestedSessionId = "",
+  courseId: requestedCourseId = "",
 }) {
   if (isBrowserOffline()) throw new Error("You are offline. Payment verification cannot be completed right now.");
   try {
@@ -473,8 +604,16 @@ export async function verifyRazorpayPayment({
       razorpaySignature,
     });
     const payload = unwrap(res);
-    const sessionId = payload.data?.sessionId || payload.data?.session_id || payload.sessionId || payload.session_id || "";
+    const sessionId =
+      payload.data?.sessionId ||
+      payload.data?.session_id ||
+      payload.sessionId ||
+      payload.session_id ||
+      requestedSessionId ||
+      "";
+    const courseId = getCourseAccessId(payload.data || payload) || requestedCourseId;
     if (sessionId) rememberPaidSessionAccess(sessionId);
+    if (courseId) rememberPaidCourseAccess(courseId, { sessionId });
     return payload.data || payload;
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Payment verification failed. Please contact support if amount was deducted."));

@@ -99,20 +99,30 @@ export function getSessionOccurrenceTiming(liveClass, now = Date.now(), options 
     };
   }
 
-  const occurrenceScheduledAt = kolkataIsoFromParts(todayParts, startTimeParts);
-  const occurrenceStartMs = toMs(occurrenceScheduledAt);
   const endTimeParts = endsAt ? getKolkataParts(endsAt) : null;
-  const occurrenceEndsAt = endTimeParts ? kolkataIsoFromParts(todayParts, endTimeParts) : "";
-  const explicitOccurrenceEndMs = toMs(occurrenceEndsAt);
-  const durationEndMs = occurrenceStartMs + Number(durationMinutes || 0) * 60 * 1000;
-  const occurrenceEndMs =
-    explicitOccurrenceEndMs > occurrenceStartMs ? explicitOccurrenceEndMs : durationEndMs;
 
-  return {
-    startMs: occurrenceStartMs,
-    endMs: occurrenceEndMs,
-    scheduledAt: occurrenceScheduledAt,
-    endsAt: new Date(occurrenceEndMs).toISOString(),
-    isRecurring: true,
+  const buildOccurrence = (dateParts) => {
+    const occurrenceScheduledAt = kolkataIsoFromParts(dateParts, startTimeParts);
+    const occurrenceStartMs = toMs(occurrenceScheduledAt);
+    const occurrenceEndsAt = endTimeParts ? kolkataIsoFromParts(dateParts, endTimeParts) : "";
+    const explicitOccurrenceEndMs = toMs(occurrenceEndsAt);
+    const durationEndMs = occurrenceStartMs + Number(durationMinutes || 0) * 60 * 1000;
+    const occurrenceEndMs =
+      explicitOccurrenceEndMs > occurrenceStartMs ? explicitOccurrenceEndMs : durationEndMs;
+    return {
+      startMs: occurrenceStartMs,
+      endMs: occurrenceEndMs,
+      scheduledAt: occurrenceScheduledAt,
+      endsAt: new Date(occurrenceEndMs).toISOString(),
+      isRecurring: true,
+    };
   };
+
+  const todayOccurrence = buildOccurrence(todayParts);
+  if (options.rollForwardAfterEnd && now > todayOccurrence.endMs) {
+    const nextParts = getKolkataParts(Number(now) + 24 * 60 * 60 * 1000);
+    if (nextParts) return buildOccurrence(nextParts);
+  }
+
+  return todayOccurrence;
 }

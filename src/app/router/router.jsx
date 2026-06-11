@@ -13,6 +13,7 @@ import SearchPage from "../../pages/SearchPage";
 import CartPage from "../../cart/pages/CartPage";
 import CheckoutPage from "../../cart/pages/Checkoutpage .jsx";
 import RequireAuth from "../../auth/components/RequireAuth";
+import MyLearningPage from "../../my-learning/pages/MyLearningPage";
 import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage";
 import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
@@ -30,7 +31,7 @@ export default function AppRouter() {
           path={PATHS.DASHBOARD}
           element={(
             <RequireAuth role="student">
-              <StudentDashboardPage />
+              <MyLearningPage />
             </RequireAuth>
           )}
         />
