@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import brandLogo from "../../assets/Logo/Logo4.png";
 import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
@@ -698,9 +698,18 @@ export default function SignupPage() {
   const [formError, setFormError] = useState("");
   const [emailOtp, setEmailOtp] = useState(blankOtpState);
   const emailOtpRefs = useRef([]);
+  const [searchParams] = useSearchParams();
   const redirectTo = (() => {
     const from = location?.state?.from;
-    return typeof from === "string" && from.trim() ? from : PATHS.HOME;
+    const redirect = searchParams.get("redirect");
+    const target =
+      typeof from === "string" && from.trim()
+        ? from
+        : typeof redirect === "string" && redirect.trim()
+          ? redirect
+          : "";
+    if (target && target !== PATHS.DASHBOARD && target !== PATHS.SIGNUP && target !== "/register") return target;
+    return PATHS.HOME;
   })();
 
   useEffect(() => {

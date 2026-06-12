@@ -80,6 +80,7 @@ export default function AppRouter() {
         <Route path={PATHS.PLANS} element={<SimplePage title="Plans" />} />
         <Route path={PATHS.LOGIN} element={<LoginPage />} />
         <Route path={PATHS.SIGNUP} element={<SignupPage />} />
+        <Route path="/register" element={<SignupPage />} />
         <Route path={PATHS.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={PATHS.RESET_PASSWORD} element={<ResetPasswordPage />} />
         <Route path={PATHS.PROFILE} element={<ProfilePage />} />
