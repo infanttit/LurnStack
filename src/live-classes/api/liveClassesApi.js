@@ -144,6 +144,75 @@ function normalizeLiveClass(dto) {
   };
 }
 
+function normalizeTitClass(dto) {
+  const raw = dto || {};
+  const id = raw?.id ?? raw?._id ?? raw?.classId ?? raw?.class_id ?? raw?.titClassId ?? raw?.tit_class_id ?? null;
+  const priceInPaise = normalizePriceInPaise(raw);
+  const scheduledAt =
+    toKolkataIso(raw?.scheduledDate || raw?.scheduled_date || raw?.date, raw?.startTime || raw?.start_time || raw?.time) ||
+    raw?.scheduledAt ||
+    raw?.scheduled_at ||
+    raw?.startsAt ||
+    raw?.starts_at ||
+    "";
+  const endsAt =
+    toKolkataIso(raw?.scheduledDate || raw?.scheduled_date || raw?.date, raw?.endTime || raw?.end_time) ||
+    raw?.endsAt ||
+    raw?.ends_at ||
+    "";
+  const durationMinutes =
+    getDurationMinutes(raw?.startTime || raw?.start_time, raw?.endTime || raw?.end_time) ||
+    (toMs(endsAt) > toMs(scheduledAt) ? Math.round((toMs(endsAt) - toMs(scheduledAt)) / 60000) : 0) ||
+    Number(raw?.durationMinutes) ||
+    Number(raw?.duration_minutes) ||
+    parseDurationMinutes(raw?.duration);
+  const course = raw?.course && typeof raw.course === "object" ? raw.course : {};
+  const instructor = raw?.instructor && typeof raw.instructor === "object" ? raw.instructor : {};
+  const isFree =
+    raw?.isFree === true ||
+    raw?.is_free === true ||
+    String(raw?.pricingState || raw?.pricing_state || "").toUpperCase() === "FREE" ||
+    Number(priceInPaise || 0) <= 0;
+
+  return {
+    id,
+    title: raw?.title || raw?.classTitle || raw?.class_title || "TIT class",
+    courseName:
+      raw?.courseName ||
+      raw?.course_name ||
+      course?.name ||
+      course?.title ||
+      (typeof raw?.course === "string" ? raw.course : "") ||
+      "",
+    instructorName:
+      raw?.instructorName ||
+      raw?.instructor_name ||
+      raw?.trainerName ||
+      raw?.trainer_name ||
+      instructor?.name ||
+      instructor?.fullName ||
+      "LurnStack Trainer",
+    description: raw?.description || "",
+    scheduledAt,
+    endsAt,
+    durationMinutes,
+    meetingLink: getMeetingLink(raw),
+    thumbnail: raw?.thumbnail || raw?.thumbnailUrl || raw?.thumbnail_url || raw?.image || raw?.imageUrl || "",
+    status: raw?.status || "",
+    priceInPaise,
+    priceLabel: isFree ? "Free" : formatINRFromPaise(priceInPaise),
+    isFree,
+    hasAccess:
+      raw?.hasAccess === true ||
+      raw?.has_access === true ||
+      raw?.isEnrolled === true ||
+      raw?.is_enrolled === true ||
+      raw?.isPaid === true ||
+      raw?.is_paid === true,
+    raw,
+  };
+}
+
 function isTrainerSessionRecord(raw = {}) {
   const source = String(raw?.source || raw?.type || raw?.sessionType || "").trim().toLowerCase();
   return (
@@ -177,6 +246,24 @@ export async function getLiveClasses() {
       .sort(sortByScheduleAsc);
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to load live classes. Please try again."));
+  }
+}
+
+export async function getTitClasses() {
+  try {
+    const res = await axiosClient.get("/api/student/tit-classes");
+    const payload = unwrap(res);
+    const list = Array.isArray(payload.data) ? payload.data : [];
+    return list
+      .filter((item) => {
+        const status = String(item?.status || "").trim().toLowerCase();
+        return !status || status === "published" || status === "upcoming" || status === "live" || status === "completed";
+      })
+      .map(normalizeTitClass)
+      .filter((x) => x?.id != null)
+      .sort(sortByScheduleAsc);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to load TIT classes. Please try again."));
   }
 }
 
