@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../model/CartContext";
 import { formatINRFromPaise } from "../lib/cartUtils";
+import { useSEO } from "../../shared/hooks/useSEO";
 
 // Star rating display
 function StarRating({ rating = 0, count = 0 }) {
@@ -53,6 +54,13 @@ export default function CartPage() {
   const [coupon, setCoupon] = useState("");
   const [savedItems, setSavedItems] = useState([]);
   const [removingIds, setRemovingIds] = useState(new Set());
+
+  useSEO({
+    title: "Your Cart",
+    description: "Review your selected LurnStack courses before checkout. Secure payment powered by Razorpay.",
+    keywords: "LurnStack cart, checkout, course purchase",
+    canonical: "/cart",
+  });
 
   const discountPaise = useMemo(() => 0, []);
   const totalPaise = Math.max(0, subtotalPaise - discountPaise);

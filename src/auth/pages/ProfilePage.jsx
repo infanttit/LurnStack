@@ -23,6 +23,7 @@ import {
   formatAttendanceStatus,
   getStudentAttendanceOverview,
 } from "../../courses/api/studentAttendanceApi";
+import { useSEO } from "../../shared/hooks/useSEO";
 
 const ENABLE_REMOTE_PROFILE = String(process.env.REACT_APP_ENABLE_REMOTE_PROFILE || "").trim() === "true";
 const DISABLE_STUDENT_ATTENDANCE_HISTORY =
@@ -572,6 +573,13 @@ export default function ProfilePage() {
   const [attendanceCourses, setAttendanceCourses] = useState([]);
   const [attendanceNotice, setAttendanceNotice] = useState("");
   const [notice, setNotice] = useState("");
+
+  useSEO({
+    title: "My Profile",
+    description: "Manage your LurnStack account, update your profile details, and view your attendance and learning records.",
+    keywords: "LurnStack profile, account settings, student profile",
+    canonical: "/profile",
+  });
 
   const [toastMessage, setToastMessage] = useState("");
   const [toastTone, setToastTone] = useState("warn");

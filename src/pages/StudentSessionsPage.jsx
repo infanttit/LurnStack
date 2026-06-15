@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiCalendar, FiRefreshCcw, FiSearch } from "react-icons/fi";
+import { Info } from "lucide-react";
 import { PATHS } from "../app/router/paths";
 import AuthRequiredModal from "../auth/components/AuthRequiredModal";
 import { useAuth } from "../auth";
@@ -105,6 +106,13 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
             {formatIST(occurrence.scheduledAt || session.scheduledAt)}
           </span>
         </div>
+
+        {session.trainerInstructions && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2.5 text-xs text-blue-800">
+            <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+            <p className="leading-normal">{session.trainerInstructions}</p>
+          </div>
+        )}
 
         <div className="mt-4 flex gap-2" title={joinText}>
           {session.isFree ? (

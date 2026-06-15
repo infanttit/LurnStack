@@ -20,6 +20,8 @@ import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
 import AttendanceReportPage from "../../attendance/pages/AttendanceReportPage";
 import StudentSessionsPage from "../../pages/StudentSessionsPage";
+import CompanyPage from "../../about/pages/CompanyPage";
+import ProjectsPage from "../../about/pages/ProjectsPage";
 import { PATHS } from "./paths";
 
 export default function AppRouter() {
@@ -79,6 +81,9 @@ export default function AppRouter() {
           element={<Navigate to={PATHS.PRIVACY} replace />}
         />
         <Route path={PATHS.PLANS} element={<SimplePage title="Plans" />} />
+        <Route path={PATHS.ABOUT} element={<Navigate to={PATHS.ABOUT_COMPANY} replace />} />
+        <Route path={PATHS.ABOUT_COMPANY} element={<CompanyPage />} />
+        <Route path={PATHS.ABOUT_PROJECTS} element={<ProjectsPage />} />
         <Route path={PATHS.LOGIN} element={<LoginPage />} />
         <Route path={PATHS.SIGNUP} element={<SignupPage />} />
         <Route path="/register" element={<SignupPage />} />

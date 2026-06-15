@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import { FiArrowRight, FiBell, FiBookOpen, FiCalendar, FiCheckCircle, FiClock, FiRefreshCcw, FiTag, FiVideo } from "react-icons/fi";
+import { Info } from "lucide-react";
 import { PATHS } from "../../app/router/paths";
 import { getStudentSessions } from "../../courses/api/studentSessionsApi";
 import { getTitClasses } from "../api/liveClassesApi";
@@ -180,6 +181,13 @@ function TitClassCard({ titClass, now, onOpenMeeting }) {
             {status}
           </div>
         </div>
+
+        {titClass?.trainerInstructions && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2.5 text-xs text-blue-800">
+            <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+            <p className="leading-normal">{titClass.trainerInstructions}</p>
+          </div>
+        )}
 
         <div className="mt-2 flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-1.5 text-[14px] font-extrabold text-gray-900">

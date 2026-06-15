@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { HiMiniStar } from "react-icons/hi2";
 import { getAllCourses } from "../courses/data/courseCatalog";
+import { useSEO } from "../shared/hooks/useSEO";
 
 function useQuery() {
   const { search } = useLocation();
@@ -39,6 +40,15 @@ export default function SearchPage() {
   const query = useQuery();
   const navigate = useNavigate();
   const q = (query.get("q") || "").trim();
+
+  useSEO({
+    title: q ? `Search: ${q}` : "Search Courses",
+    description: q
+      ? `Search results for "${q}" on LurnStack. Explore courses, live classes, and expert instructors.`
+      : "Search LurnStack's library of expert-led courses, live sessions, skills, and instructors.",
+    keywords: "LurnStack search, courses, find courses, online learning",
+    canonical: "/search",
+  });
 
   const results = useMemo(() => {
     const qNorm = normalize(q);

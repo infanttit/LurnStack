@@ -8,6 +8,7 @@ import {
   HiChevronDown,
   HiChevronUp,
 } from "react-icons/hi2";
+import { Info } from "lucide-react";
 import { useCart, emitCartFlyFromElement, parseINRPriceToPaise } from "../../cart";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
@@ -489,6 +490,7 @@ export default function CourseDetailsPage() {
 
   if (course.createdByTrainer) {
     const liveClass = course.liveClass || liveClasses[0] || null;
+    const trainerInstructions = course.trainerInstructions || liveClass?.trainerInstructions || "";
     const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
     const unavailable = isSessionUnavailable(liveClass);
     const cancellationReason = liveClass?.cancellationReason || course.cancellationReason || "";
@@ -775,6 +777,19 @@ export default function CourseDetailsPage() {
                           Join count: {sessionAttendance.joinCount}
                         </span>
                       ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {trainerInstructions ? (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 flex items-start gap-2.5">
+                    <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-blue-700">
+                        Trainer Instructions
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-blue-800 leading-normal">
+                        {trainerInstructions}
+                      </div>
                     </div>
                   </div>
                 ) : null}

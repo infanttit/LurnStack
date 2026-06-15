@@ -292,6 +292,7 @@ function normalizeSession(raw = {}) {
   const paymentRequiredRaw = raw.paymentRequired ?? raw.payment_required ?? amountPaise > 0;
   const paymentRequired = amountPaise > 0 && !isFree && !!paymentRequiredRaw && pricingState !== "FREE";
   const currency = raw.currency || "INR";
+  const trainerInstructions = raw.trainerInstructions ?? raw.trainer_instructions ?? "";
 
   return {
     id,
@@ -335,6 +336,7 @@ function normalizeSession(raw = {}) {
     isRecurring: recurringValue,
     recurrenceType,
     cancellationReason,
+    trainerInstructions,
     liveClass: {
       id,
       courseId: courseAccessId || id,
@@ -361,6 +363,7 @@ function normalizeSession(raw = {}) {
       pricingState,
       bookingStatus,
       paymentStatus,
+      trainerInstructions,
     },
     raw,
   };

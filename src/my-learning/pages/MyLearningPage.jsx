@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiBell,
   FiCalendar,
-  FiChevronLeft,
-  FiChevronRight,
   FiInfo,
   FiRefreshCcw,
   FiTarget,
 } from "react-icons/fi";
 import { PATHS } from "../../app/router/paths";
+import { Info } from "lucide-react";
 import { getStudentSessions } from "../../courses/api/studentSessionsApi";
+import { useSEO } from "../../shared/hooks/useSEO";
 import SmartImage from "../../shared/components/SmartImage";
 import {
   applyRecentJoinedFallback,
@@ -198,6 +198,14 @@ function SessionCard({ session, label, tone = "emerald" }) {
             {learningWhenText(session)}
           </span>
         </div>
+
+        {session.trainerInstructions && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2.5 text-xs text-blue-800">
+            <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+            <p className="leading-normal">{session.trainerInstructions}</p>
+          </div>
+        )}
+
         <div className="mt-3 flex gap-2">
           <span
             className={[
@@ -216,63 +224,6 @@ function SessionCard({ session, label, tone = "emerald" }) {
   );
 }
 
-function LearningTabs({ summary, activeTab, onTabChange }) {
-  const scrollerRef = useRef(null);
-  const tabs = [
-    { id: "all", label: "All courses", count: summary.paidCourses.length },
-    { id: "paid", label: "Paid sessions", count: summary.paidSessions?.length || 0 },
-    { id: "upcoming", label: "Upcoming live sessions", count: summary.upcomingSessions.length },
-    { id: "recent", label: "Recently joined", count: summary.recentlyJoined.length },
-    { id: "completed", label: "Completed sessions", count: summary.completedSessions.length },
-    { id: "certifications", label: "Certifications", count: 0 },
-  ];
-  const scrollTabs = (direction) => {
-    scrollerRef.current?.scrollBy({
-      left: direction * 180,
-      behavior: "smooth",
-    });
-  };
-
-  return (
-    <div className="relative mx-auto max-w-6xl">
-      <button
-        type="button"
-        onClick={() => scrollTabs(-1)}
-        className="absolute left-1 top-1 z-10 grid h-8 w-8 place-items-center bg-[#004d3d] text-white sm:hidden"
-        aria-label="Scroll tabs left"
-      >
-        <FiChevronLeft />
-      </button>
-      <div
-        ref={scrollerRef}
-        className="flex gap-7 overflow-x-auto px-11 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden"
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onTabChange(tab.id)}
-            className={[
-              "shrink-0 border-b-2 px-1 pb-4 pt-1 text-sm font-semibold text-white/85 transition-colors hover:text-white sm:text-base",
-              activeTab === tab.id ? "border-white text-white" : "border-transparent",
-            ].join(" ")}
-          >
-            {tab.label}
-            {tab.count ? <span className="ml-2 text-xs font-semibold text-white/65">{tab.count}</span> : null}
-          </button>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => scrollTabs(1)}
-        className="absolute right-1 top-1 z-10 grid h-8 w-8 place-items-center bg-[#004d3d] text-white sm:hidden"
-        aria-label="Scroll tabs right"
-      >
-        <FiChevronRight />
-      </button>
-    </div>
-  );
-}
 
 function StreakPanel({ summary }) {
   const courseMinutes = Math.min(30, summary.completedSessions.length * 10);
@@ -345,10 +296,74 @@ function SchedulePanel() {
   );
 }
 
+function HeroDescriptions({ activeTab }) {
+  const descriptions = {
+    all: [
+      "Browse your comprehensive catalog of enrolled programs. This overview houses every training curriculum you have unlocked, providing a centralized hub for your educational journey.",
+      "Keep track of your progress indicator on each course card to ensure you are meeting your weekly targets. Transition between lectures, quizzes, and projects seamlessly to solidify your learning experience.",
+      "If you need support with a specific program, click to view details and access trainer instructions or contact support directly. We recommend scheduling dedicated weekly hours to maintain consistency."
+    ],
+    paid: [
+      "View all of your purchased, one-time expert sessions. These live events are tailored to deep dive into specific technical concepts under direct trainer guidance.",
+      "Access keys, meeting URLs, and syllabus details directly from the course cards. Please review any instructor prerequisites before the session start time to get the most value out of the live interaction.",
+      "Once a session concludes, you can verify your attendance status or follow up with the community. Paid session entries remain here to help you review completed modules and resources at any time."
+    ],
+    upcoming: [
+      "Your upcoming live sessions schedule lists the classes that will be starting soon. Join links will be activated automatically when the class starts.",
+      "Make sure you have completed the required readings and setup instructions before entering the meeting. Being prepared allows you to participate actively in the code-along components.",
+      "Set a calendar reminder or allow browser notifications so you don't miss live broadcasts. In case of unexpected scheduling changes, you can check update bulletins here."
+    ],
+    recent: [
+      "Revisit classes you have recently attended to consolidate your notes and resources. This history log makes it easy to jump back into active learning.",
+      "Check your attendance indicators to ensure your session hours are logged correctly. If you were marked absent or late, you can verify your join count details here.",
+      "Download course resources, check assignment feedback, or review recorded sessions from this list. Habitual review of recent material is key to long-term skill retention."
+    ],
+    completed: [
+      "Your completed sessions log lists all courses and modules you have successfully finished. This is a record of your academic milestones on LurnStack.",
+      "You can download session completion files, recap notes, and project solutions from here. Reviewing these materials serves as a great refresher before technical interviews.",
+      "If a completed course is eligible for certification, the status will be updated automatically. Feel free to explore new categories to expand your skill set further."
+    ],
+    certifications: [
+      "Here you can view and download all the professional certificates you have earned by completing courses on LurnStack. Share your achievements to showcase your skills.",
+      "Our certification program aligns with industry standards, making these credentials a valuable addition to your resume or portfolio. You can verify certificate authenticity using our unique ID validator.",
+      "If you are currently working through a program, keep an eye on the completion milestones required to unlock your certificate. Continue learning to earn more credentials."
+    ],
+  };
+
+  const paragraphs = descriptions[activeTab] || descriptions.all;
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % paragraphs.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [paragraphs]);
+
+  const currentText = paragraphs[index] || "";
+
+  return (
+    <div className="mt-6 max-w-3xl min-h-[56px] sm:min-h-[48px] overflow-hidden">
+      <p
+        key={index}
+        className="text-[13px] font-semibold leading-relaxed text-[#052e22]/85 animate-[learningHeaderBody_0.5s_ease-out_both]"
+      >
+        {currentText}
+      </p>
+    </div>
+  );
+}
+
 function TabContent({ activeTab, loading, summary }) {
+  let content;
+
   if (activeTab === "paid") {
-    return (
-      <LearningSection title="Paid sessions" right={loading ? "Loading..." : `${summary.paidSessions?.length || 0} paid`}>
+    content = (
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=paid" className="hover:underline">Paid sessions</Link></span>} right={loading ? "Loading..." : `${summary.paidSessions?.length || 0} paid`}>
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-56 animate-pulse bg-slate-50" />)}
@@ -364,11 +379,9 @@ function TabContent({ activeTab, loading, summary }) {
         )}
       </LearningSection>
     );
-  }
-
-  if (activeTab === "upcoming") {
-    return (
-      <LearningSection title="Upcoming live sessions" right={loading ? "Loading..." : `${summary.upcomingSessions.length} scheduled`}>
+  } else if (activeTab === "upcoming") {
+    content = (
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=upcoming" className="hover:underline">Upcoming live sessions</Link></span>} right={loading ? "Loading..." : `${summary.upcomingSessions.length} scheduled`}>
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-56 animate-pulse bg-slate-50" />)}
@@ -384,11 +397,9 @@ function TabContent({ activeTab, loading, summary }) {
         )}
       </LearningSection>
     );
-  }
-
-  if (activeTab === "recent") {
-    return (
-      <LearningSection title="Recently joined" right={loading ? "Loading..." : `${summary.recentlyJoined.length} sessions`}>
+  } else if (activeTab === "recent") {
+    content = (
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=recent" className="hover:underline">Recently joined</Link></span>} right={loading ? "Loading..." : `${summary.recentlyJoined.length} sessions`}>
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-56 animate-pulse bg-slate-50" />)}
@@ -402,11 +413,9 @@ function TabContent({ activeTab, loading, summary }) {
         )}
       </LearningSection>
     );
-  }
-
-  if (activeTab === "completed") {
-    return (
-      <LearningSection title="Completed sessions" right={loading ? "Loading..." : `${summary.completedSessions.length} completed`}>
+  } else if (activeTab === "completed") {
+    content = (
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=completed" className="hover:underline">Completed sessions</Link></span>} right={loading ? "Loading..." : `${summary.completedSessions.length} completed`}>
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => <div key={index} className="h-56 animate-pulse bg-slate-50" />)}
@@ -420,11 +429,9 @@ function TabContent({ activeTab, loading, summary }) {
         )}
       </LearningSection>
     );
-  }
-
-  if (activeTab === "certifications") {
-    return (
-      <LearningSection title="Certifications" right="Coming soon">
+  } else if (activeTab === "certifications") {
+    content = (
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=certifications" className="hover:underline">Certifications</Link></span>} right="Coming soon">
         <div className="border-y border-slate-200 py-10">
           <div className="max-w-2xl">
             <div className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-800">
@@ -438,25 +445,27 @@ function TabContent({ activeTab, loading, summary }) {
         </div>
       </LearningSection>
     );
+  } else {
+    content = (
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=all" className="hover:underline">All courses</Link></span>} right={loading ? "Loading..." : `${summary.paidCourses.length} active`}>
+        {loading ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-56 animate-pulse bg-slate-50" />
+            ))}
+          </div>
+        ) : summary.paidCourses.length === 0 ? (
+          <EmptyState title="No paid courses yet" body="Once you buy a trainer course, your active course access and related sessions will appear here." />
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {summary.paidCourses.map((course) => <CourseAccessCard key={course.id} course={course} />)}
+          </div>
+        )}
+      </LearningSection>
+    );
   }
 
-  return (
-    <LearningSection title="All courses" right={loading ? "Loading..." : `${summary.paidCourses.length} active`}>
-      {loading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-56 animate-pulse bg-slate-50" />
-          ))}
-        </div>
-      ) : summary.paidCourses.length === 0 ? (
-        <EmptyState title="No paid courses yet" body="Once you buy a trainer course, your active course access and related sessions will appear here." />
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {summary.paidCourses.map((course) => <CourseAccessCard key={course.id} course={course} />)}
-        </div>
-      )}
-    </LearningSection>
-  );
+  return content;
 }
 
 export default function MyLearningPage() {
@@ -465,6 +474,16 @@ export default function MyLearningPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const contentSectionRef = useRef(null);
+
+  useSEO({
+    title: "My Learning",
+    description: "Track your enrolled courses, live sessions, attendance, and certifications on LurnStack.",
+    keywords: "my learning, LurnStack dashboard, enrolled courses, live sessions, certifications",
+    canonical: "/dashboard",
+  });
 
   const loadLearning = async (background = false) => {
     if (background) setRefreshing(true);
@@ -486,8 +505,28 @@ export default function MyLearningPage() {
     loadLearning(false);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const view = params.get("view");
+    if (view) {
+      setActiveTab(view);
+    } else {
+      setActiveTab("all");
+    }
+  }, [location.search]);
+
+  // Trigger smooth scroll when tab changes
+  useEffect(() => {
+    if (!loading && contentSectionRef.current) {
+      const element = contentSectionRef.current;
+      const yOffset = -100; // Offset to account for fixed navbar
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  }, [activeTab, loading]);
+
   const refreshLearningPage = async () => {
-    setActiveTab("all");
+    navigate(location.pathname);
     await loadLearning(false);
   };
 
@@ -495,28 +534,41 @@ export default function MyLearningPage() {
 
   return (
     <main className="bg-white pb-12">
-      <section className="bg-[#004d3d] text-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-5 px-4 pb-10 pt-14 sm:px-6 sm:pt-16">
+      <section className="bg-[#54d410] text-[#052e22]">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-5 px-4 pb-14 pt-14 sm:px-6 sm:pt-16">
           <div>
-            <h1 className="text-4xl font-black tracking-tight sm:text-5xl">My learning</h1>
-            <p className="mt-4 max-w-2xl text-sm font-medium text-emerald-50/75">
+            <h1 className="text-4xl font-black tracking-tight sm:text-5xl flex flex-wrap">
+              {"My learning".split("").map((letter, idx) => (
+                <span
+                  key={idx}
+                  className="animate-learning-title-letter"
+                  style={{
+                    animationDelay: `${idx * 40}ms`,
+                    whiteSpace: letter === " " ? "pre" : "normal",
+                  }}
+                >
+                  {letter}
+                </span>
+              ))}
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm font-medium text-[#052e22]/80 animate-learning-header-body">
               Continue your LurnStack courses, live sessions, and paid trainer access from one place.
             </p>
+            {!loading && <HeroDescriptions activeTab={activeTab} />}
           </div>
           <button
             type="button"
             onClick={refreshLearningPage}
             disabled={loading || refreshing}
-            className="inline-flex h-10 items-center gap-2 border border-emerald-100/40 px-4 text-sm font-black text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 border border-[#052e22]/20 px-4 text-sm font-black text-[#052e22] transition-colors hover:bg-[#052e22]/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FiRefreshCcw className={loading || refreshing ? "animate-spin" : ""} />
             {loading || refreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
-        <LearningTabs summary={summary} activeTab={activeTab} onTabChange={setActiveTab} />
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
+      <section ref={contentSectionRef} className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
         {error ? (
           <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
             {error}
@@ -530,7 +582,7 @@ export default function MyLearningPage() {
           </div>
         ) : null}
 
-        <div className={activeTab === "all" ? "mt-10" : "mt-2"}>
+        <div key={activeTab} className={activeTab === "all" ? "mt-10" : "mt-2"}>
           <TabContent activeTab={activeTab} loading={loading} summary={summary} />
         </div>
       </section>

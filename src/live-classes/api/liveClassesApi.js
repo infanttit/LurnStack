@@ -140,6 +140,7 @@ function normalizeLiveClass(dto) {
     priceInPaise,
     priceLabel: formatINRFromPaise(priceInPaise),
     pricePending: priceInPaise == null,
+    trainerInstructions: raw?.trainerInstructions || raw?.trainer_instructions || "",
     raw,
   };
 }
@@ -209,6 +210,7 @@ function normalizeTitClass(dto) {
       raw?.is_enrolled === true ||
       raw?.isPaid === true ||
       raw?.is_paid === true,
+    trainerInstructions: raw?.trainerInstructions || raw?.trainer_instructions || "",
     raw,
   };
 }

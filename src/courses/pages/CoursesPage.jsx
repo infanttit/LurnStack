@@ -4,6 +4,7 @@ import { HiMiniStar } from "react-icons/hi2";
 import { useAuth } from "../../auth";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { PATHS } from "../../app/router/paths";
+import { useSEO } from "../../shared/hooks/useSEO";
 import {
   createStudentSessionBooking,
   getCourseAccessId,
@@ -425,6 +426,13 @@ export default function CoursesPage() {
   const profileName = user?.fullName || "LurnStack Learner";
   const profileLine = user?.role === "trainer" ? "Trainer" : "Student";
   const showOverviewPanel = activeCategory === "Trainer Courses";
+
+  useSEO({
+    title: activeCategory ? `${activeCategory} Courses` : "Courses",
+    description: `Browse expert-led ${activeCategory || ""} courses on LurnStack. Live trainer sessions, hands-on practice, and real-world projects.`.trim(),
+    keywords: "LurnStack courses, online courses, live classes, web development, database, cloud, UI/UX",
+    canonical: "/courses",
+  });
 
   useEffect(() => {
     let cancelled = false;
