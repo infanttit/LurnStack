@@ -11,6 +11,7 @@
   html {
     font-family: var(--app-font-family);
     overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   body,
@@ -531,3 +532,77 @@
     transform: scale(1.06);
   }
 }
+
+@keyframes learningHeaderLine {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes learningTitleLetter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes learningHeaderBody {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── AI Chat button animations ── */
+@keyframes ai-btn-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 8px rgba(52, 211, 153, 0);
+  }
+}
+
+@keyframes ai-dot-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+}
+
+.animate-learning-title-letter {
+  display: inline-block;
+  animation: learningTitleLetter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-learning-header-line {
+  animation: learningHeaderLine 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-learning-header-body {
+  animation: learningHeaderBody 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+

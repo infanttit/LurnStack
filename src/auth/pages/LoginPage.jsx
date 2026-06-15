@@ -5,6 +5,7 @@ import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { env } from "../../shared/config/env";
 import { isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
+import { useSEO } from "../../shared/hooks/useSEO";
 
 
 const EyeIcon = ({ open }) =>
@@ -104,6 +105,13 @@ export default function LoginPage() {
   const [externalAuthLoading, setExternalAuthLoading] = useState(false);
   const [externalAuthError, setExternalAuthError] = useState("");
 
+  useSEO({
+    title: "Login",
+    description: "Sign in to your LurnStack account to access your courses, live sessions, and learning dashboard.",
+    keywords: "LurnStack login, sign in, student login",
+    canonical: "/login",
+  });
+
   const externalToken = searchParams.get("token") || "";
   const externalError = searchParams.get("error") || "";
 
@@ -117,9 +125,9 @@ export default function LoginPage() {
           ? redirect
           : "";
     if (target && target !== PATHS.LOGIN) return target;
-    return PATHS.HOME;
+    return PATHS.COURSES;
   })();
-  const googleRedirectTo = redirectTo === PATHS.HOME ? PATHS.DASHBOARD : redirectTo;
+  const googleRedirectTo = redirectTo === PATHS.COURSES ? PATHS.COURSES : redirectTo;
 
   useEffect(() => {
     if (!externalToken && !externalError) return undefined;

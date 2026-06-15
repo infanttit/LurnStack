@@ -1,3 +1,5 @@
+import { useSEO } from "../shared/hooks/useSEO";
+
 const sections = [
   {
     title: "1. Acceptance of Terms",
@@ -69,6 +71,13 @@ const sections = [
 ];
 
 export default function TermsAndConditionsPage() {
+  useSEO({
+    title: "Terms and Conditions",
+    description: "Review LurnStack's terms of service for using our website, courses, live classes, payments, and learning platform.",
+    keywords: "LurnStack terms and conditions, terms of service, user agreement",
+    canonical: "/terms-and-conditions",
+  });
+
   return (
     <main className="bg-background">
       <section className="max-w-4xl mx-auto px-margin-mobile sm:px-margin-desktop py-14 sm:py-20">

@@ -5,6 +5,7 @@ import { useAuth } from "../model/AuthContext";
 import { PATHS } from "../../app/router/paths";
 import { isStrongPassword, isValidEmail, normalizeEmail, passwordPolicyText } from "../lib/validation";
 import { sendOtpApi, verifyOtpApi } from "../api/authApi";
+import { useSEO } from "../../shared/hooks/useSEO";
 
 const ENABLE_EMAIL_OTP = true;
 
@@ -691,6 +692,14 @@ export default function SignupPage() {
     password: "",
     agree: true,
   });
+
+  useSEO({
+    title: "Sign Up",
+    description: "Create your free LurnStack account and start learning from expert trainers with live, hands-on masterclasses.",
+    keywords: "LurnStack sign up, register, create account, student registration",
+    canonical: "/signup",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);

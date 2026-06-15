@@ -1,3 +1,5 @@
+import { useSEO } from "../shared/hooks/useSEO";
+
 const sections = [
   {
     title: "1. Information We Collect",
@@ -97,6 +99,13 @@ const sections = [
 ];
 
 export default function PrivacyPolicyPage() {
+  useSEO({
+    title: "Privacy Policy",
+    description: "Read LurnStack's privacy policy to understand how we collect, use, store, and protect your personal data.",
+    keywords: "LurnStack privacy policy, data protection, personal information",
+    canonical: "/privacy-policy",
+  });
+
   return (
     <main className="bg-background">
       <section className="max-w-4xl mx-auto px-margin-mobile sm:px-margin-desktop py-14 sm:py-20">

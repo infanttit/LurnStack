@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { FiGlobe, FiMail, FiTwitter, FiLinkedin, FiYoutube } from "react-icons/fi";
 import logo from "../../assets/Logo/Logo4.png";
+import { PATHS } from "../../app/router/paths";
 
 function FooterLink({ to, children }) {
   return (
@@ -29,20 +30,19 @@ const NAV = [
   {
     heading: "Platform",
     links: [
-      { label: "All Courses", to: "/courses" },
-      { label: "Certificates", to: "/certificates" },
-      { label: "Learning Paths", to: "/paths" },
-      { label: "For Teams", to: "/plans" },
-      { label: "Mobile App", to: "/app" },
+      { label: "Courses", to: PATHS.COURSES },
+      { label: "TIT class", to: PATHS.LIVE_CLASSES },
+      { label: "My learning", to: PATHS.DASHBOARD },
+      { label: "Paid session", to: `${PATHS.DASHBOARD}?view=paid` },
+      { label: "Certificate", to: `${PATHS.DASHBOARD}?view=certifications` },
     ],
   },
   {
     heading: "Company",
     links: [
-      { label: "About Us", to: "/about" },
-      { label: "Careers", to: "/careers" },
-      { label: "Partners", to: "/partners" },
+      { label: "About Us", to: PATHS.ABOUT_COMPANY },
       { label: "Blog", to: "/blog" },
+      { label: "Careers", to: "/careers" },
       { label: "Contact", to: "/contact" },
     ],
   },
@@ -50,9 +50,8 @@ const NAV = [
     heading: "Support",
     links: [
       { label: "Help Center", to: "/help" },
-      { label: "Community", to: "/community" },
-      { label: "Privacy Policy", to: "/privacy" },
-      { label: "Terms and Conditions", to: "/terms" },
+      { label: "Privacy Policy", to: PATHS.PRIVACY },
+      { label: "Terms and Conditions", to: PATHS.TERMS },
     ],
   },
 ];

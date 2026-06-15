@@ -1,6 +1,19 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineShoppingBag } from "react-icons/hi2";
+import {
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
+  HiOutlineShoppingBag,
+  HiOutlineChatBubbleLeftRight,
+  HiOutlineAcademicCap,
+  HiOutlineCreditCard,
+  HiOutlineCalendar,
+  HiOutlinePlayCircle,
+  HiOutlineCheckCircle,
+  HiOutlineTrophy,
+  HiOutlineBriefcase,
+  HiOutlineBuildingOffice2,
+} from "react-icons/hi2";
 import NavItem from "./navbar/NavItem";
 import NavbarSearch from "./navbar/NavbarSearch";
 import { useCart } from "../../cart";
@@ -21,6 +34,34 @@ const COURSE_CATEGORIES = [
   "Cloud Computing",
   "UI/UX Design",
 ];
+
+const MY_LEARNING_LINKS = [
+  { label: "All courses", view: "all", description: "Every active course", icon: HiOutlineAcademicCap },
+  { label: "Paid sessions", view: "paid", description: "Purchased classes", icon: HiOutlineCreditCard },
+  { label: "Upcoming live sessions", view: "upcoming", description: "Next scheduled classes", icon: HiOutlineCalendar },
+  { label: "Recently joined", view: "recent", description: "Latest activity", icon: HiOutlinePlayCircle },
+  { label: "Completed sessions", view: "completed", description: "Finished classes", icon: HiOutlineCheckCircle },
+  { label: "Certifications", view: "certifications", description: "Certificates and awards", icon: HiOutlineTrophy },
+];
+
+const ABOUT_US_LINKS = [
+  {
+    label: "LurnStack Company",
+    path: PATHS.ABOUT_COMPANY,
+    description: "Learn about our vision and training mission",
+    icon: HiOutlineBuildingOffice2,
+  },
+  {
+    label: "Our Projects",
+    path: PATHS.ABOUT_PROJECTS,
+    description: "Explore our in-house systems and tools",
+    icon: HiOutlineBriefcase,
+  },
+];
+
+function learningViewPath(view) {
+  return `${PATHS.DASHBOARD}?view=${view}`;
+}
 
 function initials(name) {
   const parts = String(name || "")
@@ -73,12 +114,60 @@ export default function SiteNavbar() {
   const [mobileMenuView, setMobileMenuView] = useState("main");
   const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [learningDropdownOpen, setLearningDropdownOpen] = useState(false);
+  const [aboutDropdownOpen, setAboutDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { itemCount } = useCart();
   const { user, isAuthenticated, signOut, userRole } = useAuth();
 
+  const learningTimeoutRef = useRef(null);
+  const aboutTimeoutRef = useRef(null);
+
+  const handleLearningMouseEnter = () => {
+    if (learningTimeoutRef.current) clearTimeout(learningTimeoutRef.current);
+    setLearningDropdownOpen(true);
+  };
+
+  const handleLearningMouseLeave = () => {
+    learningTimeoutRef.current = setTimeout(() => {
+      setLearningDropdownOpen(false);
+    }, 150);
+  };
+
+  const closeLearningDropdown = () => {
+    if (learningTimeoutRef.current) clearTimeout(learningTimeoutRef.current);
+    setLearningDropdownOpen(false);
+  };
+
+  const handleAboutMouseEnter = () => {
+    if (aboutTimeoutRef.current) clearTimeout(aboutTimeoutRef.current);
+    setAboutDropdownOpen(true);
+  };
+
+  const handleAboutMouseLeave = () => {
+    aboutTimeoutRef.current = setTimeout(() => {
+      setAboutDropdownOpen(false);
+    }, 150);
+  };
+
+  const closeAboutDropdown = () => {
+    if (aboutTimeoutRef.current) clearTimeout(aboutTimeoutRef.current);
+    setAboutDropdownOpen(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (learningTimeoutRef.current) clearTimeout(learningTimeoutRef.current);
+      if (aboutTimeoutRef.current) clearTimeout(aboutTimeoutRef.current);
+    };
+  }, []);
+
   const isCheckout = location?.pathname === PATHS.CHECKOUT;
+
+  const openAiChat = () => {
+    window.dispatchEvent(new Event("lurnstack:open-ai-chat"));
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen((open) => {
@@ -173,7 +262,86 @@ export default function SiteNavbar() {
                   <NavItem to={PATHS.LIVE_CLASSES}>TIT class</NavItem>
                 ) : null}
                 {isAuthenticated ? (
-                  <NavItem to={PATHS.DASHBOARD}>My Learning</NavItem>
+                  <div
+                    className="relative group"
+                    onMouseEnter={handleLearningMouseEnter}
+                    onMouseLeave={handleLearningMouseLeave}
+                  >
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 font-label-sm text-label-sm text-gray-900/75 hover:text-black transition-colors duration-200 whitespace-nowrap outline-none"
+                    >
+                      <span>My Learning</span>
+                    </button>
+
+                    {learningDropdownOpen && (
+                      <div className="absolute left-0 top-full pt-2 w-72 z-50 origin-top-left transition-all duration-200">
+                        <div className="rounded-2xl border border-slate-100 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12)] py-2 overflow-hidden">
+                          {MY_LEARNING_LINKS.map((item) => (
+                            <NavLink
+                              key={item.view}
+                              to={learningViewPath(item.view)}
+                              onClick={closeLearningDropdown}
+                              className="flex items-center gap-3.5 px-4 py-3 hover:bg-[#004d3d]/5 border-l-2 border-transparent hover:border-[#004d3d] transition-all duration-200 group/item"
+                            >
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 group-hover/item:bg-emerald-50 group-hover/item:text-[#004d3d] transition-colors">
+                                <item.icon className="text-[18px]" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="block text-[13px] font-bold text-gray-800 group-hover/item:text-[#004d3d] transition-colors">
+                                  {item.label}
+                                </span>
+                                <span className="block text-[11px] font-medium text-gray-400 mt-0.5">
+                                  {item.description}
+                                </span>
+                              </div>
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+                {!isAuthenticated ? (
+                  <div
+                    className="relative group"
+                    onMouseEnter={handleAboutMouseEnter}
+                    onMouseLeave={handleAboutMouseLeave}
+                  >
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 font-label-sm text-label-sm text-gray-900/75 hover:text-black transition-colors duration-200 whitespace-nowrap outline-none"
+                    >
+                      <span>About Us</span>
+                    </button>
+
+                    {aboutDropdownOpen && (
+                      <div className="absolute left-0 top-full pt-2 w-72 z-50 origin-top-left transition-all duration-200">
+                        <div className="rounded-2xl border border-slate-100 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12)] py-2 overflow-hidden">
+                          {ABOUT_US_LINKS.map((item) => (
+                            <NavLink
+                              key={item.path}
+                              to={item.path}
+                              onClick={closeAboutDropdown}
+                              className="flex items-center gap-3.5 px-4 py-3 hover:bg-[#004d3d]/5 border-l-2 border-transparent hover:border-[#004d3d] transition-all duration-200 group/item"
+                            >
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 group-hover/item:bg-emerald-50 group-hover/item:text-[#004d3d] transition-colors">
+                                <item.icon className="text-[18px]" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="block text-[13px] font-bold text-gray-800 group-hover/item:text-[#004d3d] transition-colors">
+                                  {item.label}
+                                </span>
+                                <span className="block text-[11px] font-medium text-gray-400 mt-0.5">
+                                  {item.description}
+                                </span>
+                              </div>
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : null}
                 <NavItem to={PATHS.PLANS}>Plans</NavItem>
               </div>
@@ -197,6 +365,22 @@ export default function SiteNavbar() {
             </div>
 
             <div className="flex items-center justify-end gap-4">
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={openAiChat}
+                  className="group relative hidden h-11 w-11 items-center justify-center overflow-visible rounded-full bg-transparent text-sm font-semibold text-[#004d3d] transition-all duration-300 hover:bg-emerald-50 focus-visible:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-900/10 lg:inline-flex"
+                  aria-label="Ask AI"
+                  title="Ask AI"
+                >
+                  <span
+                    className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_0_2px_white]"
+                    style={{ animation: "ai-dot-blink 1.2s ease-in-out infinite" }}
+                  />
+                  <HiOutlineChatBubbleLeftRight className="text-[20px]" />
+                </button>
+              ) : null}
+
               <NavLink
                 to={PATHS.CART}
                 className="w-11 h-11 rounded-full border border-gray-200 bg-gray-50 hover:bg-white hover:border-gray-300 transition-colors flex items-center justify-center text-gray-800 hover:text-gray-950"
@@ -291,7 +475,7 @@ export default function SiteNavbar() {
                   ) : null}
                 </div>
               ) : (
-                <div className="hidden sm:flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <NavLink
                     to={PATHS.LOGIN}
                     className="font-label-sm text-label-sm px-4 py-2.5 rounded-full border border-gray-200 bg-white text-gray-800 hover:border-gray-300 hover:text-gray-950 hover:shadow-sm transition-all active:scale-95 duration-200 text-[12px]"
@@ -300,7 +484,7 @@ export default function SiteNavbar() {
                   </NavLink>
                   <NavLink
                     to={PATHS.SIGNUP}
-                    className="font-label-sm text-label-sm px-4 py-2.5 bg-[#004d3d] text-white rounded-full hover:bg-[#003d31] hover:shadow-lg hover:shadow-emerald-950/10 transition-all active:scale-95 duration-200 text-[12px]"
+                    className="hidden sm:inline-flex font-label-sm text-label-sm px-4 py-2.5 bg-[#004d3d] text-white rounded-full hover:bg-[#003d31] hover:shadow-lg hover:shadow-emerald-950/10 transition-all active:scale-95 duration-200 text-[12px]"
                   >
                     Sign up
                   </NavLink>
@@ -380,7 +564,7 @@ export default function SiteNavbar() {
               <div
                 className={[
                   "absolute inset-0 overflow-y-auto pb-4 transition-transform duration-300 ease-out",
-                  mobileMenuView === "courses" ? "-translate-x-full" : "translate-x-0",
+                  mobileMenuView !== "main" ? "-translate-x-full" : "translate-x-0",
                 ].join(" ")}
               >
                 <div className="divide-y divide-gray-200 border-y border-gray-200">
@@ -393,9 +577,33 @@ export default function SiteNavbar() {
                     </MobileDrawerLink>
                   ) : null}
                   {isAuthenticated ? (
-                    <MobileDrawerLink to={PATHS.DASHBOARD} onClick={closeMobileMenu}>
+                    <MobileDrawerButton onClick={() => setMobileMenuView("learning")}>
                       My Learning
-                    </MobileDrawerLink>
+                    </MobileDrawerButton>
+                  ) : null}
+                  {isAuthenticated ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeMobileMenu();
+                        openAiChat();
+                      }}
+                      className="flex w-full items-center justify-between py-3 text-left text-[15px] font-medium text-gray-900/80 transition-colors hover:text-black"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>Ask AI</span>
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-lime-500"></span>
+                        </span>
+                      </span>
+                      <HiOutlineChevronRight className="text-[18px] text-gray-400" />
+                    </button>
+                  ) : null}
+                  {!isAuthenticated ? (
+                    <MobileDrawerButton onClick={() => setMobileMenuView("about")}>
+                      About Us
+                    </MobileDrawerButton>
                   ) : null}
                   <MobileDrawerLink to={PATHS.PLANS} onClick={closeMobileMenu}>
                     Plans
@@ -458,6 +666,67 @@ export default function SiteNavbar() {
                       onClick={closeMobileMenu}
                     >
                       {category}
+                    </MobileDrawerLink>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className={[
+                  "absolute inset-0 overflow-y-auto pb-4 transition-transform duration-300 ease-out",
+                  mobileMenuView === "learning" ? "translate-x-0" : "translate-x-full",
+                ].join(" ")}
+              >
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuView("main")}
+                  className="mb-3 flex items-center gap-2 py-2 text-[14px] font-bold text-gray-600"
+                >
+                  <HiOutlineChevronLeft className="text-[18px]" />
+                  Menu
+                </button>
+                <div className="px-1 pb-2 text-[11px] font-extrabold uppercase tracking-widest text-gray-400">
+                  My Learning
+                </div>
+                <div className="divide-y divide-gray-200 border-y border-gray-200">
+                  {MY_LEARNING_LINKS.map((item) => (
+                    <MobileDrawerLink
+                      key={item.view}
+                      to={learningViewPath(item.view)}
+                      onClick={closeMobileMenu}
+                      end={item.view === "all"}
+                    >
+                      {item.label}
+                    </MobileDrawerLink>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className={[
+                  "absolute inset-0 overflow-y-auto pb-4 transition-transform duration-300 ease-out",
+                  mobileMenuView === "about" ? "translate-x-0" : "translate-x-full",
+                ].join(" ")}
+              >
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuView("main")}
+                  className="mb-3 flex items-center gap-2 py-2 text-[14px] font-bold text-gray-600"
+                >
+                  <HiOutlineChevronLeft className="text-[18px]" />
+                  Menu
+                </button>
+                <div className="px-1 pb-2 text-[11px] font-extrabold uppercase tracking-widest text-gray-400">
+                  About Us
+                </div>
+                <div className="divide-y divide-gray-200 border-y border-gray-200">
+                  {ABOUT_US_LINKS.map((item) => (
+                    <MobileDrawerLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={closeMobileMenu}
+                    >
+                      {item.label}
                     </MobileDrawerLink>
                   ))}
                 </div>
