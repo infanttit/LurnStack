@@ -2,9 +2,10 @@ import { FiCalendar, FiClock, FiTag, FiVideo } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { PATHS } from "../../app/router/paths";
 import SmartImage from "../../shared/components/SmartImage";
-import { formatDuration, getLiveTiming } from "../lib/time";
+import { formatDuration } from "../lib/time";
 import useNow from "../hooks/useNow";
 import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
+import { getSessionOccurrenceTiming, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 
 function formatISTDateTime(iso) {
   const d = new Date(iso);
@@ -26,19 +27,17 @@ function formatISTDateTime(iso) {
 
 export default function LiveClassCard({ liveClass, joined, onJoin }) {
   const now = useNow(1000);
-  const { startMs, endMs } = getLiveTiming(
-    liveClass?.scheduledAt,
-    liveClass?.durationMinutes,
-    liveClass?.endsAt
-  );
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+  const { startMs, endMs } = occurrence;
 
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = now >= startMs && now <= endMs;
   const isEnded = now > endMs;
   const pricePending = liveClass?.pricePending || liveClass?.priceInPaise == null;
-  const canJoin = !pricePending && now >= joinOpensMs && now <= endMs;
+  const activeToday = isClassActiveOnDate(liveClass, new Date(now));
+  const canJoin = !pricePending && now >= joinOpensMs && now <= endMs && activeToday;
 
-  const { date, time } = formatISTDateTime(liveClass?.scheduledAt);
+  const { date, time } = formatISTDateTime(occurrence.scheduledAt || liveClass?.scheduledAt);
   const endsAt = formatISTDateTime(new Date(endMs).toISOString())?.time;
   const countdownMs = Math.max(0, startMs - now);
   const joinCountdownMs = Math.max(0, joinOpensMs - now);
@@ -82,6 +81,15 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
               <div className="mt-1 text-[12px] text-on-surface-variant line-clamp-1">
                 Instructor: {liveClass?.instructorName}
               </div>
+              {occurrence.isRecurring && (liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date) && (
+                <div className="mt-1 text-[11px] font-medium text-slate-500 line-clamp-1">
+                  Recurring until: {new Date(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
@@ -95,6 +103,12 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
                   {liveClass.priceLabel}
                 </span>
               ) : null}
+
+              {occurrence.isRecurring && (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-100">
+                  {formatRecurringDays(liveClass?.recurringDays || liveClass?.recurring_days || liveClass?.raw?.recurringDays || liveClass?.raw?.recurring_days)}
+                </span>
+              )}
 
               {isLiveNow ? (
                 <span className="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 inline-flex items-center gap-2">
@@ -138,7 +152,11 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
             </div>
           ) : !isEnded ? (
             <div className="mt-3 text-[12px] text-on-surface-variant">
-              {isLiveNow ? (
+              {!activeToday ? (
+                <span className="font-bold text-amber-700">
+                  Next class scheduled on {new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}
+                </span>
+              ) : isLiveNow ? (
                 <>
                   Live now{" "}
                   <span className="font-semibold text-on-surface">

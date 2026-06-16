@@ -28,7 +28,7 @@ import {
 } from "../api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
-import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
+import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
@@ -516,7 +516,8 @@ export default function CourseDetailsPage() {
       hasPaidCourseAccess(courseAccessId) ||
       hasPaidSessionAccess(liveClass?.id || course.id);
     const needsPayment = !sessionIsFree && course.paymentRequired && !effectivePaid;
-    const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment;
+    const activeToday = isClassActiveOnDate(liveClass || course, new Date(now));
+    const canJoin = startMs > 0 && now >= startMs && now <= endMs && !isCancelled && !unavailable && !needsPayment && activeToday;
     const attendanceStatus =
       sessionAttendance?.attendanceStatus ||
       sessionAttendance?.status ||
@@ -538,10 +539,12 @@ export default function CourseDetailsPage() {
         ? "Class cancelled"
         : needsPayment
           ? "Payment required before joining."
+        : !activeToday
+          ? `Next class scheduled on ${new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}.`
         : sessionCompleted
           ? "Today's session completed."
-          : todayCompleted
-            ? "Today's session completed. Next class opens on the next scheduled day."
+        : todayCompleted
+          ? "Today's session completed. Next class opens on the next scheduled day."
           : now < startMs
             ? `Join opens when class starts - ${formatDuration(startMs - now)} left`
             : "Live now";
@@ -645,11 +648,16 @@ export default function CourseDetailsPage() {
                   {course.description}
                 </p>
 
-                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
                   {[
                     ["Trainer", course.instructor],
                     ["Level", course.level || "All Levels"],
                     ["Duration", liveClass?.durationMinutes ? `${liveClass.durationMinutes} min` : course.hours],
+                    ["Ends On", occurrence.isRecurring 
+                      ? ((liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || course?.recurrenceEndDate || course?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date || course?.raw?.recurrenceEndDate || course?.raw?.recurrence_end_date)
+                        ? new Date(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || course?.recurrenceEndDate || course?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date || course?.raw?.recurrenceEndDate || course?.raw?.recurrence_end_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                        : "Ongoing")
+                      : "One-time"],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                       <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
@@ -658,18 +666,6 @@ export default function CourseDetailsPage() {
                       <div className="mt-1 text-sm font-extrabold text-slate-900">{value}</div>
                     </div>
                   ))}
-                </div>
-
-                <div className="mt-6">
-                  <h2 className="text-base font-extrabold text-slate-950">What students get</h2>
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {(course.bullets || []).map((item) => (
-                      <div key={item} className="rounded-lg border border-slate-200 bg-white p-3 flex gap-2.5">
-                        <HiOutlineCheckCircle className="mt-0.5 text-lg text-emerald-600 flex-shrink-0" />
-                        <span className="text-[13px] text-slate-600 leading-snug">{item}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
@@ -682,7 +678,7 @@ export default function CourseDetailsPage() {
                   </div>
                   {occurrence.isRecurring ? (
                     <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 ring-1 ring-emerald-100">
-                      Daily
+                      {formatRecurringDays(liveClass?.recurringDays || liveClass?.recurring_days || course?.recurringDays || course?.recurring_days, { useFullNames: true })}
                     </span>
                   ) : null}
                 </div>
@@ -703,6 +699,25 @@ export default function CourseDetailsPage() {
                     </div>
                     <div className="mt-1 font-extrabold text-slate-900">{when} IST</div>
                   </div>
+                  {occurrence.isRecurring && (
+                    <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                        Weekly Schedule
+                      </div>
+                      <div className="mt-1 font-extrabold text-slate-900">
+                        {formatRecurringDays(liveClass?.recurringDays || liveClass?.recurring_days || course?.recurringDays || course?.recurring_days, { useFullNames: true })}
+                      </div>
+                      {(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || course?.recurrenceEndDate || course?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date || course?.raw?.recurrenceEndDate || course?.raw?.recurrence_end_date) && (
+                        <div className="mt-1.5 text-[11px] font-semibold text-slate-500">
+                          Recurring until: {new Date(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || course?.recurrenceEndDate || course?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date || course?.raw?.recurrenceEndDate || course?.raw?.recurrence_end_date).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
                       <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
@@ -727,7 +742,11 @@ export default function CourseDetailsPage() {
                       Meeting
                     </div>
                     <div className="mt-1 font-semibold text-slate-700 break-all">
-                      {liveClass?.meetUrl || "Meeting link will be available soon"}
+                      {liveClass?.meetUrl ? (
+                        liveClass.meetUrl.includes("meet.google.com") ? "Google Meet (Available upon joining)" :
+                        liveClass.meetUrl.includes("zoom.us") ? "Zoom Meeting (Available upon joining)" :
+                        "Live Session Link (Available upon joining)"
+                      ) : "Meeting link will be available soon"}
                     </div>
                   </div>
                 {isCancelled && cancellationReason ? (
@@ -857,7 +876,7 @@ export default function CourseDetailsPage() {
                       : "bg-slate-100 text-slate-400 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay once to join" : canJoin ? "Join class" : sessionCompleted ? "Completed" : todayCompleted ? "Next class opens soon" : sessionIsFree ? "Join opens soon" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
+                  {sessionAction === "pay" ? "Opening payment..." : sessionAction === "join" ? "Joining..." : needsPayment ? "Pay once to join" : canJoin ? "Join class" : sessionCompleted ? "Completed" : !activeToday ? "Next class opens soon" : todayCompleted ? "Next class opens soon" : sessionIsFree ? "Join opens soon" : course.paymentRequired ? "Paid, join opens soon" : "Join opens soon"}
                 </button>
                 <button
                   type="button"

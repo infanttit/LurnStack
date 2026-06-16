@@ -5,10 +5,11 @@ import { FiArrowLeft, FiCalendar, FiClock, FiTag, FiVideo } from "react-icons/fi
 import { PATHS } from "../../app/router/paths";
 import SmartImage from "../../shared/components/SmartImage";
 import useNow from "../hooks/useNow";
-import { formatDuration, getLiveTiming } from "../lib/time";
+import { formatDuration } from "../lib/time";
 import { fetchLiveClassDetails, joinLiveClass } from "../model/liveClassesSlice";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
+import { getSessionOccurrenceTiming, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 
 function formatISTDateTime(iso) {
   const d = new Date(iso);
@@ -70,18 +71,16 @@ export default function LiveClassDetailsPage() {
       : joinedStatus === "absent"
         ? "bg-red-100 text-red-700"
         : "bg-emerald-100 text-emerald-800";
-  const { startMs, endMs } = getLiveTiming(
-    liveClass?.scheduledAt,
-    liveClass?.durationMinutes,
-    liveClass?.endsAt
-  );
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+  const { startMs, endMs } = occurrence;
   const joinOpensMs = startMs - 5 * 60 * 1000;
   const isLiveNow = now >= startMs && now <= endMs;
   const isEnded = now > endMs;
   const pricePending = liveClass?.pricePending || liveClass?.priceInPaise == null;
-  const canJoin = !pricePending && now >= joinOpensMs && now <= endMs;
+  const activeToday = isClassActiveOnDate(liveClass, new Date(now));
+  const canJoin = !pricePending && now >= joinOpensMs && now <= endMs && activeToday;
 
-  const { date, time } = formatISTDateTime(liveClass?.scheduledAt);
+  const { date, time } = formatISTDateTime(occurrence.scheduledAt || liveClass?.scheduledAt);
   const endsAt = formatISTDateTime(new Date(endMs).toISOString())?.time;
 
   const handleJoin = async () => {
@@ -203,7 +202,11 @@ export default function LiveClassDetailsPage() {
                   </div>
                 ) : !isEnded ? (
                   <div className="mt-5 text-sm text-on-surface-variant">
-                    {isLiveNow ? (
+                    {!activeToday ? (
+                      <span className="font-semibold text-amber-700">
+                        Next class scheduled on {new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}
+                      </span>
+                    ) : isLiveNow ? (
                       <>
                         Live now{" "}
                         <span className="font-semibold text-on-surface">
@@ -242,7 +245,13 @@ export default function LiveClassDetailsPage() {
                     ].join(" ")}
                   >
                     <FiVideo className="text-[18px]" />
-                    {pricePending ? "Price pending" : isLiveNow ? "Join live" : "Join class"}
+                    {pricePending
+                      ? "Price pending"
+                      : !activeToday
+                      ? "Runs on specific weekdays"
+                      : isLiveNow
+                      ? "Join live"
+                      : "Join class"}
                   </button>
 
                   {joined?.joinedAt ? (
@@ -267,7 +276,14 @@ export default function LiveClassDetailsPage() {
         <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
           <Card>
             <div className="p-5">
-              <div className="text-sm font-extrabold text-on-surface">Enrollment</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-extrabold text-on-surface">Enrollment</div>
+                {occurrence.isRecurring && (
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-800 border border-emerald-100">
+                    {formatRecurringDays(liveClass?.recurringDays || liveClass?.recurring_days || liveClass?.raw?.recurringDays || liveClass?.raw?.recurring_days)}
+                  </span>
+                )}
+              </div>
               <div className="mt-3 rounded-xl border border-outline-variant px-4 py-3">
                 <div className="text-xs font-semibold text-on-surface-variant">Class price</div>
                 <div className={pricePending ? "mt-1 text-lg font-extrabold text-amber-700" : "mt-1 text-lg font-extrabold text-on-surface"}>

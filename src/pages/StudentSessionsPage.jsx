@@ -19,7 +19,7 @@ import {
 import { openMeetingLink, openPendingMeetingWindow } from "../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../shared/utils/razorpayCheckout";
 import { formatDuration } from "../live-classes/lib/time";
-import { getSessionOccurrenceTiming, isSessionUnavailable } from "../shared/utils/sessionTiming";
+import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../shared/utils/sessionTiming";
 import { rememberRecentlyJoinedSession } from "../my-learning/utils/learningModel";
 
 function formatIST(iso) {
@@ -47,28 +47,32 @@ function priceLabel(session) {
 
 function sessionDetailPath(id) {
   return PATHS.COURSE_DETAILS.replace(":courseId", encodeURIComponent(String(id || "")));
-}
-
-function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated }) {
+}function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated }) {
   const occurrence = getSessionOccurrenceTiming(session.liveClass || session, now, { defaultRecurring: false });
   const isUnavailable = isSessionUnavailable(session.liveClass || session);
   const loadingJoin = actionId === `join:${session.id}`;
   const loadingPay = actionId === `pay:${session.id}`;
-  const isOpen = occurrence.startMs > 0 && now >= occurrence.startMs && now <= occurrence.endMs;
+  const activeToday = isClassActiveOnDate(session.liveClass || session, new Date(now));
+  const isOpen = occurrence.startMs > 0 && now >= occurrence.startMs && now <= occurrence.endMs && activeToday;
   const hasValidBooking =
     session.isPaid === true ||
     session.hasCourseAccess === true ||
     session.bookingStatus === "paid" ||
     hasPaidAccessForSession(session) ||
     hasPaidSessionAccess(session.id);
+
   const joinText = session.isFree
     ? isOpen
       ? "Join Session"
-      : `Join opens in ${formatDuration(occurrence.startMs - now)}`
+      : !activeToday
+        ? `Next class scheduled on ${new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}`
+        : `Join opens in ${formatDuration(occurrence.startMs - now)}`
     : hasValidBooking
       ? isOpen
         ? "Join Session"
-        : `Join opens in ${formatDuration(occurrence.startMs - now)}`
+        : !activeToday
+          ? `Next class scheduled on ${new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}`
+          : `Join opens in ${formatDuration(occurrence.startMs - now)}`
       : `Buy & Join — ${priceLabel(session)}`;
 
   return (
@@ -92,9 +96,16 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
           <span className="line-clamp-1 text-xs font-medium text-slate-500">
             {session.instructorName || session.instructor || "LurnStack Trainer"}
           </span>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase text-emerald-800">
-            {session.isFree ? "Free" : priceLabel(session)}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {occurrence.isRecurring && (
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-800 border border-emerald-100">
+                {formatRecurringDays(session.liveClass?.recurringDays || session?.recurringDays || session.liveClass?.recurring_days || session?.recurring_days)}
+              </span>
+            )}
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase text-emerald-800 font-extrabold">
+              {session.isFree ? "Free" : priceLabel(session)}
+            </span>
+          </div>
         </div>
         <h3 className="mt-3 min-h-[40px] text-[16px] font-black leading-snug text-gray-950 line-clamp-2">
           {session.title}
@@ -102,10 +113,27 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
 
         <div className="mt-4 flex items-start gap-2 text-xs font-semibold text-slate-700">
           <FiCalendar className="mt-0.5 shrink-0 text-[14px]" />
-          <span className="inline-flex items-center gap-1.5">
-            {formatIST(occurrence.scheduledAt || session.scheduledAt)}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="inline-flex items-center gap-1.5">
+              {formatIST(occurrence.scheduledAt || session.scheduledAt)}
+            </span>
+            {occurrence.isRecurring && (session.liveClass?.recurrenceEndDate || session.liveClass?.recurrence_end_date || session?.recurrenceEndDate || session?.recurrence_end_date) && (
+              <span className="text-[11px] font-medium text-slate-500">
+                Recurring until: {new Date(session.liveClass?.recurrenceEndDate || session.liveClass?.recurrence_end_date || session?.recurrenceEndDate || session?.recurrence_end_date).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+            )}
+          </div>
         </div>
+
+        {occurrence.isRecurring && !activeToday && (
+          <p className="mt-2 text-[11px] font-bold text-amber-700">
+            Next class scheduled on {new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}
+          </p>
+        )}
 
         {session.trainerInstructions && (
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2.5 text-xs text-blue-800">
@@ -122,7 +150,7 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
               onClick={() => onJoin(session)}
               className="inline-flex h-8 items-center justify-center bg-[#004d3d] px-3 text-[11px] font-black text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
             >
-              {loadingJoin ? "Opening..." : isOpen ? "Join" : "Join soon"}
+              {loadingJoin ? "Opening..." : isOpen ? "Join" : !activeToday ? "Scheduled" : "Join soon"}
             </button>
           ) : hasValidBooking ? (
             <button
@@ -131,7 +159,7 @@ function SessionCard({ session, now, onJoin, onPay, actionId, isAuthenticated })
               onClick={() => onJoin(session)}
               className="inline-flex h-8 items-center justify-center bg-[#004d3d] px-3 text-[11px] font-black text-white transition-all hover:bg-[#00392d] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
             >
-              {loadingJoin ? "Opening..." : isOpen ? "Join" : "Join soon"}
+              {loadingJoin ? "Opening..." : isOpen ? "Join" : !activeToday ? "Scheduled" : "Join soon"}
             </button>
           ) : (
             <button
@@ -217,8 +245,13 @@ export default function StudentSessionsPage() {
 
     const live = session.liveClass || session;
     const occurrence = getSessionOccurrenceTiming(live, Date.now(), { defaultRecurring: false });
+    const activeToday = isClassActiveOnDate(live, new Date());
     if (isSessionUnavailable(live)) {
       setError("This session is not available anymore.");
+      return;
+    }
+    if (!activeToday) {
+      setError(`Next class scheduled on ${new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}.`);
       return;
     }
     const hasValidBooking =

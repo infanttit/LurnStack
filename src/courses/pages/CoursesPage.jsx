@@ -18,7 +18,7 @@ import {
 } from "../api/studentSessionsApi";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
-import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
+import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
@@ -246,8 +246,13 @@ function formatLiveWhen(iso) {
 }
 
 function liveTimerLabel(liveClass, now) {
-  const { startMs, endMs } = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+  const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
+  const { startMs, endMs } = occurrence;
   if (!startMs) return "Schedule pending";
+  const activeToday = isClassActiveOnDate(liveClass, new Date(now));
+  if (!activeToday) {
+    return `Next class scheduled on ${new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}`;
+  }
   if (now > endMs) return "Today's session completed";
   if (now >= startMs && now <= endMs) return "Live now";
   if (now < startMs) return `Join opens when class starts - ${formatDuration(startMs - now)} left`;
@@ -276,16 +281,19 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
   const needsPayment = isTrainerCourse && !sessionIsFree && course.paymentRequired && !hasPaidAccess;
   const paymentReady = sessionIsFree || !course.paymentRequired || hasPaidAccess;
   const paying = actionId === `pay:${course.id}`;
-  const canJoin = isTrainerCourse && paymentReady && !unavailable && startMs > 0 && now >= startMs && now <= endMs;
+  const activeToday = isClassActiveOnDate(liveClass, new Date(now));
+  const canJoin = isTrainerCourse && paymentReady && !unavailable && startMs > 0 && now >= startMs && now <= endMs && activeToday;
   const accessNotice = isCancelled
     ? ""
-    : isCompleted
+    : !activeToday
       ? ""
-      : isTrainerCourse && startMs > 0 && now < startMs
-        ? "You can join when the class starts."
-        : isTrainerCourse && canJoin
-          ? "Join is open now."
-          : "";
+      : isCompleted
+        ? ""
+        : isTrainerCourse && startMs > 0 && now < startMs
+          ? "You can join when the class starts."
+          : isTrainerCourse && canJoin
+            ? "Join is open now."
+            : "";
   const attendanceStatus = course.attendance?.attendanceStatus || course.attendance?.status || course.attendanceStatus || "";
   const attendanceBadgeClass =
     attendanceStatus === "late"
@@ -327,8 +335,27 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
             <div className="mt-1 truncate text-[11px] font-bold text-gray-800">
               {liveClass.title}
             </div>
-            <div className="mt-1 truncate text-[10px] text-gray-500">
-              {formatLiveWhen(occurrence.scheduledAt)} IST • {liveClass.durationMinutes} min
+            <div className="mt-1 truncate text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+              <span>{formatLiveWhen(occurrence.scheduledAt)} IST</span>
+              <span>•</span>
+              <span>{liveClass.durationMinutes} min</span>
+              {occurrence.isRecurring && (
+                <>
+                  <span>•</span>
+                  <span className="rounded-full bg-white px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-emerald-800 ring-1 ring-emerald-100">
+                    {formatRecurringDays(liveClass.recurringDays || liveClass.recurring_days)}
+                  </span>
+                  {(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date) && (
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      Recurring until: {new Date(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                </>
+              )}
             </div>
             <div className="mt-1 truncate text-[10px] font-bold text-emerald-800">
               {isCancelled ? "Cancelled" : liveTimerLabel(liveClass, now)}
@@ -390,7 +417,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
               onClick={onJoinClass}
               className="h-8 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : sessionIsFree ? "Locked" : hasPaidAccess ? "Paid" : "Locked"}
+              {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : !activeToday ? "Locked" : sessionIsFree ? "Locked" : hasPaidAccess ? "Paid" : "Locked"}
             </button>
           ) : null}
           <button
@@ -553,6 +580,11 @@ export default function CoursesPage() {
       }
       const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
       const { startMs, endMs } = occurrence;
+      const activeToday = isClassActiveOnDate(course.liveClass, new Date(current));
+      if (!activeToday) {
+        setError(`Next class scheduled on ${new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" })}.`);
+        return;
+      }
       if (current > endMs) {
         setError("Today's session has already completed.");
         return;
