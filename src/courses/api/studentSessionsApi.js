@@ -268,6 +268,8 @@ function normalizeSession(raw = {}) {
   const meetingLink = getMeetingLink(raw);
   const amountPaise = toAmountPaise(raw);
   const recurringValue = raw.isRecurring ?? raw.is_recurring ?? raw.recurring;
+  const recurringDays = raw.recurringDays ?? raw.recurring_days ?? null;
+  const recurrenceEndDate = raw.recurrenceEndDate ?? raw.recurrence_end_date ?? null;
   const recurrenceType = raw.recurrenceType || raw.recurrence_type || raw.repeatType || "";
   const bookingStatus = raw.bookingStatus || raw.booking_status || raw.booking?.status || "";
   const paymentStatus = raw.paymentStatus || raw.payment_status || raw.payment?.status || "";
@@ -334,6 +336,10 @@ function normalizeSession(raw = {}) {
     isAddedToCard: !!raw.isAddedToCard,
     isJoined: !!raw.isJoined,
     isRecurring: recurringValue,
+    recurringDays,
+    recurring_days: recurringDays,
+    recurrenceEndDate,
+    recurrence_end_date: recurrenceEndDate,
     recurrenceType,
     cancellationReason,
     trainerInstructions,
@@ -352,6 +358,10 @@ function normalizeSession(raw = {}) {
       thumbnail: toAbsoluteAssetUrl(raw.thumbnail || ""),
       status: raw.status || "",
       isRecurring: recurringValue,
+      recurringDays,
+      recurring_days: recurringDays,
+      recurrenceEndDate,
+      recurrence_end_date: recurrenceEndDate,
       recurrenceType,
       cancellationReason,
       isAddedToCard: !!raw.isAddedToCard,

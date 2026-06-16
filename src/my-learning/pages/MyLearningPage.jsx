@@ -12,6 +12,7 @@ import { Info } from "lucide-react";
 import { getStudentSessions } from "../../courses/api/studentSessionsApi";
 import { useSEO } from "../../shared/hooks/useSEO";
 import SmartImage from "../../shared/components/SmartImage";
+import { isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 import {
   applyRecentJoinedFallback,
   buildLearningSummary,
@@ -78,7 +79,8 @@ function getLearningAction(session, label = "") {
   const completed = String(label || "").toLowerCase() === "completed" || (endMs > 0 && endMs < now);
   const unavailable = isUnavailableSession(session);
   const paidOrFree = isFreeSession(session) || isPaidLearningSession(session);
-  const canJoin = startMs > 0 && now >= startMs && now <= endMs && !completed && !unavailable && paidOrFree;
+  const activeToday = isClassActiveOnDate(session, new Date(now));
+  const canJoin = startMs > 0 && now >= startMs && now <= endMs && !completed && !unavailable && paidOrFree && activeToday;
 
   if (completed) return { text: "Completed", tone: "muted" };
   if (unavailable) return { text: "Locked", tone: "muted" };
@@ -90,6 +92,11 @@ function getLearningAction(session, label = "") {
 function learningWhenText(session) {
   const now = Date.now();
   const occurrence = getLearningOccurrence(session, now);
+  const activeToday = isClassActiveOnDate(session, new Date(now));
+  if (occurrence.isRecurring && !activeToday) {
+    const weekdayName = new Date(occurrence.scheduledAt).toLocaleDateString("en-IN", { weekday: "long" });
+    return `Next class scheduled on ${weekdayName}`;
+  }
   const todayOccurrence = getLearningOccurrence(session, now, { rollForwardAfterEnd: false });
   const dateText = formatIST(occurrence.scheduledAt || session?.liveClass?.scheduledAt || session?.scheduledAt);
   if (occurrence.isRecurring && todayOccurrence.endMs > 0 && now > todayOccurrence.endMs) {
@@ -120,6 +127,10 @@ function CourseAccessCard({ course }) {
   const nextSession = course.nextSession;
   const progress = course.total ? Math.min(100, Math.round((course.completed / course.total) * 100)) : 0;
   const action = nextSession ? getLearningAction(nextSession) : { text: "Completed", tone: "muted" };
+  const occurrence = nextSession ? getLearningOccurrence(nextSession, Date.now()) : null;
+  const recurringDays = nextSession
+    ? (nextSession.recurringDays || nextSession.recurring_days || nextSession.liveClass?.recurringDays || nextSession.liveClass?.recurring_days)
+    : null;
   return (
     <Link
       to={courseDetailPath(nextSession?.id || course.id)}
@@ -149,8 +160,13 @@ function CourseAccessCard({ course }) {
           />
         </div>
         <div className="mt-2 text-xs font-bold text-slate-800">{progress}% complete</div>
-        <div className="mt-2 line-clamp-1 text-xs font-semibold text-slate-500">
-          {nextSession ? learningWhenText(nextSession) : "No upcoming live class"}
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap text-xs font-semibold text-slate-500">
+          <span>{nextSession ? learningWhenText(nextSession) : "No upcoming live class"}</span>
+          {occurrence?.isRecurring && (
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-emerald-800 ring-1 ring-slate-200">
+              {formatRecurringDays(recurringDays)}
+            </span>
+          )}
         </div>
         <div className="mt-3 flex gap-2">
           <span className={["inline-flex h-8 items-center justify-center px-3 text-[11px] font-black", actionClass(action.tone)].join(" ")}>
@@ -168,6 +184,8 @@ function CourseAccessCard({ course }) {
 function SessionCard({ session, label, tone = "emerald" }) {
   const status = getAttendanceStatus(session);
   const action = getLearningAction(session, label);
+  const occurrence = getLearningOccurrence(session, Date.now());
+  const recurringDays = session?.recurringDays || session?.recurring_days || session?.liveClass?.recurringDays || session?.liveClass?.recurring_days;
   return (
     <Link
       to={courseDetailPath(session.id)}
@@ -194,8 +212,24 @@ function SessionCard({ session, label, tone = "emerald" }) {
         {status ? <div className="mt-1 text-xs font-semibold text-slate-500">{status}</div> : null}
         <div className="mt-3 flex items-start gap-2 text-xs font-semibold text-slate-700">
           <FiCalendar className="mt-0.5 shrink-0 text-[14px]" />
-          <span className="inline-flex items-center gap-1.5">
-            {learningWhenText(session)}
+          <span className="inline-flex flex-col gap-0.5">
+            <span className="inline-flex items-center gap-1.5 flex-wrap">
+              <span>{learningWhenText(session)}</span>
+              {occurrence.isRecurring && (
+                <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-emerald-800 ring-1 ring-slate-200">
+                  {formatRecurringDays(recurringDays)}
+                </span>
+              )}
+            </span>
+            {occurrence.isRecurring && (session?.recurrenceEndDate || session?.recurrence_end_date || session?.raw?.recurrenceEndDate || session?.raw?.recurrence_end_date) && (
+              <span className="text-[11px] font-medium text-slate-500 mt-0.5">
+                Recurring until: {new Date(session?.recurrenceEndDate || session?.recurrence_end_date || session?.raw?.recurrenceEndDate || session?.raw?.recurrence_end_date).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+            )}
           </span>
         </div>
 

@@ -7,11 +7,14 @@ import { PATHS } from "../../app/router/paths";
 import { getStudentSessions } from "../../courses/api/studentSessionsApi";
 import { getTitClasses } from "../api/liveClassesApi";
 import SmartImage from "../../shared/components/SmartImage";
+import TitClassesSection from "../components/tit-classes/TitClassesSection";
 import LiveClassCard from "../components/LiveClassCard";
 import SkeletonCard from "../components/SkeletonCard";
+import { formatIST } from "../utils/formatters";
 import useNow from "../hooks/useNow";
 import { fetchDashboardData, joinLiveClass } from "../model/liveClassesSlice";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
+import { getSessionOccurrenceTiming, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 
 function EmptyState({ title, body }) {
   return (
@@ -38,19 +41,6 @@ function SectionCard({ title, right, children }) {
   );
 }
 
-function formatIST(iso) {
-  const date = new Date(iso || "");
-  if (Number.isNaN(date.getTime())) return "Schedule pending";
-  return date.toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function LearningStat({ icon: Icon, label, value, tone = "emerald" }) {
   const tones = {
     emerald: "bg-emerald-50 text-emerald-800 border-emerald-100",
@@ -68,150 +58,6 @@ function LearningStat({ icon: Icon, label, value, tone = "emerald" }) {
       </div>
       <div className="mt-3 text-2xl font-black">{value}</div>
     </div>
-  );
-}
-
-function formatDate(iso) {
-  const date = new Date(iso || "");
-  if (Number.isNaN(date.getTime())) return "Date pending";
-  return date.toLocaleDateString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatTime(iso) {
-  const date = new Date(iso || "");
-  if (Number.isNaN(date.getTime())) return "Time pending";
-  return date.toLocaleTimeString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatDurationLabel(minutes) {
-  const value = Number(minutes || 0);
-  if (!Number.isFinite(value) || value <= 0) return "Duration pending";
-  if (value < 60) return `${Math.round(value)} min`;
-  const hours = Math.floor(value / 60);
-  const rest = Math.round(value % 60);
-  return rest ? `${hours} hr ${rest} min` : `${hours} hr`;
-}
-
-function titClassStatusLabel(titClass) {
-  const backendStatus = String(titClass?.status || "").trim();
-  if (backendStatus) return backendStatus.charAt(0).toUpperCase() + backendStatus.slice(1);
-  const now = Date.now();
-  const start = new Date(titClass?.scheduledAt || "").getTime();
-  const end = new Date(titClass?.endsAt || "").getTime();
-  if (!Number.isFinite(start)) return "Schedule pending";
-  if (Number.isFinite(end) && now > end) return "Completed";
-  if (Number.isFinite(end) && now >= start && now <= end) return "Live now";
-  return "Upcoming";
-}
-
-function TitClassCard({ titClass, now, onOpenMeeting }) {
-  const status = titClassStatusLabel(titClass);
-  const meetingLink = titClass?.meetingLink || "";
-  const startMs = new Date(titClass?.scheduledAt || "").getTime();
-  const endMs = new Date(titClass?.endsAt || "").getTime();
-  const joinOpensMs = startMs - 5 * 60 * 1000;
-  const canJoin =
-    !!meetingLink &&
-    Number.isFinite(startMs) &&
-    Number.isFinite(endMs) &&
-    now >= joinOpensMs &&
-    now <= endMs;
-  const actionLabel = canJoin ? "Join" : titClass?.isFree ? "Enroll" : "Enroll";
-
-  return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-md border border-gray-200 bg-white transition-all duration-200 hover:border-emerald-200 hover:shadow-md">
-      <div className="relative aspect-[16/6] overflow-hidden bg-gray-100">
-        <SmartImage
-          src={titClass?.thumbnail}
-          alt={titClass?.title || "TIT class"}
-          className="h-full w-full object-cover"
-          fallbackClassName="h-full w-full bg-gradient-to-br from-slate-900 via-emerald-800 to-teal-500"
-        />
-        <div className="absolute right-2 top-2 overflow-hidden rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[11px] font-black text-[#00342b] shadow-[0_14px_34px_rgba(3,52,43,0.20)] ring-1 ring-emerald-900/5 animate-priceFloat">
-          <span className="absolute inset-y-0 -left-6 w-5 rotate-12 bg-white/80 blur-[2px] animate-priceShine" />
-          <span className="relative inline-flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-            {titClass?.priceLabel || "Free"}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col p-2.5">
-        <h3 className="line-clamp-2 text-[13px] font-extrabold leading-snug text-gray-900">
-          {titClass?.title || "TIT class"}
-        </h3>
-        <p className="mt-0.5 truncate text-[11px] text-gray-500">
-          {titClass?.instructorName || "LurnStack Trainer"}
-        </p>
-
-        <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50 px-2.5 py-1.5">
-          <div className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-800">
-            TIT class
-          </div>
-          <div className="mt-1 truncate text-[11px] font-bold text-gray-800">
-            {titClass?.courseName || "Course pending"}
-          </div>
-          {titClass?.description ? (
-            <p className="mt-1 line-clamp-1 text-[10px] leading-4 text-gray-600">
-              {titClass.description}
-            </p>
-          ) : null}
-          <div className="mt-2 grid gap-1 text-[10px] font-semibold text-gray-600">
-            <span className="inline-flex items-center gap-1.5">
-              <FiCalendar className="shrink-0" />
-              {formatDate(titClass?.scheduledAt)}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <FiClock className="shrink-0" />
-              {formatTime(titClass?.scheduledAt)} - {formatTime(titClass?.endsAt)} IST
-            </span>
-            <span>{formatDurationLabel(titClass?.durationMinutes)}</span>
-          </div>
-          <div className="mt-2 truncate text-[10px] font-bold text-emerald-800">
-            {status}
-          </div>
-        </div>
-
-        {titClass?.trainerInstructions && (
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2.5 text-xs text-blue-800">
-            <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
-            <p className="leading-normal">{titClass.trainerInstructions}</p>
-          </div>
-        )}
-
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-1.5 text-[14px] font-extrabold text-gray-900">
-            <FiTag className="text-[13px]" />
-            {titClass?.priceLabel || "Free"}
-          </span>
-          <span className="rounded-sm bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-            {status}
-          </span>
-        </div>
-
-        <div className="mt-auto pt-2.5">
-          <button
-            type="button"
-            disabled={!canJoin}
-            onClick={() => onOpenMeeting?.(meetingLink)}
-            className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-[#00342b] px-3 text-[11px] font-extrabold text-white transition-colors hover:bg-[#004d40] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <FiVideo className="text-[13px]" />
-            {actionLabel}
-          </button>
-        </div>
-      </div>
-    </article>
   );
 }
 
@@ -584,51 +430,12 @@ export default function StudentDashboardPage() {
           ) : null}
 
           {isLiveClassesView ? (
-            <section>
-              <div className="pb-4">
-                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h1 className="text-[30px] font-extrabold tracking-tight text-slate-900 sm:text-[36px]">
-                      TIT class sessions
-                    </h1>
-                    <p className="mt-3 max-w-3xl text-[15px] leading-7 text-slate-700">
-                      Browse your trainer-led live sessions in the same course card format, with price, schedule, details, and join access in one place.
-                    </p>
-                  </div>
-                  <div className="text-sm font-bold text-slate-500">
-                    {titLoading ? "Loading..." : `${titClassSessions.length} sessions`}
-                  </div>
-                </div>
-              </div>
-
-              {titLoading ? (
-                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="h-72 animate-pulse rounded-lg bg-gray-100" />
-                  ))}
-                </div>
-              ) : titClassSessions.length === 0 ? (
-                <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-                  <h2 className="text-xl font-extrabold text-gray-900">
-                    No TIT classes available
-                  </h2>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Published TIT sessions will appear here once the backend returns them.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {titClassSessions.map((titClass) => (
-                    <TitClassCard
-                      key={titClass.id}
-                      titClass={titClass}
-                      now={now}
-                      onOpenMeeting={openTitMeeting}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+            <TitClassesSection
+              titLoading={titLoading}
+              titClassSessions={titClassSessions}
+              now={now}
+              openTitMeeting={openTitMeeting}
+            />
           ) : null}
 
           {false ? (

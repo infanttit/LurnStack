@@ -190,6 +190,7 @@ function normalizeTitClass(dto) {
       raw?.instructor_name ||
       raw?.trainerName ||
       raw?.trainer_name ||
+      (typeof raw?.instructor === "string" ? raw.instructor : "") ||
       instructor?.name ||
       instructor?.fullName ||
       "LurnStack Trainer",
