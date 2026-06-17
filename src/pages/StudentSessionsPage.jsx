@@ -21,6 +21,7 @@ import { openRazorpayCheckout } from "../shared/utils/razorpayCheckout";
 import { formatDuration } from "../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../shared/utils/sessionTiming";
 import { rememberRecentlyJoinedSession } from "../my-learning/utils/learningModel";
+import { useAttendanceTracking } from "../courses/hooks/useAttendanceTracking";
 
 function formatIST(iso) {
   const date = new Date(iso);
@@ -200,6 +201,7 @@ export default function StudentSessionsPage() {
   const [actionId, setActionId] = useState("");
   const [authPrompt, setAuthPrompt] = useState(null);
   const now = Date.now();
+  const { track } = useAttendanceTracking();
 
   const loadSessions = async (isBackground = false) => {
     if (isBackground) setRefreshing(true);
@@ -275,8 +277,9 @@ export default function StudentSessionsPage() {
     setActionId(`join:${session.id}`);
     setError("");
     try {
+      const sessionDate = occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "";
       const result = await joinStudentSession(session.id, {
-        sessionDate: occurrence.scheduledAt ? occurrence.scheduledAt.slice(0, 10) : "",
+        sessionDate,
         scheduledAt: occurrence.scheduledAt,
         startsAt: occurrence.scheduledAt,
         endsAt: occurrence.endsAt,
@@ -285,8 +288,22 @@ export default function StudentSessionsPage() {
         joinedAt: result?.joinedAt || new Date().toISOString(),
         attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
       });
+      
+      const startTracking = (joinResult = {}) =>
+        track({
+          sessionId: session.id,
+          sessionDate,
+          scheduledAt: occurrence.scheduledAt,
+          startsAt: occurrence.scheduledAt,
+          endsAt: occurrence.endsAt,
+          bookingId: joinResult.bookingId || "",
+          joinedAt: joinResult.joinedAt || "",
+          meetingWindow,
+        });
+
       const meetingLink = result?.meetingLink || live?.meetUrl || session?.liveClass?.meetUrl || "";
       if (openMeetingLink(meetingWindow, meetingLink)) {
+        startTracking(result);
         setMessage("Opening live session.");
       } else {
         setError("The meeting link was not returned. Please try again later.");

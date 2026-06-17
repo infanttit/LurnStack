@@ -1,5 +1,9 @@
 import { axiosClient } from "../../shared/api/axiosClient";
 import { getAxiosErrorMessage } from "../../shared/api/axiosError";
+import {
+  getAttendanceDurationMinutes,
+  statusFromAttendanceDuration,
+} from "../utils/attendanceDuration";
 
 function unwrap(res) {
   const data = res?.data;
@@ -15,8 +19,11 @@ function toArray(value) {
 function normalizeStatus(value) {
   const status = String(value || "").trim().toLowerCase();
   if (status === "joined" || status === "attended") return "present";
-  if (status === "late") return "late";
+  if (status === "late") return "present";
   if (status === "absent") return "absent";
+  if (status === "tracking") return "tracking";
+  if (status === "pending") return "pending";
+  if (status === "rescheduled") return "rescheduled";
   if (status === "present") return "present";
   return status || "";
 }
@@ -38,15 +45,31 @@ function lastTime(a, b) {
   return timestamp(a) >= timestamp(b) ? a : b;
 }
 
+function hasOwn(source = {}, key) {
+  return Object.prototype.hasOwnProperty.call(source, key);
+}
+
 function strongestStatus(a, b) {
-  const priority = { present: 4, late: 3, joined: 2, absent: 1 };
+  const priority = { present: 5, tracking: 4, pending: 3, joined: 2, absent: 1 };
   return (priority[b] || 0) > (priority[a] || 0) ? b : a;
 }
 
 function normalizeStudentAttendance(row = {}) {
   const source = row.attendance || row.data?.attendance || row.data || row;
   const student = source.student || source.Student || source.user || source.User || {};
-  const status = normalizeStatus(source.status || source.attendanceStatus);
+  const duration = getAttendanceDurationMinutes(source);
+  const rawStatus = normalizeStatus(
+    source.status ||
+      source.attendanceStatus ||
+      source.attendance_status ||
+      source.sessionStatus ||
+      source.session_status
+  );
+  const status =
+    rawStatus === "tracking" || rawStatus === "pending" || rawStatus === "rescheduled"
+      ? rawStatus
+      : normalizeStatus(statusFromAttendanceDuration(source, rawStatus));
+  const hasNewLeaveTime = hasOwn(source, "leaveTime") || hasOwn(source, "leave_time");
   return {
     attendanceId: source.id || source.attendanceId || "",
     studentId: source.studentId || source.student_id || student.id || "",
@@ -60,9 +83,20 @@ function normalizeStudentAttendance(row = {}) {
       "Student",
     email: source.email || student.email || "",
     status,
-    firstJoinedAt: source.firstJoinedAt || source.first_joined_at || source.joinedAt || source.joined_at || "",
-    lastJoinedAt: source.lastJoinedAt || source.last_joined_at || source.joinedAt || source.joined_at || "",
-    joinCount: Number(source.joinCount ?? source.join_count ?? (source.joinedAt || source.joined_at ? 1 : 0)) || 0,
+    joinTime: source.joinTime || source.join_time || source.firstJoinedAt || source.first_joined_at || source.joinedAt || source.joined_at || "",
+    leaveTime:
+      hasNewLeaveTime
+        ? source.leaveTime || source.leave_time || ""
+        : source.lastJoinedAt ||
+          source.last_joined_at ||
+          source.leftAt ||
+          source.left_at ||
+          source.clientLeftAt ||
+          source.client_left_at ||
+          "",
+    joinCount: Number(source.joinCount ?? source.join_count ?? (source.joinTime || source.join_time || source.joinedAt || source.joined_at ? 1 : 0)) || 0,
+    attendedMinutes: duration.minutes,
+    hasDurationEvidence: duration.hasEvidence,
     raw: source,
   };
 }
@@ -80,15 +114,28 @@ function dedupeStudents(rows = []) {
       map.set(key, student);
       return;
     }
+    const attendedMinutes = (existing.attendedMinutes || 0) + (student.attendedMinutes || 0);
+    const hasDurationEvidence = existing.hasDurationEvidence || student.hasDurationEvidence;
     map.set(key, {
       ...existing,
       attendanceId: existing.attendanceId || student.attendanceId,
       fullName: existing.fullName !== "Student" ? existing.fullName : student.fullName,
       email: existing.email || student.email,
-      status: strongestStatus(existing.status, student.status),
-      firstJoinedAt: firstTime(existing.firstJoinedAt, student.firstJoinedAt),
-      lastJoinedAt: lastTime(existing.lastJoinedAt, student.lastJoinedAt),
-      joinCount: Math.max(existing.joinCount || 0, student.joinCount || 0),
+      status:
+        existing.status === "tracking" || student.status === "tracking"
+          ? "tracking"
+          : existing.status === "pending" || student.status === "pending"
+            ? "pending"
+            : existing.status === "rescheduled" || student.status === "rescheduled"
+              ? "rescheduled"
+              : hasDurationEvidence
+                ? statusFromAttendanceDuration({ totalMinutes: attendedMinutes }, strongestStatus(existing.status, student.status))
+                : strongestStatus(existing.status, student.status),
+      joinTime: firstTime(existing.joinTime, student.joinTime),
+      leaveTime: lastTime(existing.leaveTime, student.leaveTime),
+      joinCount: (existing.joinCount || 0) + (student.joinCount || 0),
+      attendedMinutes,
+      hasDurationEvidence,
     });
   });
   return Array.from(map.values());
@@ -97,20 +144,37 @@ function dedupeStudents(rows = []) {
 function normalizeSessionReport(raw = {}) {
   const source = Array.isArray(raw) ? { students: raw } : raw?.data || raw || {};
   const session = source.session || source.liveSession || source.LiveSession || source.live_session || {};
-  const students = dedupeStudents(toArray(source.students || source.attendance || source.records || source.rows));
+  const students = dedupeStudents(
+    toArray(
+      source.students ||
+        source.attendance ||
+        source.records ||
+        source.rows ||
+        source.history ||
+        source.classes ||
+        source.sessions
+    )
+  );
   const presentCount =
-    students.filter((student) => student.status === "present").length ||
     Number(source.presentCount ?? source.present_count) ||
+    students.filter((student) => student.status === "present").length ||
     0;
-  const lateCount =
-    students.filter((student) => student.status === "late").length ||
-    Number(source.lateCount ?? source.late_count) ||
+  const trackingCount =
+    Number(source.trackingCount ?? source.tracking_count) ||
+    students.filter((student) => student.status === "tracking" || student.status === "pending").length ||
     0;
-  const absentCount =
-    students.filter((student) => student.status === "absent").length ||
+  const rescheduledCount =
+    Number(source.rescheduledCount ?? source.rescheduled_count) ||
+    students.filter((student) => student.status === "rescheduled").length ||
+    0;
+  const lateCount = 0;
+  const normalizedAbsentCount =
     Number(source.absentCount ?? source.absent_count) ||
+    students.filter((student) => student.status === "absent").length ||
     0;
-  const attendedCount = Number(source.attendedCount ?? source.attended_count) || presentCount + lateCount;
+  const attendedCount = students.length
+    ? presentCount
+    : Number(source.attendedCount ?? source.attended_count) || presentCount;
   const totalStudents = Number(source.totalStudents ?? source.total_students) || students.length;
 
   return {
@@ -131,7 +195,9 @@ function normalizeSessionReport(raw = {}) {
     totalStudents,
     presentCount,
     lateCount,
-    absentCount,
+    absentCount: normalizedAbsentCount,
+    trackingCount,
+    rescheduledCount,
     attendedCount,
     attendancePercentage:
       Number(source.attendancePercentage ?? source.attendance_percentage) ||
@@ -151,20 +217,21 @@ export async function getAdminAttendanceOverview() {
   try {
     const res = await axiosClient.get("/api/admin/attendance/overview");
     const data = unwrap(res) || {};
-    return {
+    const overview = {
       totalCourses: Number(data.totalCourses || 0),
       totalTrainers: Number(data.totalTrainers || 0),
       totalStudents: Number(data.totalStudents || 0),
       totalSessions: Number(data.totalSessions || 0),
       completedSessions: Number(data.completedSessions || 0),
       presentCount: Number(data.presentCount || 0),
-      lateCount: Number(data.lateCount || 0),
+      lateCount: 0,
       absentCount: Number(data.absentCount || 0),
-      attendedCount: Number(data.attendedCount || Number(data.presentCount || 0) + Number(data.lateCount || 0)),
+      attendedCount: Number(data.attendedCount || Number(data.presentCount || 0)),
       averageAttendancePercentage: Number(data.averageAttendancePercentage || data.attendancePercentage || 0),
       courses: toArray(data.courses),
       raw: data,
     };
+    return overview;
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to load admin attendance overview."));
   }
@@ -173,7 +240,8 @@ export async function getAdminAttendanceOverview() {
 export async function getAdminSessionAttendance(sessionId) {
   try {
     const res = await axiosClient.get(`/api/admin/sessions/${encodeURIComponent(sessionId)}/attendance`);
-    return normalizeSessionReport(unwrap(res));
+    const report = normalizeSessionReport(unwrap(res));
+    return report;
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to load session attendance."));
   }
@@ -182,7 +250,8 @@ export async function getAdminSessionAttendance(sessionId) {
 export async function getTrainerSessionAttendance(sessionId) {
   try {
     const res = await axiosClient.get(`/api/trainer/sessions/${encodeURIComponent(sessionId)}/attendance`);
-    return normalizeSessionReport(unwrap(res));
+    const report = normalizeSessionReport(unwrap(res));
+    return report;
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to load trainer session attendance."));
   }
@@ -201,7 +270,7 @@ export async function getTrainerSessionsForAttendance() {
           : Array.isArray(data?.data)
             ? data.data
             : [];
-    return list.map((session) => ({
+    const sessions = list.map((session) => ({
       id: session.id || session.sessionId || session.session_id || "",
       title:
         session.classTitle ||
@@ -218,6 +287,7 @@ export async function getTrainerSessionsForAttendance() {
       endsAt: session.endsAt || session.ends_at || "",
       status: session.status || "",
     })).filter((session) => session.id);
+    return sessions;
   } catch (err) {
     throw new Error(getAxiosErrorMessage(err, "Unable to load trainer sessions."));
   }

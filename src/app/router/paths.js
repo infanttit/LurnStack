@@ -18,7 +18,7 @@ export const PATHS = {
   PRIVACY: "/privacy",
   DATA_DELETION: "/data-deletion",
   PROFILE: "/profile",
-  STUDENT_ATTENDANCE: "/profile#attendance",
+  STUDENT_ATTENDANCE: "/attendance",
   TRAINER_ATTENDANCE: "/trainer/attendance",
   ADMIN_ATTENDANCE: "/admin/attendance",
   PLANS: "/plans",
@@ -29,6 +29,8 @@ export const PATHS = {
   SIGNUP: "/signup",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
+  CERTIFICATIONS: "/my-learning/certifications",
+  VERIFY_CERTIFICATE: "/verify/:credentialId?",
 };
 
 export function categoryHashPath(categoryId) {

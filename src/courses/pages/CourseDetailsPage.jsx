@@ -26,6 +26,7 @@ import {
   rememberPaidSessionAccess,
   verifyRazorpayPayment,
 } from "../api/studentSessionsApi";
+import { useAttendanceTracking } from "../hooks/useAttendanceTracking";
 import useNow from "../../live-classes/hooks/useNow";
 import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
@@ -400,6 +401,7 @@ export default function CourseDetailsPage() {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [sessionAttendance, setSessionAttendance] = useState(null);
   const liveClasses = useMemo(() => getCourseLiveClasses(detailId), [detailId]);
+  const { track } = useAttendanceTracking();
 
   useOfferCampaignClick(offerTargetType, detailId);
 
@@ -833,7 +835,7 @@ export default function CourseDetailsPage() {
                     const meetingWindow = openPendingMeetingWindow();
                     setSessionAction("join");
                     const startTracking = (sessionDate, joinResult = {}) =>
-                      startAttendanceHeartbeat({
+                      track({
                         sessionId: liveClass.id,
                         sessionDate,
                         scheduledAt: occurrence.scheduledAt,

@@ -21,6 +21,7 @@ import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
+import { useAttendanceTracking } from "../hooks/useAttendanceTracking";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
 import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
 import { rememberRecentlyJoinedSession } from "../../my-learning/utils/learningModel";
@@ -449,6 +450,7 @@ export default function CoursesPage() {
   const now = useNow(1000);
   const [authPrompt, setAuthPrompt] = useState(null);
   const [categoryDescriptionIndexes, setCategoryDescriptionIndexes] = useState({});
+  const { track } = useAttendanceTracking();
 
   const profileName = user?.fullName || "LurnStack Learner";
   const profileLine = user?.role === "trainer" ? "Trainer" : "Student";
@@ -597,7 +599,7 @@ export default function CoursesPage() {
       setActionId(`join:${course.id}`);
       setError("");
       const startTracking = (sessionDate, joinResult = {}) =>
-        startAttendanceHeartbeat({
+        track({
           sessionId: course.id,
           sessionDate,
           scheduledAt: occurrence.scheduledAt,

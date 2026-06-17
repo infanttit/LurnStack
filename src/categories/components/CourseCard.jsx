@@ -18,7 +18,7 @@ import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
-import { startAttendanceHeartbeat } from "../../courses/utils/attendanceHeartbeat";
+import { useAttendanceTracking } from "../../courses/hooks/useAttendanceTracking";
 
 function StarRating({ rating }) {
   return (
@@ -100,6 +100,7 @@ export default function CourseCard({
   const [authPrompt, setAuthPrompt] = useState(null);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [paymentAction, setPaymentAction] = useState("");
+  const { track } = useAttendanceTracking();
   const [joinedAttendance, setJoinedAttendance] = useState(attendance || null);
   const now = useNow(1000);
   const occurrence = getSessionOccurrenceTiming(liveClass, now, { defaultRecurring: false });
@@ -264,7 +265,7 @@ export default function CourseCard({
     }
     const meetingWindow = openPendingMeetingWindow();
     const startTracking = (sessionDate, joinResult = {}) =>
-      startAttendanceHeartbeat({
+      track({
         sessionId: id,
         sessionDate,
         scheduledAt: occurrence.scheduledAt,
