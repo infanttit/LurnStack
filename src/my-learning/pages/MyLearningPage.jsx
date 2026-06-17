@@ -465,16 +465,24 @@ function TabContent({ activeTab, loading, summary }) {
     );
   } else if (activeTab === "certifications") {
     content = (
-      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=certifications" className="hover:underline">Certifications</Link></span>} right="Coming soon">
+      <LearningSection title={<span className="inline-block animate-learning-header-line"><Link to="/dashboard?view=certifications" className="hover:underline">Certifications</Link></span>} right="Available now">
         <div className="border-y border-slate-200 py-10">
           <div className="max-w-2xl">
             <div className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-800">
-              Coming soon
+              Available now
             </div>
-            <h3 className="mt-4 text-2xl font-black text-slate-950">LurnStack certificates are on the way</h3>
+            <h3 className="mt-4 text-2xl font-black text-slate-950">Manage your LurnStack certificates</h3>
             <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-              Completed eligible courses will show certificate status, issue date, and download access here.
+              View your completed courses, generate certificates, and download or purchase credentials to showcase your skills.
             </p>
+            <div className="mt-6">
+              <Link
+                to={PATHS.CERTIFICATIONS}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2D7A2D] px-6 text-sm font-bold text-white transition-colors hover:bg-[#215A21]"
+              >
+                Go to Certifications
+              </Link>
+            </div>
           </div>
         </div>
       </LearningSection>

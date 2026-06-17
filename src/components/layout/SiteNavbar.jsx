@@ -60,6 +60,7 @@ const ABOUT_US_LINKS = [
 ];
 
 function learningViewPath(view) {
+  if (view === "certifications") return PATHS.CERTIFICATIONS;
   return `${PATHS.DASHBOARD}?view=${view}`;
 }
 

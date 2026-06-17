@@ -22,6 +22,9 @@ import AttendanceReportPage from "../../attendance/pages/AttendanceReportPage";
 import StudentSessionsPage from "../../pages/StudentSessionsPage";
 import CompanyPage from "../../about/pages/CompanyPage";
 import ProjectsPage from "../../about/pages/ProjectsPage";
+import CertificationsPage from "../../my-learning/certifications/pages/CertificationsPage";
+import VerifyCertificatePage from "../../my-learning/certifications/pages/VerifyCertificatePage";
+import StudentAttendanceDashboardPage from "../../attendance/pages/StudentAttendanceDashboardPage";
 import { PATHS } from "./paths";
 
 export default function AppRouter() {
@@ -37,6 +40,15 @@ export default function AppRouter() {
             </RequireAuth>
           )}
         />
+        <Route
+          path={PATHS.CERTIFICATIONS}
+          element={(
+            <RequireAuth role="student">
+              <CertificationsPage />
+            </RequireAuth>
+          )}
+        />
+        <Route path={PATHS.VERIFY_CERTIFICATE} element={<VerifyCertificatePage />} />
         <Route
           path={PATHS.LIVE_CLASSES}
           element={(
@@ -90,6 +102,14 @@ export default function AppRouter() {
         <Route path={PATHS.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path={PATHS.RESET_PASSWORD} element={<ResetPasswordPage />} />
         <Route path={PATHS.PROFILE} element={<ProfilePage />} />
+        <Route
+          path={PATHS.STUDENT_ATTENDANCE}
+          element={(
+            <RequireAuth role="student">
+              <StudentAttendanceDashboardPage />
+            </RequireAuth>
+          )}
+        />
         <Route
           path={PATHS.TRAINER_ATTENDANCE}
           element={(

@@ -1,6 +1,6 @@
 import { getAuthToken } from "../../auth/model/authStorage";
 import { env } from "../../shared/config/env";
-import { heartbeatStudentSession, leaveStudentSession } from "../api/studentSessionsApi";
+import { heartbeatStudentSession, leaveStudentSession, joinStudentSession } from "../api/studentSessionsApi";
 
 const HEARTBEAT_INTERVAL_MS = 60000;
 const activeTrackers = new Map();
@@ -73,6 +73,7 @@ export function startAttendanceHeartbeat({
     window.clearInterval(intervalId);
     window.removeEventListener("pagehide", handlePageHide);
     window.removeEventListener("beforeunload", handlePageHide);
+    window.removeEventListener("online", handleOnline);
     activeTrackers.delete(key);
     if (sendLeave) {
       leaveStudentSession(id, details).then((attendance) => {
@@ -100,9 +101,32 @@ export function startAttendanceHeartbeat({
     if (attendance) onAttendance?.(attendance);
   };
 
+  const handleOnline = async () => {
+    if (stopped) return;
+    try {
+      // User dropped connection and came back online.
+      // Re-trigger joinStudentSession to log the new slice of presence.
+      const result = await joinStudentSession(id, {
+        sessionDate: details.sessionDate,
+        scheduledAt: details.scheduledAt,
+        startsAt: details.startsAt,
+        endsAt: details.endsAt,
+      });
+      if (result?.joinedAt) {
+        details.joinedAt = result.joinedAt;
+      }
+      if (result?.attendance) {
+        onAttendance?.(result.attendance);
+      }
+    } catch {
+      // Re-join best effort; ignore errors if they fail temporarily
+    }
+  };
+
   const intervalId = window.setInterval(beat, HEARTBEAT_INTERVAL_MS);
   window.addEventListener("pagehide", handlePageHide);
   window.addEventListener("beforeunload", handlePageHide);
+  window.addEventListener("online", handleOnline);
   activeTrackers.set(key, { stop });
 
   beat();

@@ -334,3 +334,44 @@ export async function getStudentAttendanceOverview() {
     throw new Error(getAxiosErrorMessage(err, "Unable to load attendance history."));
   }
 }
+
+export async function getStudentAttendanceDashboard() {
+  const courses = await getStudentAttendanceOverview();
+  let totalClasses = 0;
+  let presentCount = 0;
+  let lateCount = 0;
+  let absentCount = 0;
+  let classes = [];
+
+  for (const course of courses) {
+    totalClasses += course.totalSessions || 0;
+    presentCount += course.presentCount || 0;
+    lateCount += course.lateCount || 0;
+    absentCount += course.absentCount || 0;
+    
+    for (const session of course.sessions || []) {
+      classes.push({
+        sessionId: session.id || session.sessionId,
+        courseTitle: course.courseTitle,
+        sessionTitle: session.sessionTitle,
+        scheduledAt: session.occurrenceDate || session.startsAt,
+        joinTime: session.firstJoinedAt,
+        status: session.attendanceStatus || session.status,
+      });
+    }
+  }
+
+  classes.sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+
+  const attendedCount = presentCount + lateCount;
+  const attendancePercentage = totalClasses ? Math.round((attendedCount / totalClasses) * 10000) / 100 : 0;
+
+  return {
+    totalClasses,
+    presentCount,
+    lateCount,
+    absentCount,
+    attendancePercentage,
+    classes,
+  };
+}

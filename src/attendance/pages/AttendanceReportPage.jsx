@@ -4,7 +4,6 @@ import {
   HiOutlineCalendarDays,
   HiOutlineChartBar,
   HiOutlineCheckCircle,
-  HiOutlineClock,
   HiOutlineUserGroup,
   HiOutlineXCircle,
 } from "react-icons/hi2";
@@ -51,10 +50,12 @@ function StatCard({ icon: Icon, label, value, tone = "slate" }) {
 function StatusPill({ status }) {
   const value = String(status || "").toLowerCase();
   const className =
-    value === "late"
-      ? "bg-amber-100 text-amber-800"
-      : value === "absent"
+    value === "absent"
         ? "bg-red-100 text-red-700"
+        : value === "tracking" || value === "pending"
+          ? "bg-sky-100 text-sky-800"
+          : value === "rescheduled"
+            ? "bg-orange-100 text-orange-800"
         : "bg-emerald-100 text-emerald-800";
   return (
     <span className={["rounded-full px-2.5 py-1 text-[11px] font-extrabold", className].join(" ")}>
@@ -149,8 +150,8 @@ function SessionLookup({ mode }) {
           <h2 className="text-xl font-black text-slate-950">Session attendance</h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
             {mode === "trainer"
-              ? "Select one of your sessions to view present, late, and finalized absent records."
-              : "Load a live session to view present, late, and finalized absent records."}
+              ? "Select one of your sessions to view present and absent records."
+              : "Load a live session to view present and absent records."}
           </p>
         </div>
         <div className="flex w-full gap-2 sm:w-auto">
@@ -224,8 +225,8 @@ function SessionLookup({ mode }) {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <StatCard icon={HiOutlineUserGroup} label="Students" value={report.totalStudents || students.length || 0} />
             <StatCard icon={HiOutlineCheckCircle} label="Present" value={report.presentCount || 0} tone="emerald" />
-            <StatCard icon={HiOutlineClock} label="Late" value={report.lateCount || 0} tone="amber" />
             <StatCard icon={HiOutlineXCircle} label="Absent" value={report.absentCount || 0} tone="red" />
+            <StatCard icon={HiOutlineArrowPath} label="Active" value={report.trackingCount || 0} tone="slate" />
             <StatCard icon={HiOutlineChartBar} label="Attendance" value={`${report.attendancePercentage || 0}%`} />
           </div>
 
@@ -234,8 +235,8 @@ function SessionLookup({ mode }) {
               <div>Student</div>
               <div>Email</div>
               <div>Status</div>
-              <div>First join</div>
-              <div>Last join</div>
+              <div>Join</div>
+              <div>Leave</div>
               <div>Count</div>
             </div>
             {students.length ? (
@@ -247,8 +248,12 @@ function SessionLookup({ mode }) {
                   <div className="font-bold text-slate-900">{student.fullName || student.name || "-"}</div>
                   <div className="truncate text-slate-500">{student.email || "-"}</div>
                   <div><StatusPill status={student.status} /></div>
-                  <div className="text-slate-500">{formatDateTime(student.firstJoinedAt)}</div>
-                  <div className="text-slate-500">{formatDateTime(student.lastJoinedAt)}</div>
+                  <div className="text-slate-500">{formatDateTime(student.joinTime)}</div>
+                  <div className="text-slate-500">
+                    {student.leaveTime ? formatDateTime(student.leaveTime) : (
+                      student.status === "tracking" || student.status === "pending" ? "Active" : "-"
+                    )}
+                  </div>
                   <div className="font-bold text-slate-900">{student.joinCount || 0}</div>
                 </div>
               ))
@@ -314,7 +319,7 @@ export default function AttendanceReportPage({ mode = "admin" }) {
               <div>
                 <h2 className="text-xl font-black text-slate-950">Overview</h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">
-                  Present and late records update after join. Absent counts finalize after session end.
+                  Present records update after join. Absent counts finalize after session end.
                 </p>
               </div>
               {overviewLoading ? (
@@ -328,11 +333,10 @@ export default function AttendanceReportPage({ mode = "admin" }) {
               </div>
             ) : null}
 
-            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-6">
+            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
               <StatCard icon={HiOutlineCalendarDays} label="Courses" value={overview?.totalCourses || 0} />
               <StatCard icon={HiOutlineUserGroup} label="Students" value={overview?.totalStudents || 0} />
               <StatCard icon={HiOutlineCheckCircle} label="Present" value={overview?.presentCount || 0} tone="emerald" />
-              <StatCard icon={HiOutlineClock} label="Late" value={overview?.lateCount || 0} tone="amber" />
               <StatCard icon={HiOutlineXCircle} label="Absent" value={overview?.absentCount || 0} tone="red" />
               <StatCard icon={HiOutlineChartBar} label="Average" value={`${overview?.averageAttendancePercentage || 0}%`} />
             </div>
