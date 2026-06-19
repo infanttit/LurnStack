@@ -32,7 +32,7 @@ export default function TitClassCard({ titClass, now, onOpenMeeting }) {
     now >= joinOpensMs &&
     now <= endMs &&
     activeToday;
-  const actionLabel = canJoin ? "Join" : !activeToday ? "Runs on specific weekdays" : titClass?.isFree ? "Enroll" : "Enroll";
+  const actionLabel = canJoin ? "Join Class" : !activeToday ? "Runs on specific weekdays" : now < joinOpensMs ? "Waiting..." : "Session Ended";
 
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-md border border-gray-200 bg-white transition-all duration-200 hover:border-emerald-200 hover:shadow-md">

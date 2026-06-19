@@ -191,7 +191,7 @@ export function isClassActiveOnDate(session, targetDate) {
     return isSameDay(scheduledDate, targetDate);
   }
 
-  const targetWeekday = getWeekdayIndex(targetDate);
+  const targetWeekday = getKolkataWeekdayIndex(targetDate);
   if (!Array.isArray(recurringDays)) {
     return true;
   }

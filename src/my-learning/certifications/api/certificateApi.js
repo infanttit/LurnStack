@@ -36,12 +36,12 @@ export async function getCourseAttendance(courseId) {
 }
 
 export async function getCourseEligibility(courseId) {
-  if (courseId === "mock-free-1") return "FREE";
+  if (courseId === "mock-free-1") return { status: "FREE", attended: 3, required: 3 };
   try {
     const { data } = await axiosClient.get(`/api/certificates/eligibility/${encodeURIComponent(courseId)}`);
-    return data?.eligibility || "NONE";
+    return data?.data || data || { status: "NONE" };
   } catch (error) {
-    return "NONE";
+    return { status: "NONE" };
   }
 }
 

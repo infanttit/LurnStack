@@ -3,6 +3,9 @@ import {
   HiOutlineCalendarDays,
   HiOutlineCheckCircle,
   HiOutlineXCircle,
+  HiOutlineInformationCircle,
+  HiOutlineChevronDown,
+  HiOutlineChevronUp,
 } from "react-icons/hi2";
 import {
   formatAttendanceStatus,
@@ -17,6 +20,7 @@ const EMPTY_DASHBOARD = {
   absentCount: 0,
   attendancePercentage: 0,
   classes: [],
+  courses: [],
 };
 
 function formatDateTime(value) {
@@ -67,6 +71,86 @@ function StatusBadge({ status }) {
   );
 }
 
+function CourseAccordion({ course }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const classes = [...(course.sessions || [])].sort((a, b) => {
+    const timeA = new Date(a.occurrenceDate || a.startsAt || 0).getTime();
+    const timeB = new Date(b.occurrenceDate || b.startsAt || 0).getTime();
+    return timeB - timeA;
+  });
+
+  return (
+    <div className="student-attendance-course-group">
+      <button 
+        className="student-attendance-course-header"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <div className="student-attendance-course-info">
+          <h3>{course.courseTitle}</h3>
+          <p>{course.attendedCount} / {course.totalSessions} sessions attended ({course.attendancePercentage}%)</p>
+        </div>
+        <div className="student-attendance-course-toggle">
+          {isOpen ? <HiOutlineChevronUp /> : <HiOutlineChevronDown />}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="student-attendance-course-content">
+          {classes.length ? (
+            <div className="student-attendance-timeline">
+              <div className="student-attendance-history-table-head" aria-hidden="true">
+                <div>Class</div>
+                <div>Date / Time</div>
+                <div>Join</div>
+                <div>Duration</div>
+                <div>Status</div>
+              </div>
+              {classes.map((session, index) => {
+                const status = String(session.attendanceStatus || session.status || "absent").trim().toLowerCase();
+                const scheduledAt = session.startsAt || session.occurrenceDate;
+                const joinTime = session.firstJoinedAt;
+                const attendedMinutes = session.attendedMinutes || 0;
+                const sessionDurationMinutes = session.sessionDurationMinutes || 0;
+                
+                return (
+                  <article
+                    key={session.id || session.sessionId || `${course.courseTitle}-${scheduledAt}-${index}`}
+                    className={`student-attendance-class-card student-attendance-class-card--${status}`}
+                  >
+                    <div className="student-attendance-class-card__content">
+                      <div className="student-attendance-class-card__details">
+                        <div className="student-attendance-class-card__title-group">
+                          <h3 title={course.courseTitle}>{course.courseTitle}</h3>
+                          {session.sessionTitle ? <p title={session.sessionTitle}>{session.sessionTitle}</p> : null}
+                        </div>
+                        <div className="student-attendance-class-card__time">
+                          {formatDateTime(scheduledAt)}
+                        </div>
+                        <div className="student-attendance-class-card__meta" title={joinTime ? formatDateTime(joinTime) : "-"}>
+                          <span>{joinTime ? `Join: ${formatDateTime(joinTime)}` : "Join: -"}</span>
+                        </div>
+                        <div className="student-attendance-class-card__duration" title={`Attended ${attendedMinutes}m out of ${sessionDurationMinutes}m`}>
+                          <span className="student-attendance-class-card__duration-text">
+                            {attendedMinutes}m / {sessionDurationMinutes}m ATTENDED
+                          </span>
+                        </div>
+                      </div>
+                      <StatusBadge status={status} />
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="student-attendance-course-empty">No sessions recorded for this course yet.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LoadingState() {
   return (
     <div className="student-attendance-loading" aria-label="Loading attendance dashboard">
@@ -111,9 +195,9 @@ export default function StudentAttendanceDashboardPage() {
     };
   }, []);
 
-  const classes = useMemo(
-    () => (Array.isArray(attendance.classes) ? attendance.classes : []),
-    [attendance.classes]
+  const courses = useMemo(
+    () => (Array.isArray(attendance.courses) ? attendance.courses : []),
+    [attendance.courses]
   );
 
   return (
@@ -157,47 +241,27 @@ export default function StudentAttendanceDashboardPage() {
               </div>
             </section>
 
+            <div className="student-attendance-rule-banner">
+              <HiOutlineInformationCircle className="student-attendance-rule-banner__icon" />
+              <div className="student-attendance-rule-banner__content">
+                <h3>30% Session Duration Rule</h3>
+                <p>To be marked as Present, you must stay in the live session for at least 30% of its duration. Dropping out early may result in an Absent mark.</p>
+              </div>
+            </div>
+
             <section className="student-attendance-history" aria-labelledby="attendance-history-title">
               <div className="student-attendance-section-title">
                 <div>
-                  <h2 id="attendance-history-title">Class History</h2>
-                  <p>Newest days appear first. Sessions on the same day are shown in chronological order.</p>
+                  <h2 id="attendance-history-title">Course Attendance</h2>
+                  <p>Expand a course to view detailed session-by-session history.</p>
                 </div>
               </div>
 
-              {classes.length ? (
-                <div className="student-attendance-timeline">
-                  <div className="student-attendance-history-table-head" aria-hidden="true">
-                    <div>Class</div>
-                    <div>Date / Time</div>
-                    <div>Join</div>
-                    <div>Status</div>
-                  </div>
-                  {classes.map((item, index) => {
-                    const status = String(item.status || "absent").trim().toLowerCase();
-                    return (
-                    <article
-                      key={item.sessionId || `${item.courseTitle}-${item.scheduledAt}-${index}`}
-                      className={`student-attendance-class-card student-attendance-class-card--${status}`}
-                    >
-                      <div className="student-attendance-class-card__content">
-                        <div className="student-attendance-class-card__details">
-                          <div className="student-attendance-class-card__title-group">
-                            <h3 title={item.courseTitle}>{item.courseTitle}</h3>
-                            {item.sessionTitle ? <p title={item.sessionTitle}>{item.sessionTitle}</p> : null}
-                          </div>
-                          <div className="student-attendance-class-card__time">
-                            {formatDateTime(item.scheduledAt)}
-                          </div>
-                          <div className="student-attendance-class-card__meta" title={item.joinTime ? formatDateTime(item.joinTime) : "-"}>
-                            <span>{item.joinTime ? `Join: ${formatDateTime(item.joinTime)}` : "Join: -"}</span>
-                          </div>
-                        </div>
-                        <StatusBadge status={status} />
-                      </div>
-                    </article>
-                    );
-                  })}
+              {courses.length ? (
+                <div className="student-attendance-courses-list">
+                  {courses.map((course, index) => (
+                    <CourseAccordion key={course.courseId || course.summaryKey || `course-${index}`} course={course} />
+                  ))}
                 </div>
               ) : (
                 <div className="student-attendance-state">

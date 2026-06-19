@@ -405,7 +405,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
           {isTrainerCourse && needsPayment ? (
             <button
               type="button"
-              disabled={paying || isCompleted || unavailable}
+              disabled={paying || unavailable}
               onClick={onPayForClass}
               className="h-8 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
@@ -691,10 +691,6 @@ export default function CoursesPage() {
         return;
       }
       const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
-      if (occurrence.endMs && current > occurrence.endMs) {
-        setError("Today's session has already completed.");
-        return;
-      }
 
       setActionId(`pay:${course.id}`);
       setError("");
