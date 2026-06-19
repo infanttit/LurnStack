@@ -1,6 +1,7 @@
 import { axiosClient } from "../../shared/api/axiosClient";
 import { getAxiosErrorMessage, getAxiosErrorStatus } from "../../shared/api/axiosError";
 
+
 function unwrap(res) {
   const data = res?.data;
   if (data?.success === false) throw new Error(data?.message || "Request failed");
@@ -97,6 +98,8 @@ export function normalizeAttendance(raw = {}) {
     lastJoinedAt: source.lastJoinedAt || source.last_joined_at || source.joinedAt || source.joined_at || "",
     joinCount: Number(source.joinCount ?? source.join_count ?? (source.joinedAt || source.joined_at ? 1 : 0)) || 0,
     attendancePercentage: Number(source.attendancePercentage ?? source.attendance_percentage ?? 0) || 0,
+    attendedMinutes: Number(source.attendedMinutes ?? source.attended_minutes) || 0,
+    sessionDurationMinutes: Number(source.sessionDurationMinutes ?? source.session_duration_minutes) || 0,
     trainerName:
       source.trainerName ||
       source.trainer_name ||
@@ -354,9 +357,11 @@ export async function getStudentAttendanceDashboard() {
         sessionId: session.id || session.sessionId,
         courseTitle: course.courseTitle,
         sessionTitle: session.sessionTitle,
-        scheduledAt: session.occurrenceDate || session.startsAt,
+        scheduledAt: session.startsAt || session.occurrenceDate,
         joinTime: session.firstJoinedAt,
         status: session.attendanceStatus || session.status,
+        attendedMinutes: session.attendedMinutes || 0,
+        sessionDurationMinutes: session.sessionDurationMinutes || 0,
       });
     }
   }
@@ -373,5 +378,6 @@ export async function getStudentAttendanceDashboard() {
     absentCount,
     attendancePercentage,
     classes,
+    courses,
   };
 }

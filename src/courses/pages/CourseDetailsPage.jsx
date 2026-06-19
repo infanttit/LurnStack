@@ -652,7 +652,7 @@ export default function CourseDetailsPage() {
 
                 <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
                   {[
-                    ["Trainer", course.instructor],
+                    ["Trainer", course.instructor || course.instructorName || course.trainerName || "LurnStack Trainer"],
                     ["Level", course.level || "All Levels"],
                     ["Duration", liveClass?.durationMinutes ? `${liveClass.durationMinutes} min` : course.hours],
                     ["Ends On", occurrence.isRecurring 

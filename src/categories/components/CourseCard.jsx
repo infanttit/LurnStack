@@ -211,7 +211,7 @@ export default function CourseCard({
       });
       return;
     }
-    if (!createdByTrainer || !needsPayment || isEnded || unavailable) return;
+    if (!createdByTrainer || !needsPayment || unavailable) return;
 
     setPaymentAction("pay");
     try {
@@ -402,7 +402,7 @@ export default function CourseCard({
               <button
                 type="button"
                 onClick={handlePayForClass}
-                disabled={paymentAction === "pay" || isEnded || unavailable}
+                disabled={paymentAction === "pay" || unavailable}
                 className="w-full h-9 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-sm transition-colors active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {paymentAction === "pay" ? "Opening..." : "Pay Now"}
@@ -525,7 +525,7 @@ export default function CourseCard({
                   <button
                     type="button"
                     onClick={handlePayForClass}
-                    disabled={paymentAction === "pay" || isEnded || unavailable}
+                    disabled={paymentAction === "pay" || unavailable}
                     className="w-full h-8 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {paymentAction === "pay" ? "Opening..." : "Pay Now"}
@@ -665,7 +665,7 @@ export default function CourseCard({
                   <button
                     type="button"
                     onClick={handlePayForClass}
-                    disabled={paymentAction === "pay" || isEnded || unavailable}
+                    disabled={paymentAction === "pay" || unavailable}
                     className="w-full h-10 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {paymentAction === "pay" ? "Opening..." : "Pay Now"}

@@ -318,7 +318,7 @@ export default function StudentDashboardPage() {
                     {learningSummary.nextSession.title}
                   </div>
                   <div className="mt-1 text-xs font-semibold text-slate-600">
-                    Trainer: {learningSummary.nextSession.instructorName || learningSummary.nextSession.instructor || "LurnStack Trainer"}
+                    Trainer: {learningSummary.nextSession.instructorName || learningSummary.nextSession.instructor || learningSummary.nextSession.trainerName || "LurnStack Trainer"}
                   </div>
                   <div className="mt-3 rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-slate-700">
                     {formatIST(learningSummary.nextSession.liveClass?.scheduledAt || learningSummary.nextSession.scheduledAt)}
@@ -406,7 +406,7 @@ export default function StudentDashboardPage() {
                           {session.title}
                         </div>
                         <div className="mt-1 text-xs font-semibold text-on-surface-variant line-clamp-1">
-                          {session.instructorName || session.instructor || "LurnStack Trainer"}
+                          {session.instructorName || session.instructor || session.trainerName || "LurnStack Trainer"}
                         </div>
                         <div className="mt-3 text-[11px] font-bold text-emerald-800">
                           {formatIST(session.liveClass?.scheduledAt || session.scheduledAt)}
