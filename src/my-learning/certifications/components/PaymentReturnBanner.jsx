@@ -5,14 +5,12 @@ import { getCourseCertificate, downloadCertificate } from "../api/certificateApi
 
 export default function PaymentReturnBanner({ refetch }) {
   const [status, setStatus] = useState("idle"); // idle, polling, timeout
-  const [pendingCourseId, setPendingCourseId] = useState(null);
 
   useEffect(() => {
     const orderId = localStorage.getItem("pendingOrderId");
     const courseId = localStorage.getItem("pendingCourseId");
 
     if (orderId && courseId) {
-      setPendingCourseId(courseId);
       setStatus("polling");
       
       let attempts = 0;

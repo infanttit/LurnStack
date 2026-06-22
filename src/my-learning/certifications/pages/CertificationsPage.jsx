@@ -1,47 +1,64 @@
 import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FiArrowLeft, FiAward, FiPlus } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { FiArrowLeft, FiAward } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { PATHS } from "../../../app/router/paths";
 import { useCertifications } from "../hooks/useCertifications";
 import { generateCertificate } from "../api/certificateApi";
 import CertificationStats from "../components/CertificationStats";
 import CertificateCard from "../components/CertificateCard";
-import CertificateGenerateModal from "../components/CertificateGenerateModal";
+
 import PaymentReturnBanner from "../components/PaymentReturnBanner";
+import { env } from "../../../shared/config/env";
 
 export default function CertificationsPage() {
-  const navigate = useNavigate();
   const { settings, courses, loading, error, refetch, updateCourseCertificate } = useCertifications();
-  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
-  const [isGeneratingCustom, setIsGeneratingCustom] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("ALL");
+
+  const hasCertificateUrl = (c) => {
+    const cert = c?.certificate;
+    return !!(cert?.certificateUrl || cert?.pdfUrl || cert?.data?.pdfUrl || cert?.data?.certificateUrl);
+  };
 
   const handleGenerate = async (course, userData) => {
     try {
       const newCert = await generateCertificate(course.courseId, userData);
       updateCourseCertificate(course.courseId, newCert);
       toast.success("Certificate generated successfully!");
+      
+      const pdfLink = newCert?.pdfUrl || newCert?.certificateUrl || newCert?.data?.pdfUrl || newCert?.data?.certificateUrl;
+      if (pdfLink) {
+        let finalUrl = pdfLink;
+        if (finalUrl.startsWith("/")) {
+          const baseURL = String(env.apiBaseUrl || "").replace(/\/+$/, "");
+          finalUrl = `${baseURL}${finalUrl}`;
+        }
+        window.open(finalUrl, "_blank");
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.message || "Failed to generate certificate.");
     }
   };
 
-  const handleCustomGenerate = async (userData) => {
-    setIsGeneratingCustom(true);
-    try {
-      const newCert = await generateCertificate("CUSTOM", userData);
-      toast.success("Custom certificate generated successfully!");
-      if (newCert?.pdfUrl || newCert?.certificateUrl) {
-        let pdfLink = newCert.pdfUrl || newCert.certificateUrl;
-        window.open(pdfLink, "_blank");
-      }
-      setIsCustomModalOpen(false);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || "Failed to generate custom certificate.");
-    } finally {
-      setIsGeneratingCustom(false);
+
+
+  const getStatus = (c) => typeof c.eligibility === "string" ? c.eligibility : (c.eligibility?.status || "NONE");
+
+  // Filtering list for remaining courses
+  const filteredCourses = useMemo(() => {
+    const ungenerated = courses.filter(c => !hasCertificateUrl(c));
+    if (activeFilter === "ALL") return ungenerated;
+    if (activeFilter === "FREE") return ungenerated.filter(c => getStatus(c) === "FREE");
+    if (activeFilter === "PAID") return ungenerated.filter(c => getStatus(c) === "PAID");
+    if (activeFilter === "IN_PROGRESS") return ungenerated.filter(c => getStatus(c) === "INCOMPLETE");
+    if (activeFilter === "INELIGIBLE") {
+      return ungenerated.filter(c => {
+        const s = getStatus(c);
+        return s === "NONE" || s === "NOT_ELIGIBLE" || s === "INELIGIBLE";
+      });
     }
-  };
+    return ungenerated;
+  }, [courses, activeFilter]);
 
   const lastUpdatedAt = useMemo(() => new Date().toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -50,31 +67,31 @@ export default function CertificationsPage() {
   }), []);
 
   return (
-    <main className="max-w-container-max mx-auto px-margin-mobile sm:px-margin-desktop py-10 sm:py-14">
-      {/* Header matching StudentDashboardPage style */}
-      <div className="flex items-end justify-between gap-6 flex-wrap mb-8">
+    <main className="max-w-container-max mx-auto px-margin-mobile sm:px-margin-desktop py-10 sm:py-12">
+      {/* Header section with fine sub-text */}
+      <div className="flex items-end justify-between gap-6 flex-wrap mb-8 pb-5 border-b border-slate-100">
         <div>
           <Link
             to={PATHS.DASHBOARD}
-            className="text-xs font-bold text-[#2D7A2D] hover:underline flex items-center gap-1.5 mb-3"
+            className="text-xs font-bold text-[#2D7A2D] hover:text-[#1E521E] transition-colors flex items-center gap-1.5 mb-3"
           >
-            <FiArrowLeft />
+            <FiArrowLeft className="text-xs" />
             Back to dashboard
           </Link>
-          <h1 className="font-h2 text-h2 text-on-surface">My Certifications</h1>
-          <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">My Certifications</h1>
+          <p className="mt-1 text-xs font-medium text-slate-400">
             View, download, and purchase certificates for your completed courses.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-xs font-semibold text-on-surface-variant">
-            Last updated: <span className="text-on-surface">{lastUpdatedAt}</span>
+          <div className="text-[11px] font-bold text-slate-400">
+            Last updated: <span className="text-slate-600 font-extrabold">{lastUpdatedAt}</span>
           </div>
         </div>
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700 mb-8">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-700 mb-8 animate-in fade-in duration-200">
           {error}
         </div>
       ) : null}
@@ -83,16 +100,16 @@ export default function CertificationsPage() {
 
       <CertificationStats courses={courses} loading={loading} />
 
-      {/* Main Content Area */}
+      {/* Main Content Panels */}
       <div className="space-y-8">
-        {courses.filter(c => c.certificate?.certificateUrl).length > 0 && (
-          <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2">
-              <FiAward className="text-[#2D7A2D]" />
+        {courses.filter(hasCertificateUrl).length > 0 && (
+          <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.02)] sm:p-6">
+            <h2 className="text-sm font-extrabold text-slate-700 mb-5 flex items-center gap-2 uppercase tracking-wider">
+              <FiAward className="text-[#2D7A2D] text-base" />
               My Certificates
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {courses.filter(c => c.certificate?.certificateUrl).map((course) => (
+              {courses.filter(hasCertificateUrl).map((course) => (
                 <CertificateCard
                   key={course.courseId}
                   course={course}
@@ -105,28 +122,53 @@ export default function CertificationsPage() {
           </section>
         )}
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-extrabold text-slate-900 mb-6">Completed Courses</h2>
+        <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.02)] sm:p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
+            <h2 className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">Completed Courses</h2>
+            
+            {/* Redesigned Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: "ALL", label: "All Completed" },
+                { id: "FREE", label: "Free Eligible" },
+                { id: "PAID", label: "Paid Eligible" },
+                { id: "IN_PROGRESS", label: "In Progress" },
+                { id: "INELIGIBLE", label: "Not Eligible" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-extrabold tracking-wider uppercase transition-all duration-200 border ${
+                    activeFilter === tab.id
+                      ? "bg-[#2D7A2D] text-white border-[#2D7A2D] shadow-sm"
+                      : "bg-slate-50 text-slate-400 border-slate-100/80 hover:bg-slate-100 hover:text-slate-600"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-48 animate-pulse rounded-2xl border border-slate-100 bg-slate-50" />
+                <div key={i} className="h-44 animate-pulse rounded-xl border border-slate-100 bg-slate-50/50" />
               ))}
             </div>
-          ) : courses.filter(c => !c.certificate?.certificateUrl).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center border-t border-slate-100 mt-4 pt-10">
-              <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-4">
-                <FiAward className="text-4xl" />
+          ) : filteredCourses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 mb-3 border border-slate-100">
+                <FiAward className="text-xl" />
               </div>
-              <h3 className="text-lg font-extrabold text-slate-900 mb-2">No remaining courses</h3>
-              <p className="text-sm text-slate-500 max-w-sm">
-                All your completed courses have their certificates generated!
+              <h3 className="text-xs font-extrabold text-slate-600 mb-1">No courses found</h3>
+              <p className="text-[11px] font-medium text-slate-400 max-w-[200px] leading-relaxed">
+                No completed courses match the selected category.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {courses.filter(c => !c.certificate?.certificateUrl).map((course) => (
+              {filteredCourses.map((course) => (
                 <CertificateCard
                   key={course.courseId}
                   course={course}
