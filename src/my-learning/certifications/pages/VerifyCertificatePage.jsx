@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FiCheckCircle, FiXCircle, FiSearch, FiLoader } from "react-icons/fi";
 import { verifyCertificate } from "../api/certificateApi";
@@ -11,13 +11,7 @@ export default function VerifyCertificatePage() {
   const [certificateData, setCertificateData] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (credentialId) {
-      handleVerify(credentialId);
-    }
-  }, [credentialId]);
-
-  const handleVerify = async (idToVerify) => {
+  const handleVerify = useCallback(async (idToVerify) => {
     if (!idToVerify) return;
     
     setLoading(true);
@@ -36,7 +30,13 @@ export default function VerifyCertificatePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [credentialId, navigate]);
+
+  useEffect(() => {
+    if (credentialId) {
+      handleVerify(credentialId);
+    }
+  }, [credentialId, handleVerify]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

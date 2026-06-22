@@ -28,7 +28,34 @@ export function useCertifications() {
         setSettings(settingsData);
       }
 
-      const completedCourses = completedCoursesData || [];
+      const rawCompletedCourses = [...(completedCoursesData || [])];
+      
+      const MOCK_COURSE = {
+        courseId: "mock-free-1",
+        title: "React Development Masterclass (Demo)",
+        trainerName: "Expert Trainer",
+        category: "Frontend Development"
+      };
+
+      if (!rawCompletedCourses.some(c => c.courseId === "mock-free-1")) {
+        rawCompletedCourses.push(MOCK_COURSE);
+      }
+
+      // Deduplicate courses by title to prevent duplicate cards
+      const uniqueCoursesMap = new Map();
+      for (const course of rawCompletedCourses) {
+        const titleKey = String(course.title || "").trim().toLowerCase();
+        if (!titleKey) continue;
+        if (!uniqueCoursesMap.has(titleKey)) {
+          uniqueCoursesMap.set(titleKey, course);
+        } else {
+          const existing = uniqueCoursesMap.get(titleKey);
+          if (existing.courseId === "default" && course.courseId !== "default") {
+            uniqueCoursesMap.set(titleKey, course);
+          }
+        }
+      }
+      const completedCourses = Array.from(uniqueCoursesMap.values());
 
       // Step 2: Fetch details for each course in parallel
       const coursesWithDetails = await Promise.all(
