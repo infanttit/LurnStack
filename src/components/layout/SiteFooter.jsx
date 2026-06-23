@@ -54,6 +54,12 @@ const NAV = [
       { label: "Terms and Conditions", to: PATHS.TERMS },
     ],
   },
+  {
+    heading: "Locations",
+    links: [
+      { label: "Software Courses in Chennai", to: PATHS.CHENNAI },
+    ],
+  },
 ];
 
 export default function SiteFooter() {

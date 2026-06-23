@@ -1,0 +1,148 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<title>LurnStack Local SEO Keyword Strategy</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333333; }
+  h1 { color: #004d3d; font-size: 24pt; border-bottom: 2px solid #004d3d; padding-bottom: 6px; }
+  h2 { color: #10b981; font-size: 18pt; margin-top: 24px; border-bottom: 1px solid #10b981; padding-bottom: 4px; }
+  h3 { color: #004d3d; font-size: 14pt; margin-top: 18px; }
+  p { font-size: 11pt; margin-bottom: 12px; }
+  ul { margin-top: 4px; margin-bottom: 12px; padding-left: 20px; }
+  li { font-size: 11pt; margin-bottom: 4px; }
+  strong { color: #004d3d; }
+  .meta-note { background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 12px; margin-bottom: 18px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>LurnStack Local SEO Keyword Strategy</h1>
+
+<div class="meta-note">
+  <strong>Note:</strong> This is a Microsoft Word compatible documentation file containing LurnStack's Chennai Local SEO setup guidelines, target keywords, and targeted neighborhoods.
+</div>
+
+<h2>1. Targeted Neighborhoods & Regions (65 Areas)</h2>
+<p>The website dynamically serves individual landing pages for each of the following 65 local areas in Chennai, organized by geographical region:</p>
+
+<h3>OMR & ECR Corridors (14 Areas)</h3>
+<ul>
+  <li>OMR (Old Mahabalipuram Road)</li>
+  <li>ECR (East Coast Road)</li>
+  <li>Sholinganallur</li>
+  <li>Navalur</li>
+  <li>Siruseri</li>
+  <li>Karapakkam</li>
+  <li>Perungudi</li>
+  <li>Taramani</li>
+  <li>Semmenchery</li>
+  <li>Injambakkam</li>
+  <li>Neelankarai</li>
+  <li>Palavakkam</li>
+  <li>Kottivakkam</li>
+  <li>Thoraipakkam</li>
+</ul>
+
+<h3>Central Chennai (20 Areas)</h3>
+<ul>
+  <li>Anna Nagar</li>
+  <li>T. Nagar</li>
+  <li>Adyar</li>
+  <li>Nungambakkam</li>
+  <li>Mylapore</li>
+  <li>Alwarpet</li>
+  <li>Royapettah</li>
+  <li>Mandaveli</li>
+  <li>Besant Nagar</li>
+  <li>Thiruvanmiyur</li>
+  <li>Ashok Nagar</li>
+  <li>Kodambakkam</li>
+  <li>Vadapalani</li>
+  <li>Kilpauk</li>
+  <li>Chetpet</li>
+  <li>Egmore</li>
+  <li>Triplicane</li>
+  <li>Saidapet</li>
+  <li>West Mambalam</li>
+  <li>Choolaimedu</li>
+</ul>
+
+<h3>South Chennai (8 Areas)</h3>
+<ul>
+  <li>Velachery</li>
+  <li>Guindy</li>
+  <li>Tambaram</li>
+  <li>Chromepet</li>
+  <li>Pallavaram</li>
+  <li>Medavakkam</li>
+  <li>Urapakkam</li>
+  <li>Guduvanchery</li>
+</ul>
+
+<h3>West Chennai (14 Areas)</h3>
+<ul>
+  <li>Porur</li>
+  <li>Ambattur</li>
+  <li>Avadi</li>
+  <li>Poonamallee</li>
+  <li>Mogappair</li>
+  <li>Iyyappanthangal</li>
+  <li>Kattupakkam</li>
+  <li>Valasaravakkam</li>
+  <li>Virugambakkam</li>
+  <li>KK Nagar</li>
+  <li>Saligramam</li>
+  <li>Ramapuram</li>
+  <li>Manapakkam</li>
+  <li>Nandambakkam</li>
+</ul>
+
+<h3>North Chennai (9 Areas)</h3>
+<ul>
+  <li>Madhavaram</li>
+  <li>Perambur</li>
+  <li>Kolathur</li>
+  <li>George Town</li>
+  <li>Washermanpet</li>
+  <li>Tondiarpet</li>
+  <li>Ennore</li>
+  <li>Red Hills</li>
+  <li>Manali</li>
+</ul>
+
+<h2>2. Integrated SEO Keywords (19 Target Terms)</h2>
+<p>The landing page content dynamically swaps <strong>[Area Name]</strong> for the active neighborhood to capture search intent. Here are the 19 target keywords we successfully embedded:</p>
+
+<ul>
+  <li>full stack developer course in [Area Name]</li>
+  <li>python class in [Area Name]</li>
+  <li>ui ux design course in [Area Name]</li>
+  <li>react js training in [Area Name]</li>
+  <li>live online coding classes [Area Name]</li>
+  <li>web development course online with live trainer</li>
+  <li>online software courses</li>
+  <li>learn coding from software developers online</li>
+  <li>Full Stack Web Development Course in [Area Name]</li>
+  <li>live trainer led coding classes</li>
+  <li>live online software training</li>
+  <li>real time online software courses</li>
+  <li>interactive software engineering classes online</li>
+  <li>backend developer course in [Area Name]</li>
+  <li>node js training in [Area Name]</li>
+  <li>live online backend development classes</li>
+  <li>live database query writing classes</li>
+  <li>live ai engineering classes for developers</li>
+  <li>artificial intelligence live class in [Area Name]</li>
+</ul>
+
+<h2>3. How the Keywords are Distributed in the Content</h2>
+<p>To maximize keyword weight without trigger Google's spam algorithms (keyword stuffing), the keywords are woven naturally into 4 structured cards on each local landing page:</p>
+
+<ul>
+  <li><strong>Web Development & Design:</strong> Targets <em>Full Stack Web Development Course</em>, <em>full stack developer course</em>, <em>react js training</em>, <em>ui ux design course</em>, and <em>web development course online with live trainer</em>.</li>
+  <li><strong>Backend & Systems:</strong> Targets <em>backend developer course</em>, <em>node js training</em>, <em>live database query writing classes</em>, and <em>live online backend development classes</em>.</li>
+  <li><strong>Python & Future Tech:</strong> Targets <em>python class</em>, <em>live ai engineering classes for developers</em>, and <em>artificial intelligence live class</em>.</li>
+  <li><strong>Live Classroom Features:</strong> Targets <em>live online coding classes</em>, <em>live trainer led coding classes</em>, <em>live online software training</em>, <em>learn coding from software developers online</em>, <em>real time online software courses</em>, and <em>interactive software engineering classes online</em>.</li>
+</ul>
+
+</body>
+</html>

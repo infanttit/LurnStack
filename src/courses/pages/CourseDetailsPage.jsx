@@ -149,6 +149,7 @@ function VideoPlayer({ isSubscribed }) {
       <video
         ref={videoRef}
         src={demoVideo}
+        preload="metadata"
         className="w-full h-full object-contain"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
