@@ -203,6 +203,8 @@ export default function SiteNavbar() {
               <img
                 src={logo}
                 alt="LurnStack"
+                width="192"
+                height="64"
                 className="h-16 w-auto object-contain"
                 loading="eager"
               />
@@ -235,6 +237,8 @@ export default function SiteNavbar() {
                 <img
                   src={logo}
                   alt="LurnStack"
+                  width="216"
+                  height="72"
                   className="h-14 w-auto object-contain sm:h-[72px]"
                   loading="eager"
                 />

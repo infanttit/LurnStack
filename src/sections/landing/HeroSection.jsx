@@ -394,7 +394,7 @@ export default function HeroSection() {
                     <ellipse cx="100" cy="100" rx="98" ry="70" fill="none" stroke="#fbd9da" strokeWidth="0.45" />
                   </svg>
                   <div className="ag-globe-center">
-                    <img src={lurnStackLogo} alt="LurnStack" />
+                    <img src={lurnStackLogo} alt="LurnStack" width="66" height="66" className="object-contain" />
                   </div>
                 </div>
                 <svg className="ag-connection-map" viewBox="0 0 540 540" aria-hidden="true">

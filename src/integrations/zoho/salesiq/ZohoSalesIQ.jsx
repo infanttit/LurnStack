@@ -28,8 +28,36 @@ function loadZohoScript() {
 
 export default function ZohoSalesIQ() {
   useEffect(() => {
-    ensureZohoGlobal();
-    loadZohoScript();
+    let loaded = false;
+
+    const loadWidget = () => {
+      if (loaded) return;
+      loaded = true;
+      ensureZohoGlobal();
+      loadZohoScript();
+      removeListeners();
+    };
+
+    const removeListeners = () => {
+      window.removeEventListener("scroll", loadWidget);
+      window.removeEventListener("mousemove", loadWidget);
+      window.removeEventListener("touchstart", loadWidget);
+      window.removeEventListener("keydown", loadWidget);
+    };
+
+    // Load on first user interaction
+    window.addEventListener("scroll", loadWidget, { passive: true });
+    window.addEventListener("mousemove", loadWidget, { passive: true });
+    window.addEventListener("touchstart", loadWidget, { passive: true });
+    window.addEventListener("keydown", loadWidget, { passive: true });
+
+    // Fallback load after 4 seconds if no interaction occurs
+    const timeoutId = setTimeout(loadWidget, 4000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      removeListeners();
+    };
   }, []);
 
   return null;

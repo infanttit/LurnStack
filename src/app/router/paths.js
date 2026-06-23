@@ -5,6 +5,8 @@ export const PATHS = {
   LIVE_CLASS_DETAILS: "/live-classes/:classId",
   COURSES: "/courses",
   COURSE_DETAILS: "/courses/:courseId",
+  CHENNAI: "/software-courses-in-chennai",
+  CHENNAI_LOCAL: "/:locationSlug",
   CATEGORIES: "/categories",
   CATEGORY_DETAILS: "/categories/:categoryId",
   SEARCH: "/search",

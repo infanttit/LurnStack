@@ -1,0 +1,14 @@
+# LurnStack
+
+Interactive, live trainer-led online software engineering classes.
+
+## Primary Sections
+
+- [Home Page](https://lurnstack.com/): Interactive software training from professional developers.
+- [Courses Catalog](https://lurnstack.com/courses): Live, developer-led classes in full stack development, Python, SQL, and UI/UX design.
+- [Plans](https://lurnstack.com/plans): Tuition pricing, cohort schedules, and placement services.
+- [About Us](https://lurnstack.com/about/company): Learn about the team of senior engineers and architects mentoring at LurnStack.
+
+## Local SEO Pages
+
+- [Software Courses in Chennai](https://lurnstack.com/software-courses-in-chennai): Directory of regional training programs across 65 local areas in Chennai.

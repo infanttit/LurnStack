@@ -18,6 +18,7 @@ import StudentDashboardPage from "../../live-classes/pages/StudentDashboardPage"
 import LiveClassDetailsPage from "../../live-classes/pages/LiveClassDetailsPage";
 import CoursesPage from "../../courses/pages/CoursesPage";
 import CourseDetailsPage from "../../courses/pages/CourseDetailsPage";
+import ChennaiLandingPage from "../../seo/pages/ChennaiLandingPage";
 import AttendanceReportPage from "../../attendance/pages/AttendanceReportPage";
 import StudentSessionsPage from "../../pages/StudentSessionsPage";
 import CompanyPage from "../../about/pages/CompanyPage";
@@ -66,6 +67,7 @@ export default function AppRouter() {
           )}
         />
         <Route path={PATHS.COURSES} element={<CoursesPage />} />
+        <Route path={PATHS.CHENNAI} element={<ChennaiLandingPage />} />
         <Route path={PATHS.COURSE_DETAILS} element={<CourseDetailsPage />} />
         <Route path={PATHS.CATEGORIES} element={<Navigate to={PATHS.COURSES} replace />} />
         <Route path={PATHS.CATEGORY_DETAILS} element={<Navigate to={PATHS.COURSES} replace />} />
@@ -126,6 +128,7 @@ export default function AppRouter() {
             </RequireAuth>
           )}
         />
+        <Route path={PATHS.CHENNAI_LOCAL} element={<ChennaiLandingPage />} />
       </Route>
       <Route path="*" element={<Navigate to={PATHS.HOME} replace />} />
     </Routes>
