@@ -322,21 +322,38 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
         </div>
       </div>
 
-      <div className="p-2.5 flex-1 flex flex-col">
+      <div className="p-2 flex-1 flex flex-col">
         <h3 className="font-extrabold text-[13px] text-gray-900 leading-snug line-clamp-2">
           {course.title}
         </h3>
         <p className="mt-0.5 truncate text-[11px] text-gray-500">{course.instructor}</p>
 
         {isTrainerCourse && liveClass ? (
-          <div className="mt-2 rounded-md border border-emerald-100 bg-emerald-50 px-2.5 py-1.5">
-            <div className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-800">
-              Live class
+          <div className="mt-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-1">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-800">
+                Live class
+              </div>
+              {(course.totalHours || course.totalDays) ? (
+                <div className="flex items-center flex-wrap gap-x-1.5 text-[9px] text-[#006b58] font-extrabold">
+                  {course.totalHours !== null && course.totalHours !== undefined && (
+                    <span>
+                      {course.completedHours || 0}/{course.totalHours} Total HR
+                    </span>
+                  )}
+                  {course.totalHours && course.totalDays ? <span className="text-emerald-300 font-bold">•</span> : null}
+                  {course.totalDays !== null && course.totalDays !== undefined && (
+                    <span>
+                      {course.completedDays || 0}/{course.totalDays} Total Days
+                    </span>
+                  )}
+                </div>
+              ) : null}
             </div>
-            <div className="mt-1 truncate text-[11px] font-bold text-gray-800">
+            <div className="mt-0.5 truncate text-[11px] font-bold text-gray-800">
               {liveClass.title}
             </div>
-            <div className="mt-1 truncate text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+            <div className="mt-0.5 truncate text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
               <span>{formatLiveWhen(occurrence.scheduledAt)} IST</span>
               <span>•</span>
               <span>{liveClass.durationMinutes} min</span>
@@ -347,8 +364,8 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
                     {formatRecurringDays(liveClass.recurringDays || liveClass.recurring_days)}
                   </span>
                   {(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date) && (
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      Recurring until: {new Date(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date).toLocaleDateString("en-IN", {
+                    <span className="text-[9.5px] text-slate-500 font-semibold">
+                      Until: {new Date(liveClass?.recurrenceEndDate || liveClass?.recurrence_end_date || liveClass?.raw?.recurrenceEndDate || liveClass?.raw?.recurrence_end_date).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
@@ -358,21 +375,21 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
                 </>
               )}
             </div>
-            <div className="mt-1 truncate text-[10px] font-bold text-emerald-800">
+            <div className="mt-0.5 truncate text-[10px] font-bold text-emerald-800">
               {isCancelled ? "Cancelled" : liveTimerLabel(liveClass, now)}
             </div>
             {accessNotice ? (
-              <div className="mt-1 truncate text-[10px] font-semibold text-slate-600">
+              <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-600">
                 {accessNotice}
               </div>
             ) : null}
             {attendanceStatus ? (
-              <div className={["mt-1.5 inline-flex w-fit rounded-full px-2 py-0.5 text-[9px] font-extrabold", attendanceBadgeClass].join(" ")}>
+              <div className={["mt-1 inline-flex w-fit rounded-full px-2 py-0.5 text-[9px] font-extrabold", attendanceBadgeClass].join(" ")}>
                 Attendance: {formatAttendanceStatus(attendanceStatus)}
               </div>
             ) : null}
             {isCancelled && cancellationReason ? (
-              <div className="mt-2 rounded-md border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] font-semibold text-red-700">
+              <div className="mt-1 rounded-md border border-red-100 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700">
                 Reason: {cancellationReason}
               </div>
             ) : null}
@@ -380,14 +397,14 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
         ) : null}
 
         {!isTrainerCourse ? (
-          <div className="mt-2 flex items-center gap-1.5">
+          <div className="mt-1 flex items-center gap-1.5">
             <span className="font-bold text-[12px] text-[#b4690e]">{course.rating}</span>
             <StarRating rating={course.rating} />
             <span className="truncate text-[10px] text-gray-500">({course.ratingCount})</span>
           </div>
         ) : null}
 
-        <div className="mt-2 flex items-center justify-between gap-3">
+        <div className="mt-0.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-[14px] text-gray-900">{course.price}</span>
             {course.oldPrice && (
@@ -401,13 +418,13 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
           )}
         </div>
 
-        <div className={["mt-auto pt-2.5 grid gap-2", isTrainerCourse ? "grid-cols-1 min-[420px]:grid-cols-[1fr_auto]" : "grid-cols-1"].join(" ")}>
+        <div className={["mt-auto pt-1 grid gap-1.5", isTrainerCourse ? "grid-cols-1 min-[420px]:grid-cols-[1fr_auto]" : "grid-cols-1"].join(" ")}>
           {isTrainerCourse && needsPayment ? (
             <button
               type="button"
               disabled={paying || unavailable}
               onClick={onPayForClass}
-              className="h-8 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="h-7 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-[10px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {paying ? "Opening..." : "Pay Now"}
             </button>
@@ -416,7 +433,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
               type="button"
               disabled={joining || !canJoin}
               onClick={onJoinClass}
-              className="h-8 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[11px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="h-7 bg-[#00342b] hover:bg-[#004d40] text-white font-extrabold text-[10px] rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {joining ? "Opening..." : course.isJoined && canJoin ? "Rejoin" : canJoin ? "Join" : !activeToday ? "Locked" : sessionIsFree ? "Locked" : hasPaidAccess ? "Paid" : "Locked"}
             </button>
@@ -424,7 +441,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
           <button
             type="button"
             onClick={onViewDetails}
-            className="h-8 border border-gray-300 hover:bg-gray-50 text-gray-900 font-extrabold text-[11px] rounded-md transition-colors min-[420px]:px-3"
+            className="h-7 border border-gray-300 hover:bg-gray-50 text-gray-900 font-extrabold text-[10px] rounded-md transition-colors min-[420px]:px-3"
           >
               See more
             </button>

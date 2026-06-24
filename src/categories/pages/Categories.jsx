@@ -167,6 +167,20 @@ function CourseShelfCard({ course }) {
   const liveClass = course.liveClass || null;
   const duration = liveClass?.durationMinutes || course.totalHours || "";
 
+  let progressText = "";
+  if (course.createdByTrainer) {
+    const singleClassDur = liveClass?.durationMinutes || 60;
+    const totHrs = course.totalHours || 30;
+    const compHrs = course.completedHours !== null && course.completedHours !== undefined ? course.completedHours : 0;
+    progressText = `${compHrs}h / ${totHrs}h completed · ${singleClassDur}m class`;
+    if (course.totalDays) {
+      const compDays = course.completedDays !== null && course.completedDays !== undefined ? course.completedDays : 0;
+      progressText += ` · ${compDays} / ${course.totalDays} days`;
+    }
+  } else {
+    progressText = duration ? `${duration} min live class` : course.category;
+  }
+
   return (
     <motion.button
       type="button"
@@ -220,8 +234,8 @@ function CourseShelfCard({ course }) {
             <div className="mt-1 truncate text-[11px] font-bold text-gray-800">
               {liveClass.title || course.title}
             </div>
-            <div className="mt-1 truncate text-[10px] text-gray-500">
-              {duration ? `${duration} min live class` : course.category}
+            <div className="mt-1 truncate text-[10px] text-gray-500" title={progressText}>
+              {progressText}
             </div>
           </div>
         ) : (

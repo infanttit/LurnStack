@@ -164,7 +164,9 @@ export default function CartPage() {
                       <p className="mt-1 text-xs text-on-surface-variant">
                         {[
                           item.sessionId
-                            ? `${item.totalHours || 60} min live class`
+                            ? (item.totalHours
+                                ? `${item.totalHours} hours${item.totalDays ? ` · ${item.totalDays} days` : ""} (${item.classDuration || 60}m class)`
+                                : `${item.classDuration || 60} min live class`)
                             : item.totalHours && `${item.totalHours} total hours`,
                           item.lectures && `${item.lectures} lectures`,
                           item.level,

@@ -74,6 +74,9 @@ export default function CourseCard({
   originalPrice,
   badge,
   totalHours,
+  totalDays,
+  completedHours,
+  completedDays,
   level,
   description,
   takeaways: customTakeaways,
@@ -472,7 +475,16 @@ export default function CourseCard({
               </div>
 
               <p className="text-[11px] text-gray-500 mt-2">
-                {totalHours || 22.5} total hours · {level || 'All Levels'} · Subtitles
+                {createdByTrainer ? (
+                  <>
+                    {completedHours !== null && completedHours !== undefined ? `${completedHours} hrs completed of ` : ""}
+                    {totalHours || 30} total hours
+                    {totalDays ? ` · ${completedDays !== null && completedDays !== undefined ? `${completedDays} days completed of ` : ""}${totalDays} days` : ""}
+                  </>
+                ) : (
+                  `${totalHours || 22.5} total hours`
+                )}
+                {` · ${level || 'All Levels'} · Subtitles`}
               </p>
 
               <p className="text-[12px] text-gray-700 leading-snug mt-2 line-clamp-3">
