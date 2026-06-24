@@ -56,7 +56,11 @@ function toCartItem(course) {
     qty: 1,
     rating: Number(course.rating) || 4.8,
     ratingCount: Number(course.ratingCount) || 0,
-    totalHours: course.totalHours || course.liveClass?.durationMinutes,
+    totalHours: course.totalHours || null,
+    totalDays: course.totalDays || null,
+    completedHours: course.completedHours || null,
+    completedDays: course.completedDays || null,
+    classDuration: course.liveClass?.durationMinutes || 60,
     level: course.level || "All Levels",
     isPremium: !course.createdByTrainer,
     sessionId: course.createdByTrainer ? String(course.id) : undefined,
@@ -996,7 +1000,14 @@ export default function CourseDetailsPage() {
                       </h3>
                       <div className="grid grid-cols-2 gap-y-2 gap-x-6">
                         {[
-                          ["Total Duration", course.hours || "12h 45m"],
+                          course.createdByTrainer ? (
+                            ["Hours Progress", `${course.completedHours || 0}h / ${course.totalHours || 30}h completed`]
+                          ) : (
+                            ["Total Duration", course.hours || "12h 45m"]
+                          ),
+                          ...(course.createdByTrainer && course.totalDays ? [
+                            ["Days Progress", `${course.completedDays || 0} / ${course.totalDays} days completed`]
+                          ] : []),
                           ["Level", course.level || "Intermediate"],
                           ["Students", course.ratingCount?.split(" ")[0] || "20,000+"],
                           ["Rating", `${course.rating} ★`],

@@ -12,9 +12,9 @@ export default function LandingPage() {
   const { isAuthenticated } = useAuth();
 
   useSEO({
-    title: "Home",
-    description: "LurnStack — Live trainer-led masterclasses for web development, database, cloud, and UI/UX. Start learning with expert trainers today.",
-    keywords: "LurnStack, online learning, live classes, web development, database, cloud, UI/UX, EdTech",
+    title: "LearnStack – Online Learning Platform | IT Courses, Certification & Career Training",
+    description: "LearnStack is an online learning platform where expert trainers offer industry-ready IT and professional courses. Learn SQL, Python, Azure, AWS, DevOps, Power BI, Data Analytics and more with certificates and career support.",
+    keywords: "LearnStack, LurnStack, online learning platform, IT courses, SQL training, Python online course, Azure certification, AWS training, DevOps course, Power BI course, Data Analytics course, certification, career training",
     canonical: "/",
   });
 

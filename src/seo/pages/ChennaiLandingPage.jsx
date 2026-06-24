@@ -159,6 +159,34 @@ const getKeywordTitlePrefix = (prefixStr) => {
   if (p.startsWith("backend developer course")) return "Backend Developer Course in";
   if (p.startsWith("node js training")) return "Node JS Training in";
   if (p.startsWith("artificial intelligence live class")) return "Artificial Intelligence Live Class in";
+  if (p.startsWith("online learning platform")) return "Online Learning Platform in";
+  if (p.startsWith("learning management system")) return "Learning Management System in";
+  if (p.startsWith("online courses")) return "Online Courses in";
+  if (p.startsWith("e learning platform")) return "E-Learning Platform in";
+  if (p.startsWith("professional online courses")) return "Professional Online Courses in";
+  if (p.startsWith("self paced learning")) return "Self-Paced Learning in";
+  if (p.startsWith("skill development courses")) return "Skill Development Courses in";
+  if (p.startsWith("online certification courses")) return "Online Certification Courses in";
+  if (p.startsWith("career development courses")) return "Career Development Courses in";
+  if (p.startsWith("sql online course")) return "SQL Online Course in";
+  if (p.startsWith("python online course")) return "Python Online Course in";
+  if (p.startsWith("azure online training")) return "Azure Online Training in";
+  if (p.startsWith("aws online training")) return "AWS Online Training in";
+  if (p.startsWith("devops online course")) return "DevOps Online Course in";
+  if (p.startsWith("power bi online course")) return "Power BI Online Course in";
+  if (p.startsWith("data analytics course")) return "Data Analytics Course in";
+  if (p.startsWith("cyber security course")) return "Cyber Security Course in";
+  if (p.startsWith("cloud computing training")) return "Cloud Computing Training in";
+  if (p.startsWith("react js course")) return "React JS Course in";
+  if (p.startsWith("java full stack course")) return "Java Full Stack Course in";
+  if (p.startsWith("oracle pl sql training")) return "Oracle PL/SQL Training in";
+  if (p.startsWith("ai machine learning course") || p.startsWith("ai & machine learning course") || p.startsWith("ai and machine learning course")) return "AI & Machine Learning Course in";
+  if (p.startsWith("best online it training")) return "Best Online IT Training in";
+  if (p.startsWith("sql training")) return "SQL Training in";
+  if (p.startsWith("python training")) return "Python Training in";
+  if (p.startsWith("azure training")) return "Azure Training in";
+  if (p.startsWith("devops training")) return "DevOps Training in";
+  if (p.startsWith("chennai online learning platform")) return "Chennai Online Learning Platform in";
   return "Software Courses in";
 };
 
@@ -178,7 +206,7 @@ export default function ChennaiLandingPage() {
     const decoded = decodeURIComponent(locationSlug).trim();
     
     // Check if the slug has any of the expected prefixes (case-insensitive, hyphen/space separated)
-    const prefixRegex = /^(software[- ]courses[- ]in|full[- ]stack[- ]developer[- ]course[- ]in|python[- ]class[- ]in|ui[- ]ux[- ]design[- ]course[- ]in|react[- ]js[- ]training[- ]in|live[- ]online[- ]coding[- ]classes(?:[- ]in)?|full[- ]stack[- ]web[- ]development[- ]course[- ]in|backend[- ]developer[- ]course[- ]in|node[- ]js[- ]training[- ]in|artificial[- ]intelligence[- ]live[- ]class[- ]in)[- ]/i;
+    const prefixRegex = /^(software[- ]courses[- ]in|full[- ]stack[- ]developer[- ]course[- ]in|python[- ]class[- ]in|ui[- ]ux[- ]design[- ]course[- ]in|react[- ]js[- ]training[- ]in|live[- ]online[- ]coding[- ]classes(?:[- ]in)?|full[- ]stack[- ]web[- ]development[- ]course[- ]in|backend[- ]developer[- ]course[- ]in|node[- ]js[- ]training[- ]in|artificial[- ]intelligence[- ]live[- ]class[- ]in|online[- ]learning[- ]platform[- ]in|learning[- ]management[- ]system[- ]in|online[- ]courses[- ]in|e[- ]learning[- ]platform[- ]in|professional[- ]online[- ]courses[- ]in|self[- ]paced[- ]learning[- ]in|skill[- ]development[- ]courses[- ]in|online[- ]certification[- ]courses[- ]in|career[- ]development[- ]courses[- ]in|sql[- ]online[- ]course[- ]in|python[- ]online[- ]course[- ]in|azure[- ]online[- ]training[- ]in|aws[- ]online[- ]training[- ]in|devops[- ]online[- ]course[- ]in|power[- ]bi[- ]online[- ]course[- ]in|data[- ]analytics[- ]course[- ]in|cyber[- ]security[- ]course[- ]in|cloud[- ]computing[- ]training[- ]in|react[- ]js[- ]course[- ]in|java[- ]full[- ]stack[- ]course[- ]in|oracle[- ]pl[- ]sql[- ]training[- ]in|ai[- ](?:&[- ]|and[- ]|)?machine[- ]learning[- ]course[- ]in|best[- ]online[- ]it[- ]training[- ]in|sql[- ]training[- ]in|python[- ]training[- ]in|azure[- ]training[- ]in|devops[- ]training[- ]in|chennai[- ]online[- ]learning[- ]platform)[- ]/i;
     
     if (!prefixRegex.test(decoded)) {
       return null;
