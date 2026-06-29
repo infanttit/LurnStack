@@ -5,7 +5,7 @@ import { getPublicSessions } from "../../courses/api/studentSessionsApi";
 import LocalSchema from "../components/LocalSchema";
 import LocalFAQSection from "../components/LocalFAQSection";
 import { HiCheckBadge, HiMiniStar } from "react-icons/hi2";
-import { FiUsers, FiTrendingUp, FiArrowRight, FiCode, FiDatabase, FiCloud, FiSmartphone, FiCpu, FiMapPin, FiSearch } from "react-icons/fi";
+import { FiUsers, FiTrendingUp, FiArrowRight, FiCode, FiDatabase, FiCloud, FiSmartphone, FiCpu } from "react-icons/fi";
 import { motion } from "framer-motion";
 import lurnStackLogo from "../../assets/Logo/Logo4.png";
 
@@ -194,8 +194,6 @@ export default function ChennaiLandingPage() {
   const { locationSlug } = useParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("omr-ecr");
-  const [searchQuery, setSearchQuery] = useState("");
 
   // 1. Resolve Location dynamics from URL route parameter
   const getActiveLocationDetails = () => {
@@ -273,18 +271,6 @@ export default function ChennaiLandingPage() {
     canonical: locationDetails ? `/${locationDetails.matchedPrefix}${locationDetails.urlSlug}` : "",
   });
 
-  // Set the default active region tab based on the selected local area so it's auto-opened
-  useEffect(() => {
-    if (!locationDetails || !locationDetails.activeLocation) return;
-    const normParam = locationDetails.activeLocation.toLowerCase().replace(/[^a-z0-9]/g, "");
-    
-    const matchingRegion = CHENNAI_REGIONS.find((r) =>
-      r.locations.some((loc) => loc.toLowerCase().replace(/[^a-z0-9]/g, "") === normParam)
-    );
-    if (matchingRegion) {
-      setActiveTab(matchingRegion.id);
-    }
-  }, [locationDetails]);
 
   useEffect(() => {
     getPublicSessions()
@@ -321,28 +307,6 @@ export default function ChennaiLandingPage() {
 
   const { activeLocation, urlSlug } = locationDetails;
 
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const getFilteredLocations = () => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-      return CHENNAI_REGIONS.find((r) => r.id === activeTab)?.locations || [];
-    }
-    
-    let allMatches = [];
-    CHENNAI_REGIONS.forEach((region) => {
-      region.locations.forEach((loc) => {
-        if (loc.toLowerCase().includes(query)) {
-          allMatches.push(loc);
-        }
-      });
-    });
-    return allMatches;
-  };
-
-  const filteredLocations = getFilteredLocations();
 
   return (
     <main className="bg-background min-h-screen">
@@ -668,95 +632,6 @@ export default function ChennaiLandingPage() {
         </div>
       </section>
 
-      {/* 4. CHENNAI REGIONAL LOCATIONS DIRECTORY SECTION */}
-      {activeLocation === "Chennai" && (
-        <section className="py-16 bg-surface-container-low border-t border-b border-gray-200/50">
-          <div className="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-extrabold text-primary mb-3">
-                Serving All Local Areas & Neighborhoods in Chennai
-              </h2>
-              <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">
-                Currently viewing software courses for <span className="font-extrabold text-primary">{activeLocation}</span>. Our live interactive training allows you to learn from any part of Chennai. Select your region below to update the directory.
-              </p>
-            </div>
-
-            {/* Search Box inside Location Area */}
-            <div className="max-w-md mx-auto mb-10 relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                <FiSearch />
-              </div>
-              <input
-                type="text"
-                placeholder="Search your area (e.g. Velachery, T. Nagar...)"
-                value={searchQuery}
-                onChange={handleSearch}
-                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-emerald-950/5 transition-all"
-              />
-            </div>
-
-            {/* Region Tabs (hidden when searching) */}
-            {!searchQuery && (
-              <div className="flex flex-wrap items-center justify-center gap-2 mb-8 border-b border-gray-200/80 pb-4">
-                {CHENNAI_REGIONS.map((region) => (
-                  <button
-                    key={region.id}
-                    type="button"
-                    onClick={() => setActiveTab(region.id)}
-                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                      activeTab === region.id
-                        ? "bg-primary text-white shadow-md shadow-primary/20"
-                        : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
-                    }`}
-                  >
-                    {region.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Grid of Locations */}
-            {filteredLocations.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredLocations.map((loc) => {
-                  const slug = loc.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").replace(/^-+/, "");
-                  const isSelected = loc.toLowerCase().replace(/[^a-z0-9]/g, "") === activeLocation.toLowerCase().replace(/[^a-z0-9]/g, "");
-                  
-                  return (
-                    <Link
-                      key={loc}
-                      to={`/software-courses-in-${slug}`}
-                      className={`p-3 bg-white border rounded-xl shadow-sm hover:border-emerald-300 hover:shadow-md transition-all duration-200 flex items-center gap-2.5 ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-50/20 ring-2 ring-emerald-500/20"
-                          : "border-gray-200/80"
-                      }`}
-                    >
-                      <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 text-[10px] ${
-                        isSelected ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-600"
-                      }`}>
-                        <FiMapPin />
-                      </span>
-                      <div className="min-w-0">
-                        <p className={`text-xs font-bold truncate ${isSelected ? "text-emerald-950 font-black" : "text-primary"}`} title={loc}>
-                          {loc}
-                        </p>
-                        <span className="text-[9px] text-gray-400 font-semibold block">
-                          Software Courses in {loc}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-400 text-sm">
-                No matching areas found in Chennai. But we support online learning across the entire city!
-              </div>
-            )}
-          </div>
-        </section>
-      )}
 
       {/* 5. LOCAL FAQ SECTION */}
       <LocalFAQSection activeLocation={activeLocation} keywordName={keywordName} />

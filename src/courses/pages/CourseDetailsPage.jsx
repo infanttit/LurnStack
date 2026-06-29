@@ -32,10 +32,14 @@ import { formatDuration } from "../../live-classes/lib/time";
 import { getSessionOccurrenceTiming, isSessionUnavailable, isClassActiveOnDate, formatRecurringDays } from "../../shared/utils/sessionTiming";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
-import { formatAttendanceStatus } from "../api/studentAttendanceApi";
-import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
+import {
+  formatAttendanceStatus,
+  getStudentCourseAttendanceEligibility,
+  getStudentAttendanceHistory,
+} from "../api/studentAttendanceApi";
 import useOfferCampaignClick from "../hooks/useOfferCampaignClick";
 import { rememberRecentlyJoinedSession } from "../../my-learning/utils/learningModel";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 
 // ── Video path ─────────────────────────────────────────────────────────────
 import demoVideo from "../../assets/Videos/Hero.mp4";
@@ -405,8 +409,36 @@ export default function CourseDetailsPage() {
   const [authPrompt, setAuthPrompt] = useState(null);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [sessionAttendance, setSessionAttendance] = useState(null);
+  const [attendanceEligibility, setAttendanceEligibility] = useState(null);
+  const [checkInLogs, setCheckInLogs] = useState([]);
   const liveClasses = useMemo(() => getCourseLiveClasses(detailId), [detailId]);
   const { track } = useAttendanceTracking();
+
+  useEffect(() => {
+    if (!isAuthenticated || !detailId) return;
+
+    let active = true;
+
+    getStudentCourseAttendanceEligibility(detailId)
+      .then((res) => {
+        if (active && res?.success) {
+          setAttendanceEligibility(res.data);
+        }
+      })
+      .catch((err) => console.error("Error fetching attendance eligibility:", err));
+
+    getStudentAttendanceHistory({ courseId: detailId })
+      .then((res) => {
+        if (active && res?.success) {
+          setCheckInLogs(res.data);
+        }
+      })
+      .catch((err) => console.error("Error fetching attendance history:", err));
+
+    return () => {
+      active = false;
+    };
+  }, [detailId, isAuthenticated]);
 
   useOfferCampaignClick(offerTargetType, detailId);
 
@@ -676,6 +708,126 @@ export default function CourseDetailsPage() {
                 </div>
               </div>
             </div>
+
+            {isAuthenticated && attendanceEligibility && (
+              <div className="rounded-xl bg-white border border-slate-200 p-4 sm:p-5 shadow-sm">
+                <h2 className="text-lg font-extrabold text-slate-900 mb-4">Attendance & Course Progress</h2>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  {/* Attendance Badge/Ring */}
+                  <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="40"
+                        stroke="#e2e8f0"
+                        strokeWidth="8"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="40"
+                        stroke={attendanceEligibility.attendancePercentage >= 75 ? "#10b981" : "#ef4444"}
+                        strokeWidth="8"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 40}
+                        strokeDashoffset={2 * Math.PI * 40 * (1 - (attendanceEligibility.attendancePercentage || 0) / 100)}
+                        strokeLinecap="round"
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <span className="absolute text-sm font-extrabold text-slate-800">
+                      {attendanceEligibility.attendancePercentage}%
+                    </span>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="text-sm font-extrabold text-slate-900">
+                      Attendance Percentage: {attendanceEligibility.attendancePercentage}%
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500 leading-normal">
+                      You have attended {attendanceEligibility.attendedCount || 0} out of {attendanceEligibility.totalSessions || 0} completed classes.
+                    </p>
+
+                    {/* Certificate Eligibility Indicator */}
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                        attendanceEligibility.isEligible ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"
+                      }`}>
+                        Certificate Status: {attendanceEligibility.isEligible ? "Eligible" : "Ineligible"}
+                      </span>
+                      {attendanceEligibility.certificateType && (
+                        <span className="text-xs text-slate-500 font-semibold">
+                          ({attendanceEligibility.certificateType} Certificate)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Warning Banner */}
+                {attendanceEligibility.attendancePercentage < 75 && (
+                  <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3.5 flex items-start gap-2.5 text-amber-800">
+                    <Info className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wider mb-0.5 font-sans">Warning Alert</div>
+                      <p className="text-xs font-semibold leading-normal">
+                        You need at least 75% attendance to qualify for a certificate. Keep attending upcoming classes to raise your attendance percentage.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Check-in Event List */}
+                {checkInLogs.length > 0 && (
+                  <div className="mt-6 border-t border-slate-100 pt-5">
+                    <h3 className="text-sm font-extrabold text-slate-900 mb-3">Attendance & Check-in Logs</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse font-sans">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-slate-400">
+                            <th className="pb-2 font-bold uppercase text-[10px]">Class Session</th>
+                            <th className="pb-2 font-bold uppercase text-[10px]">Check-in Time</th>
+                            <th className="pb-2 font-bold uppercase text-[10px]">Duration</th>
+                            <th className="pb-2 font-bold uppercase text-[10px]">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {checkInLogs.map((log) => (
+                            <tr key={log.id} className="text-slate-700 hover:bg-slate-50/50">
+                              <td className="py-2.5 pr-2 font-bold text-slate-900">{log.sessionTitle}</td>
+                              <td className="py-2.5 text-slate-500">
+                                {log.firstJoinedAt ? new Date(log.firstJoinedAt).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                  hour12: true
+                                }) : "-"}
+                              </td>
+                              <td className="py-2.5 text-slate-600 font-medium">
+                                {log.attendedMinutes} mins
+                              </td>
+                              <td className="py-2.5">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold capitalize ${
+                                  log.status === "present" ? "bg-emerald-100 text-emerald-800" :
+                                  log.status === "late" ? "bg-amber-100 text-amber-800" :
+                                  "bg-red-100 text-red-800"
+                                }`}>
+                                  {log.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <aside className="rounded-xl bg-white border border-slate-200 shadow-sm lg:sticky lg:top-24 overflow-hidden">
               <div className="border-b border-slate-100 bg-gradient-to-br from-white to-emerald-50 px-4 py-4">
@@ -993,6 +1145,130 @@ export default function CourseDetailsPage() {
                       ))}
                     </div>
 
+                    {/* Attendance & Course Progress */}
+                    {isAuthenticated && attendanceEligibility && (
+                      <div className="mt-8 border-t border-gray-100 pt-6">
+                        <h3 className="text-[13px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">
+                          ATTENDANCE & PROGRESS
+                        </h3>
+                        <div className="rounded-xl border border-gray-200 p-4 sm:p-5 mb-6">
+                          <div className="flex flex-col sm:flex-row items-center gap-6">
+                            {/* Attendance Badge/Ring */}
+                            <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                              <svg className="w-full h-full transform -rotate-90">
+                                <circle
+                                  cx="40"
+                                  cy="40"
+                                  r="34"
+                                  stroke="#e2e8f0"
+                                  strokeWidth="6"
+                                  fill="transparent"
+                                />
+                                <circle
+                                  cx="40"
+                                  cy="40"
+                                  r="34"
+                                  stroke={attendanceEligibility.attendancePercentage >= 75 ? "#10b981" : "#ef4444"}
+                                  strokeWidth="6"
+                                  fill="transparent"
+                                  strokeDasharray={2 * Math.PI * 34}
+                                  strokeDashoffset={2 * Math.PI * 34 * (1 - (attendanceEligibility.attendancePercentage || 0) / 100)}
+                                  strokeLinecap="round"
+                                  className="transition-all duration-500"
+                                />
+                              </svg>
+                              <span className="absolute text-xs font-extrabold text-slate-800">
+                                {attendanceEligibility.attendancePercentage}%
+                              </span>
+                            </div>
+
+                            <div className="flex-1">
+                              <div className="text-sm font-extrabold text-slate-900">
+                                Attendance Percentage: {attendanceEligibility.attendancePercentage}%
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500 leading-normal">
+                                You have attended {attendanceEligibility.attendedCount || 0} out of {attendanceEligibility.totalSessions || 0} completed classes.
+                              </p>
+
+                              {/* Certificate Eligibility Indicator */}
+                              <div className="mt-3 flex items-center gap-2">
+                                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                                  attendanceEligibility.isEligible ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"
+                                }`}>
+                                  Certificate Status: {attendanceEligibility.isEligible ? "Eligible" : "Ineligible"}
+                                </span>
+                                {attendanceEligibility.certificateType && (
+                                  <span className="text-xs text-slate-500 font-semibold">
+                                    ({attendanceEligibility.certificateType} Certificate)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Warning Banner */}
+                          {attendanceEligibility.attendancePercentage < 75 && (
+                            <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2.5 text-amber-800">
+                              <Info className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
+                              <div>
+                                <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5">Warning Alert</div>
+                                <p className="text-xs font-semibold leading-normal">
+                                  You need at least 75% attendance to qualify for a certificate. Keep attending upcoming classes to raise your attendance percentage.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Check-in Event List */}
+                          {checkInLogs.length > 0 && (
+                            <div className="mt-5 border-t border-gray-100 pt-4">
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2.5 font-sans">Attendance & Check-in Logs</h4>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left text-[11px] border-collapse font-sans">
+                                  <thead>
+                                    <tr className="border-b border-gray-100 text-gray-400">
+                                      <th className="pb-1.5 font-bold uppercase text-[9px]">Class Session</th>
+                                      <th className="pb-1.5 font-bold uppercase text-[9px]">Check-in Time</th>
+                                      <th className="pb-1.5 font-bold uppercase text-[9px]">Duration</th>
+                                      <th className="pb-1.5 font-bold uppercase text-[9px]">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-50">
+                                    {checkInLogs.map((log) => (
+                                      <tr key={log.id} className="text-gray-600 hover:bg-gray-50/50">
+                                        <td className="py-2 pr-2 font-bold text-gray-800">{log.sessionTitle}</td>
+                                        <td className="py-2 text-gray-500">
+                                          {log.firstJoinedAt ? new Date(log.firstJoinedAt).toLocaleString("en-IN", {
+                                            day: "2-digit",
+                                            month: "short",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                            hour12: true
+                                          }) : "-"}
+                                        </td>
+                                        <td className="py-2 text-gray-500 font-medium">
+                                          {log.attendedMinutes} mins
+                                        </td>
+                                        <td className="py-2">
+                                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-extrabold capitalize ${
+                                            log.status === "present" ? "bg-emerald-100 text-emerald-800" :
+                                            log.status === "late" ? "bg-amber-100 text-amber-800" :
+                                            "bg-red-100 text-red-800"
+                                          }`}>
+                                            {log.status}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Course Stats */}
                     <div className="mt-8 border-t border-gray-100 pt-6">
                       <h3 className="text-[13px] font-extrabold uppercase tracking-widest text-gray-400 mb-3">
@@ -1001,9 +1277,9 @@ export default function CourseDetailsPage() {
                       <div className="grid grid-cols-2 gap-y-2 gap-x-6">
                         {[
                           course.createdByTrainer ? (
-                            ["Hours Progress", `${course.completedHours || 0}h / ${course.totalHours || 30}h completed`]
+                            ["Hours Progress", `${formatDecimalHours(course.completedHours || 0)} / ${formatDecimalHours(course.totalHours || 30)} completed`]
                           ) : (
-                            ["Total Duration", course.hours || "12h 45m"]
+                            ["Total Duration", formatDecimalHours(course.totalHours) || course.hours || "12 hrs 45 mins"]
                           ),
                           ...(course.createdByTrainer && course.totalDays ? [
                             ["Days Progress", `${course.completedDays || 0} / ${course.totalDays} days completed`]

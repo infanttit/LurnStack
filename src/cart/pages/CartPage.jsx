@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../model/CartContext";
 import { formatINRFromPaise } from "../lib/cartUtils";
 import { useSEO } from "../../shared/hooks/useSEO";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 
 // Star rating display
 function StarRating({ rating = 0, count = 0 }) {
@@ -165,9 +166,9 @@ export default function CartPage() {
                         {[
                           item.sessionId
                             ? (item.totalHours
-                                ? `${item.totalHours} hours${item.totalDays ? ` · ${item.totalDays} days` : ""} (${item.classDuration || 60}m class)`
+                                ? `${formatDecimalHours(item.totalHours)}${item.totalDays ? ` · ${item.totalDays} days` : ""} (${item.classDuration || 60}m class)`
                                 : `${item.classDuration || 60} min live class`)
-                            : item.totalHours && `${item.totalHours} total hours`,
+                            : item.totalHours && `${formatDecimalHours(item.totalHours)} total`,
                           item.lectures && `${item.lectures} lectures`,
                           item.level,
                         ]

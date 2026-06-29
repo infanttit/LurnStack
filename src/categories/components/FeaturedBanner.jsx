@@ -3,6 +3,7 @@ import { FaCheck, FaClock, FaStar, FaUsers } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import catImages from "../../assets/Images/categories/categories";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 
 const FALLBACK =
   "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1200";
@@ -17,7 +18,11 @@ const FeaturedBanner = ({ course }) => {
     featured?.description ||
     "Master competitive positioning, market entry, and executive decision-making frameworks with real-world case studies.";
   const image = featured?.thumbnail || catImages["featured-masterclass"];
-  const duration = featured?.liveClass?.durationMinutes || featured?.totalHours || 60;
+  const durationText = featured?.liveClass?.durationMinutes
+    ? `${featured.liveClass.durationMinutes} mins`
+    : (featured?.totalHours
+        ? formatDecimalHours(featured.totalHours)
+        : "60 mins");
 
   return (
     <div className="w-full bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-5 sm:mb-8 flex flex-col md:flex-row group hover:shadow-md transition-shadow duration-300">
@@ -46,7 +51,7 @@ const FeaturedBanner = ({ course }) => {
             <FaUsers className="text-[10px]" /> Expert-led
           </span>
           <span className="flex items-center gap-1 text-white text-[11px] font-semibold drop-shadow">
-            <FaClock className="text-[10px]" /> {duration} min
+            <FaClock className="text-[10px]" /> {durationText}
           </span>
         </div>
       </div>

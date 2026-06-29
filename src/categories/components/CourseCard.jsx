@@ -18,6 +18,7 @@ import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/meetingWindow";
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { formatAttendanceStatus } from "../../courses/api/studentAttendanceApi";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 import { useAttendanceTracking } from "../../courses/hooks/useAttendanceTracking";
 
 function StarRating({ rating }) {
@@ -477,12 +478,12 @@ export default function CourseCard({
               <p className="text-[11px] text-gray-500 mt-2">
                 {createdByTrainer ? (
                   <>
-                    {completedHours !== null && completedHours !== undefined ? `${completedHours} hrs completed of ` : ""}
-                    {totalHours || 30} total hours
+                    {completedHours !== null && completedHours !== undefined ? `${formatDecimalHours(completedHours)} completed of ` : ""}
+                    {formatDecimalHours(totalHours || 30)} total
                     {totalDays ? ` · ${completedDays !== null && completedDays !== undefined ? `${completedDays} days completed of ` : ""}${totalDays} days` : ""}
                   </>
                 ) : (
-                  `${totalHours || 22.5} total hours`
+                  `${formatDecimalHours(totalHours || 22.5)} total`
                 )}
                 {` · ${level || 'All Levels'} · Subtitles`}
               </p>
