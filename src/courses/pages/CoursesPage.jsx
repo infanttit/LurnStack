@@ -23,6 +23,7 @@ import { openMeetingLink, openPendingMeetingWindow } from "../../shared/utils/me
 import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { useAttendanceTracking } from "../hooks/useAttendanceTracking";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
 import { rememberRecentlyJoinedSession } from "../../my-learning/utils/learningModel";
 
@@ -338,7 +339,7 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
                 <div className="flex items-center flex-wrap gap-x-1.5 text-[9px] text-[#006b58] font-extrabold">
                   {course.totalHours !== null && course.totalHours !== undefined && (
                     <span>
-                      {course.completedHours || 0}/{course.totalHours} Total HR
+                      {formatDecimalHours(course.completedHours || 0)} / {formatDecimalHours(course.totalHours)}
                     </span>
                   )}
                   {course.totalHours && course.totalDays ? <span className="text-emerald-300 font-bold">•</span> : null}
@@ -548,6 +549,22 @@ export default function CoursesPage() {
         String(course.description || "").toLowerCase().includes(q) ||
         String(course.category || course.tab || "").toLowerCase().includes(q);
       return matchesSearch && matchesCategory(course, activeCategory);
+      })
+      .sort(sortCoursesForDisplay);
+  }, [activeCategory, searchQuery, sessions]);
+
+  const otherCourses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return sessions
+      .filter((course) => {
+        if (matchesCategory(course, activeCategory)) return false;
+        const matchesSearch =
+          !q ||
+          course.title.toLowerCase().includes(q) ||
+          course.instructor.toLowerCase().includes(q) ||
+          String(course.description || "").toLowerCase().includes(q) ||
+          String(course.category || course.tab || "").toLowerCase().includes(q);
+        return matchesSearch;
       })
       .sort(sortCoursesForDisplay);
   }, [activeCategory, searchQuery, sessions]);
@@ -771,30 +788,7 @@ export default function CoursesPage() {
 
   return (
     <main className="pb-10 sm:pb-14 bg-white">
-      <div className="hidden border-b border-slate-200 bg-white md:block">
-        <div className="mx-auto max-w-7xl px-4 sm:px-8">
-          <div className="overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-w-max items-center gap-8 py-3">
-              {availableCategories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => setActiveCategory(category)}
-                  className={[
-                    "relative whitespace-nowrap py-1 text-[15px] font-medium text-slate-600 transition-colors",
-                    activeCategory === category ? "font-semibold text-slate-900" : "hover:text-slate-900",
-                  ].join(" ")}
-                >
-                  {category}
-                  {activeCategory === category ? (
-                    <span className="absolute left-0 right-0 -bottom-[13px] h-[2px] rounded-full bg-slate-900" />
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <section className="mx-auto max-w-7xl px-4 sm:px-8 pt-0 md:pt-8">
         <div className="md:hidden -mx-4 border-b border-slate-200 bg-slate-50 px-5 pb-6 pt-5">
@@ -931,66 +925,93 @@ export default function CoursesPage() {
                 <div key={i} className="h-80 rounded-lg bg-gray-100 animate-pulse" />
               ))}
             </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-              <h2 className="text-xl font-extrabold text-gray-900">
-                {searchQuery
-                  ? "No matching sessions found"
-                  : activeCategory === "Trainer Courses"
-                    ? "No sessions available yet"
-                    : `${activeCategory} sessions are coming soon`}
-              </h2>
-              <p className="mt-2 text-sm text-gray-500">
-                {searchQuery
-                  ? "Clear the search or try a different keyword to see available sessions."
-                  : activeCategory === "Trainer Courses"
-                    ? "New expert-led sessions will appear here once they are published."
-                    : "Switch to another category below to explore available sessions now."}
-              </p>
-              {!searchQuery && availableCategories.length > 1 ? (
-                <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  {availableCategories
-                    .filter((category) => category !== activeCategory)
-                    .map((category) => (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => setActiveCategory(category)}
-                        className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-emerald-200 hover:text-emerald-700"
-                      >
-                        {category}
-                      </button>
-                    ))}
-                </div>
-              ) : null}
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    navigate("/courses", { replace: true });
-                  }}
-                  className="mt-5 rounded-xl bg-[#00342b] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#004d40]"
-                >
-                  Show all sessions
-                </button>
-              ) : null}
-            </div>
           ) : (
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredCourses.map((course) => (
-                <CourseGridCard
-                  key={course.id}
-                  course={course}
-                  liveClass={course.liveClass}
-                  onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
-                  onJoinClass={() => joinTrainerClass(course)}
-                  onPayForClass={() => payForTrainerClass(course)}
-                  actionId={actionId}
-                  now={now}
-                />
-              ))}
-            </div>
+            <>
+              {filteredCourses.length === 0 ? (
+                <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
+                  <h2 className="text-xl font-extrabold text-gray-900">
+                    {searchQuery
+                      ? "No matching sessions found"
+                      : activeCategory === "Trainer Courses"
+                        ? "No sessions available yet"
+                        : `${activeCategory} sessions are coming soon`}
+                  </h2>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {searchQuery
+                      ? "Clear the search or try a different keyword to see available sessions."
+                      : activeCategory === "Trainer Courses"
+                        ? "New expert-led sessions will appear here once they are published."
+                        : "Switch to another category below to explore available sessions now."}
+                  </p>
+                  {!searchQuery && availableCategories.length > 1 ? (
+                    <div className="mt-6 flex flex-wrap justify-center gap-2">
+                      {availableCategories
+                        .filter((category) => category !== activeCategory)
+                        .map((category) => (
+                          <button
+                            key={category}
+                            type="button"
+                            onClick={() => setActiveCategory(category)}
+                            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-emerald-200 hover:text-emerald-700"
+                          >
+                            {category}
+                          </button>
+                        ))}
+                    </div>
+                  ) : null}
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        navigate("/courses", { replace: true });
+                      }}
+                      className="mt-5 rounded-xl bg-[#00342b] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#004d40]"
+                    >
+                      Show all sessions
+                    </button>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {filteredCourses.map((course) => (
+                    <CourseGridCard
+                      key={course.id}
+                      course={course}
+                      liveClass={course.liveClass}
+                      onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
+                      onJoinClass={() => joinTrainerClass(course)}
+                      onPayForClass={() => payForTrainerClass(course)}
+                      actionId={actionId}
+                      now={now}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Render other courses at the bottom */}
+              {!loading && otherCourses.length > 0 && (
+                <div className="mt-16 pt-10 border-t border-slate-100">
+                  <h2 className="text-[24px] font-extrabold text-slate-950 mb-6">
+                    Other Available Courses
+                  </h2>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {otherCourses.map((course) => (
+                      <CourseGridCard
+                        key={course.id}
+                        course={course}
+                        liveClass={course.liveClass}
+                        onViewDetails={() => navigate(`/courses/${course.id}`, { state: { course } })}
+                        onJoinClass={() => joinTrainerClass(course)}
+                        onPayForClass={() => payForTrainerClass(course)}
+                        actionId={actionId}
+                        now={now}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

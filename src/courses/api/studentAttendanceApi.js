@@ -381,3 +381,26 @@ export async function getStudentAttendanceDashboard() {
     courses,
   };
 }
+
+export async function getStudentCourseAttendanceEligibility(courseId) {
+  try {
+    const res = await axiosClient.get(`/api/student/courses/${encodeURIComponent(courseId)}/attendance-eligibility`);
+    return unwrap(res);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to load attendance eligibility."));
+  }
+}
+
+export async function getStudentAttendanceHistory(options = {}) {
+  try {
+    const { courseId, page = 1, limit = 100 } = options;
+    let url = `/api/student/attendance/history?page=${page}&limit=${limit}`;
+    if (courseId) {
+      url += `&courseId=${encodeURIComponent(courseId)}`;
+    }
+    const res = await axiosClient.get(url);
+    return unwrap(res);
+  } catch (err) {
+    throw new Error(getAxiosErrorMessage(err, "Unable to load attendance history."));
+  }
+}

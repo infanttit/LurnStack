@@ -8,6 +8,7 @@ import catImages from "../../assets/Images/categories/categories";
 import { useAuth } from "../../auth";
 import { getPublicSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
 import useOfferCampaignClick from "../../courses/hooks/useOfferCampaignClick";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 
 const SORT_OPTIONS = [
   "Most Popular",
@@ -172,13 +173,17 @@ function CourseShelfCard({ course }) {
     const singleClassDur = liveClass?.durationMinutes || 60;
     const totHrs = course.totalHours || 30;
     const compHrs = course.completedHours !== null && course.completedHours !== undefined ? course.completedHours : 0;
-    progressText = `${compHrs}h / ${totHrs}h completed · ${singleClassDur}m class`;
+    progressText = `${formatDecimalHours(compHrs)} / ${formatDecimalHours(totHrs)} completed · ${singleClassDur}m class`;
     if (course.totalDays) {
       const compDays = course.completedDays !== null && course.completedDays !== undefined ? course.completedDays : 0;
       progressText += ` · ${compDays} / ${course.totalDays} days`;
     }
   } else {
-    progressText = duration ? `${duration} min live class` : course.category;
+    progressText = liveClass?.durationMinutes
+      ? `${liveClass.durationMinutes} min live class`
+      : (course.totalHours
+          ? `${formatDecimalHours(course.totalHours)} total`
+          : course.category);
   }
 
   return (

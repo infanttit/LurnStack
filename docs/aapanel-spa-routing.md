@@ -60,6 +60,26 @@ After this, refreshing these frontend routes should load correctly:
 Keep backend/API proxy rules separate on `api.lurnstack.com`. Do not proxy
 frontend routes like `/courses` to the backend.
 
+## Redirecting www to non-www (CORS & SEO)
+
+Since the backend API CORS policy only permits requests from the canonical domain `https://lurnstack.com`, users visiting `https://www.lurnstack.com` will face CORS blocked errors and failed data loading.
+
+To prevent this, you should set up a 301 redirect in Nginx from `www.lurnstack.com` to `lurnstack.com`.
+
+### aaPanel redirect steps:
+1. Open aaPanel.
+2. Go to **Website** and click on settings/config for `lurnstack.com`.
+3. Go to the **Redirect** section or edit the configuration directly.
+4. If editing the Nginx configuration, you can insert this redirect check inside your `server { ... }` block:
+
+```nginx
+if ($host = 'www.lurnstack.com') {
+    return 301 https://lurnstack.com$request_uri;
+}
+```
+
+5. Save the configuration and reload Nginx.
+
 ## Full Nginx Example
 
 Use the correct `root` path for your aaPanel site. It must point to the built
@@ -69,9 +89,15 @@ and `.htaccess`.
 ```nginx
 server {
     listen 80;
+    listen 443 ssl;
     server_name lurnstack.com www.lurnstack.com;
     root /www/wwwroot/lurnstack.com/build;
     index index.html;
+
+    # Redirect www to non-www
+    if ($host = 'www.lurnstack.com') {
+        return 301 https://lurnstack.com$request_uri;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;
@@ -80,4 +106,5 @@ server {
 ```
 
 If your aaPanel document root is already set to the generated build folder, keep
-that existing root and only add the `location /` fallback.
+that existing root and only add the redirect and the `location /` fallback.
+

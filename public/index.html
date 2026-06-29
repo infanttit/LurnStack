@@ -24,6 +24,33 @@
     <meta name="twitter:title" content="LurnStack" />
     <meta name="twitter:description" content="LurnStack — Live trainer-led masterclasses for web development, database, cloud, and UI/UX." />
 
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "LurnStack",
+        "url": "https://lurnstack.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://lurnstack.com/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "LurnStack",
+        "url": "https://lurnstack.com",
+        "logo": "https://lurnstack.com/lurnstack-logo.png",
+        "sameAs": [
+          "https://www.linkedin.com/company/lurnstack"
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -31,6 +58,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       media="print"
       onload="this.media='all'"
+      id="gfonts-inter"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />

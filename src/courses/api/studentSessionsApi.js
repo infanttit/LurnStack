@@ -3,6 +3,7 @@ import { getAxiosErrorMessage, getAxiosErrorStatus } from "../../shared/api/axio
 import { env } from "../../shared/config/env";
 import { getDurationMinutes, toKolkataIso, toMs } from "../../live-classes/lib/time";
 import { normalizeAttendance } from "./studentAttendanceApi";
+import { formatDecimalHours } from "../../shared/utils/durationFormatter";
 
 const PAID_SESSION_ACCESS_KEY = "lurnstack:paid-session-access:v1";
 const PAID_COURSE_ACCESS_KEY = "lurnstack:paid-course-access:v1";
@@ -324,7 +325,7 @@ function normalizeSession(raw = {}) {
     bookingStatus,
     paymentStatus,
     price: formatINRFromPaise(amountPaise),
-    hours: raw.totalHours ? `${raw.totalHours} total hours` : `${durationMinutes} min live class`,
+    hours: raw.totalHours ? `${formatDecimalHours(raw.totalHours)} total` : `${durationMinutes} min live class`,
     totalHours: raw.totalHours !== undefined && raw.totalHours !== null ? Number(raw.totalHours) : null,
     totalDays: raw.totalDays !== undefined && raw.totalDays !== null ? Number(raw.totalDays) : null,
     completedHours: raw.completedHours !== undefined && raw.completedHours !== null ? Number(raw.completedHours) : null,

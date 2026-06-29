@@ -35,6 +35,40 @@ const COURSE_CATEGORIES = [
   "UI/UX Design",
 ];
 
+const MEGA_MENU_COLUMNS = [
+  {
+    title: "Web & Full Stack",
+    categories: [
+      "Web Development",
+      "Frontend Development",
+      "Backend Development",
+      "Full Stack Development",
+    ]
+  },
+  {
+    title: "Software & Mobile",
+    categories: [
+      "Programming",
+      "Mobile App Development",
+      "UI/UX Design",
+    ]
+  },
+  {
+    title: "Cloud & DevOps",
+    categories: [
+      "Cloud Computing",
+      "DevOps",
+      "Database",
+    ]
+  },
+  {
+    title: "Specialized Programs",
+    categories: [
+      "Trainer Courses",
+    ]
+  }
+];
+
 const MY_LEARNING_LINKS = [
   { label: "All courses", view: "all", description: "Every active course", icon: HiOutlineAcademicCap },
   { label: "Paid sessions", view: "paid", description: "Purchased classes", icon: HiOutlineCreditCard },
@@ -122,6 +156,25 @@ export default function SiteNavbar() {
   const { itemCount } = useCart();
   const { user, isAuthenticated, signOut, userRole } = useAuth();
 
+  const [coursesDropdownOpen, setCoursesDropdownOpen] = useState(false);
+  const coursesTimeoutRef = useRef(null);
+
+  const handleCoursesMouseEnter = () => {
+    if (coursesTimeoutRef.current) clearTimeout(coursesTimeoutRef.current);
+    setCoursesDropdownOpen(true);
+  };
+
+  const handleCoursesMouseLeave = () => {
+    coursesTimeoutRef.current = setTimeout(() => {
+      setCoursesDropdownOpen(false);
+    }, 150);
+  };
+
+  const closeCoursesDropdown = () => {
+    if (coursesTimeoutRef.current) clearTimeout(coursesTimeoutRef.current);
+    setCoursesDropdownOpen(false);
+  };
+
   const learningTimeoutRef = useRef(null);
   const aboutTimeoutRef = useRef(null);
 
@@ -159,6 +212,7 @@ export default function SiteNavbar() {
 
   useEffect(() => {
     return () => {
+      if (coursesTimeoutRef.current) clearTimeout(coursesTimeoutRef.current);
       if (learningTimeoutRef.current) clearTimeout(learningTimeoutRef.current);
       if (aboutTimeoutRef.current) clearTimeout(aboutTimeoutRef.current);
     };
@@ -262,7 +316,89 @@ export default function SiteNavbar() {
               ) : null}
 
               <div className="hidden md:flex items-center gap-8">
-                <NavItem to={PATHS.COURSES}>Courses</NavItem>
+                <div
+                  onMouseEnter={handleCoursesMouseEnter}
+                  onMouseLeave={handleCoursesMouseLeave}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeCoursesDropdown();
+                      navigate(PATHS.COURSES);
+                    }}
+                    className={`font-label-sm text-label-sm relative transition-colors duration-200 whitespace-nowrap outline-none ${
+                      location.pathname.startsWith(PATHS.COURSES)
+                        ? "text-black font-extrabold"
+                        : "text-gray-900/75 hover:text-black"
+                    }`}
+                  >
+                    <span>Courses</span>
+                  </button>
+
+                  {coursesDropdownOpen && (
+                    <div
+                      className="absolute left-0 right-0 top-full w-full bg-white border-t border-gray-200 shadow-[0_20px_50px_rgba(15,23,42,0.15)] z-50 py-8"
+                      onMouseEnter={handleCoursesMouseEnter}
+                      onMouseLeave={handleCoursesMouseLeave}
+                    >
+                      <div className="mx-auto max-w-container-max px-4 sm:px-6 lg:px-margin-desktop">
+                        <div className="grid grid-cols-4 gap-8">
+                          {MEGA_MENU_COLUMNS.map((col, idx) => (
+                            <div key={idx} className="flex flex-col">
+                              <h3 className="pl-3 border-l-4 border-[#004d3d] font-extrabold text-[12px] text-gray-900 tracking-wider uppercase mb-5">
+                                {col.title}
+                              </h3>
+                              <ul className="space-y-3">
+                                {col.categories.map((category) => (
+                                  <li key={category}>
+                                    <NavLink
+                                      to={courseCategoryPath(category)}
+                                      onClick={closeCoursesDropdown}
+                                      className="group flex items-center gap-2 py-1 text-[14px] font-medium text-gray-600 hover:text-[#004d3d] transition-colors duration-200"
+                                    >
+                                      <HiOutlineChevronRight className="text-[12px] text-gray-400 group-hover:text-[#004d3d] transition-transform duration-200 group-hover:translate-x-0.5" />
+                                      <span>{category}</span>
+                                    </NavLink>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="border-t border-gray-100 mt-8 pt-5 flex items-center justify-between text-[13px] text-gray-500 font-medium">
+                          <NavLink
+                            to={PATHS.COURSES}
+                            onClick={closeCoursesDropdown}
+                            className="group inline-flex items-center gap-1.5 font-bold text-[#004d3d] hover:underline"
+                          >
+                            <span>View All Courses</span>
+                            <HiOutlineChevronRight className="text-[14px] transition-transform duration-200 group-hover:translate-x-0.5" />
+                          </NavLink>
+                          <div className="flex items-center gap-1.5">
+                            <svg
+                              className="w-4 h-4 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                              />
+                            </svg>
+                            <span>Need Help? Contact Us</span>
+                          </div>
+                          <div>
+                            <span>11+ Course Categories Available</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {isAuthenticated ? (
                   <NavItem to={PATHS.LIVE_CLASSES}>TIT class</NavItem>
                 ) : null}
@@ -527,6 +663,7 @@ export default function SiteNavbar() {
           isMobileMenuOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden={!isMobileMenuOpen}
+        inert={!isMobileMenuOpen}
       >
         <button
           type="button"
@@ -664,6 +801,13 @@ export default function SiteNavbar() {
                   Course Categories
                 </div>
                 <div className="divide-y divide-gray-200 border-y border-gray-200">
+                  <MobileDrawerLink
+                    to={PATHS.COURSES}
+                    onClick={closeMobileMenu}
+                    end={true}
+                  >
+                    All Courses
+                  </MobileDrawerLink>
                   {COURSE_CATEGORIES.map((category) => (
                     <MobileDrawerLink
                       key={category}
