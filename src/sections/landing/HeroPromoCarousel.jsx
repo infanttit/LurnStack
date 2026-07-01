@@ -132,7 +132,7 @@ export default function HeroPromoCarousel() {
             {/* Track */}
             <div 
               className="flex transition-transform duration-500 ease-out gap-5"
-              style={{ transform: `translateX(-${currentIndex * (260 + 20)}px)` }}
+              style={{ transform: `translateX(-${currentIndex * (280 + 20)}px)` }}
             >
               {posters.map((poster) => {
                 const rawImageUrl = poster?.imageUrl || "";
@@ -145,23 +145,56 @@ export default function HeroPromoCarousel() {
                 const isExternal = displayPath.startsWith("http://") || displayPath.startsWith("https://");
                 const normalizedLink = (!isExternal && !displayPath.startsWith("/")) ? `/${displayPath}` : displayPath;
 
+                // Determine subtitle and discount text dynamically
+                let subtitle = "LURNSTACK CLASS";
+                let discountText = "UPTO 50% OFF";
+                if (displayTitle === "Generative AI") {
+                  subtitle = "FUTURE TECH";
+                  discountText = "UPTO 60% OFF";
+                } else if (displayTitle === "IT Certifications") {
+                  subtitle = "CLOUD & NETWORK";
+                  discountText = "UPTO 60% OFF";
+                } else if (displayTitle === "Data Science") {
+                  subtitle = "ANALYTICS & PYTHON";
+                  discountText = "UPTO 50% OFF";
+                } else if (displayTitle === "Web Development") {
+                  subtitle = "FULL STACK & APPS";
+                  discountText = "FREE ACCESS";
+                }
+
                 const cardContent = (
-                  <div className="w-full h-full relative group">
-                    <img
-                      src={imageUrl}
-                      alt={displayTitle}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    {/* White box overlay at bottom */}
-                    <div className="absolute bottom-4 left-4 right-4 bg-white py-4 px-4 rounded-xl flex items-center justify-between shadow-md border border-slate-100/50 transition-all group-hover:shadow-lg">
-                      <span className="font-extrabold text-slate-800 text-[13px] tracking-wide">
+                  <div className="w-full h-full p-6 flex flex-col justify-between relative overflow-hidden bg-white rounded-[32px] border border-slate-100 hover:shadow-lg transition-all duration-300 group select-none">
+                    {/* Top Text & Badge */}
+                    <div className="flex flex-col items-start">
+                      <h3 className="font-black text-[18px] text-slate-800 leading-tight uppercase tracking-tight">
                         {displayTitle}
+                      </h3>
+                      <span className="text-[10px] font-extrabold text-slate-400 mt-1 uppercase tracking-widest">
+                        {subtitle}
                       </span>
-                      {/* Arrow icon */}
-                      <svg className="w-4 h-4 text-slate-800 transform transition-transform group-hover:translate-x-1 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                      </svg>
+                      <div className="mt-3.5 inline-flex items-center bg-emerald-50 text-[#004d3d] border border-emerald-100/50 rounded-full px-3 py-1 text-[10px] font-extrabold tracking-wider uppercase">
+                        {discountText}
+                      </div>
+                    </div>
+
+                    {/* Bottom Row */}
+                    <div className="flex items-end justify-between mt-auto">
+                      {/* Arrow Icon inside Green Circle */}
+                      <div className="w-8 h-8 rounded-full bg-[#004d3d] group-hover:bg-[#003d31] text-white flex items-center justify-center transition-all duration-300 group-hover:translate-x-1 shadow-sm">
+                        <svg className="w-4 h-4 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+
+                      {/* Image on bottom right */}
+                      <div className="absolute right-3 bottom-3 w-28 h-20 overflow-hidden flex items-center justify-center">
+                        <img
+                          src={imageUrl}
+                          alt={displayTitle}
+                          className="w-full h-full object-cover rounded-2xl transform transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -169,7 +202,7 @@ export default function HeroPromoCarousel() {
                 return (
                   <div 
                     key={poster.id}
-                    className="w-[260px] h-[340px] shrink-0 rounded-3xl overflow-hidden shadow-sm border border-slate-100 bg-slate-50 relative group snap-start cursor-pointer"
+                    className="w-[280px] h-[220px] shrink-0 rounded-[32px] snap-start cursor-pointer"
                   >
                     {isExternal ? (
                       <a href={normalizedLink} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
@@ -206,7 +239,7 @@ export default function HeroPromoCarousel() {
                   key={i}
                   onClick={() => setCurrentIndex(i)}
                   className={`h-2 transition-all duration-300 rounded-full ${
-                    i === currentIndex ? "w-8 bg-[#6b21a8]" : "w-2 bg-slate-200"
+                    i === currentIndex ? "w-8 bg-[#004d3d]" : "w-2 bg-slate-200"
                   }`}
                   aria-label={`Go to slide ${i + 1}`}
                 />
