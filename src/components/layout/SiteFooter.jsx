@@ -47,7 +47,7 @@ const NAV = [
   {
     heading: "Support",
     links: [
-      { label: "Help Center", to: "/help" },
+      { label: "Help Center", to: PATHS.HELP },
       { label: "Privacy Policy", to: PATHS.PRIVACY },
       { label: "Terms and Conditions", to: PATHS.TERMS },
     ],
