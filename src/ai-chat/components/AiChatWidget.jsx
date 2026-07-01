@@ -47,7 +47,8 @@ function livePath(path) {
 const URL_LINK_MAP = [
   { url: livePath(PATHS.STUDENT_ATTENDANCE), path: PATHS.STUDENT_ATTENDANCE, label: "My Attendance" },
   { url: livePath(PATHS.FORGOT_PASSWORD),    path: PATHS.FORGOT_PASSWORD,    label: "Forgot Password" },
-  { url: livePath(PATHS.LIVE_CLASSES),       path: PATHS.LIVE_CLASSES,       label: "Live Classes" },
+  { url: livePath(PATHS.DASHBOARD + "?view=upcoming"), path: PATHS.DASHBOARD + "?view=upcoming", label: "Live Classes" },
+  { url: livePath(PATHS.LIVE_CLASSES),       path: PATHS.LIVE_CLASSES,       label: "TIT Classes" },
   { url: livePath(PATHS.DASHBOARD),          path: PATHS.DASHBOARD,          label: "My Learning" },
   { url: livePath(PATHS.CHECKOUT),           path: PATHS.CHECKOUT,           label: "Checkout" },
   { url: livePath(PATHS.COURSES),            path: PATHS.COURSES,            label: "Courses" },
@@ -92,7 +93,8 @@ const PAGE_GUIDE = [
   { label: "Home", path: livePath(PATHS.HOME), useFor: "landing page, general LurnStack overview" },
   { label: "Courses", path: livePath(PATHS.COURSES), useFor: "browse courses, categories, course search" },
   { label: "My Learning", path: livePath(PATHS.DASHBOARD), useFor: "student dashboard, enrolled courses, paid sessions" },
-  { label: "Live Classes", path: livePath(PATHS.LIVE_CLASSES), useFor: "TIT class, upcoming live classes" },
+  { label: "Live Classes", path: livePath(PATHS.DASHBOARD + "?view=upcoming"), useFor: "enrolled live classes, join live classes, student's upcoming classes" },
+  { label: "TIT Classes Catalog", path: livePath(PATHS.LIVE_CLASSES), useFor: "general TIT class sessions list, browse all live classes" },
   { label: "Cart", path: livePath(PATHS.CART), useFor: "cart items before checkout" },
   { label: "Checkout", path: livePath(PATHS.CHECKOUT), useFor: "payment and order completion" },
   { label: "Profile", path: livePath(PATHS.PROFILE), useFor: "profile, account details, attendance history" },
@@ -166,7 +168,7 @@ function getLocalAnswer(text) {
     return `Open ${livePath(PATHS.DASHBOARD)}. You can view courses, paid sessions, and upcoming classes there.`;
   }
   if (/(live class|tit class|join class|upcoming class)/i.test(query)) {
-    return `Open ${livePath(PATHS.LIVE_CLASSES)}. Select your class to view details or join.`;
+    return `Open ${livePath(PATHS.DASHBOARD + "?view=upcoming")}. Select your class to view details or join.`;
   }
   if (/(course|category|search|learn)/i.test(query)) {
     return `Open ${livePath(PATHS.COURSES)}. Use search or category filters to find the right course.`;
