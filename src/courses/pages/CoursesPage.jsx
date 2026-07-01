@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HiMiniStar } from "react-icons/hi2";
 import { useAuth } from "../../auth";
+import { useActiveOffers } from "../../shared/hooks/useActiveOffers";
+import { getDiscountedPrice } from "../../shared/utils/offerCalculator";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { PATHS } from "../../app/router/paths";
 import { useSEO } from "../../shared/hooks/useSEO";
@@ -267,6 +269,8 @@ function isSessionCompleted(liveClass, now = Date.now()) {
 }
 
 function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayForClass, actionId, now }) {
+  const activeOffers = useActiveOffers();
+  const offerInfo = getDiscountedPrice(course, activeOffers);
   const isTrainerCourse = !!course.createdByTrainer;
   const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
   const unavailable = isSessionUnavailable(liveClass);
@@ -314,11 +318,23 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
         ) : (
           <div className={`w-full h-full bg-gradient-to-br ${course.thumbnailBg}`} />
         )}
+        {offerInfo.hasDiscount && (
+          <div className="absolute left-2 top-2 bg-red-600 text-white font-black text-[9px] px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
+            {offerInfo.badgeText}
+          </div>
+        )}
         <div className="absolute right-2 top-2 overflow-hidden rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[11px] font-black text-[#00342b] shadow-[0_14px_34px_rgba(3,52,43,0.20)] ring-1 ring-emerald-900/5 animate-priceFloat">
           <span className="absolute inset-y-0 -left-6 w-5 rotate-12 bg-white/80 blur-[2px] animate-priceShine" />
           <span className="relative inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-            {course.price || "Free"}
+            {offerInfo.hasDiscount ? (
+              <span className="flex items-center gap-1.5">
+                <span className="text-red-500 line-through text-[9.5px] opacity-75">{offerInfo.oldPrice}</span>
+                <span>{offerInfo.price}</span>
+              </span>
+            ) : (
+              course.price || "Free"
+            )}
           </span>
         </div>
       </div>
@@ -407,16 +423,29 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
 
         <div className="mt-0.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-[14px] text-gray-900">{course.price}</span>
-            {course.oldPrice && (
-              <span className="text-[12px] text-gray-400 line-through">{course.oldPrice}</span>
+            {offerInfo.hasDiscount ? (
+              <>
+                <span className="font-extrabold text-[14px] text-red-600">{offerInfo.price}</span>
+                <span className="text-[12px] text-gray-400 line-through">{offerInfo.oldPrice}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-extrabold text-[14px] text-gray-900">{course.price}</span>
+                {course.oldPrice && (
+                  <span className="text-[12px] text-gray-400 line-through">{course.oldPrice}</span>
+                )}
+              </>
             )}
           </div>
-          {course.badge && !isCompleted && (
+          {offerInfo.hasDiscount ? (
+            <span className="text-[9px] font-black px-2 py-0.5 rounded bg-red-100 text-red-800 uppercase tracking-wide border border-red-200">
+              {offerInfo.badgeText}
+            </span>
+          ) : course.badge && !isCompleted ? (
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${isCompleted ? "bg-slate-100 text-slate-700" : course.badgeColor}`}>
               {course.badge}
             </span>
-          )}
+          ) : null}
         </div>
 
         <div className={["mt-auto pt-1 grid gap-1.5", isTrainerCourse ? "grid-cols-1 min-[420px]:grid-cols-[1fr_auto]" : "grid-cols-1"].join(" ")}>

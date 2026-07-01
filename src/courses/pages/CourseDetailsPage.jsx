@@ -11,6 +11,8 @@ import {
 import { Info } from "lucide-react";
 import { useCart, emitCartFlyFromElement, parseINRPriceToPaise } from "../../cart";
 import { useAuth } from "../../auth";
+import { useActiveOffers } from "../../shared/hooks/useActiveOffers";
+import { getDiscountedPrice } from "../../shared/utils/offerCalculator";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { getCourseById, getCourseLiveClasses } from "../data/courseCatalog";
 import {
@@ -47,16 +49,19 @@ import demoVideo from "../../assets/Videos/Hero.mp4";
 // ── Helpers ────────────────────────────────────────────────────────────────
  
 // ── Mock course content sections ───────────────────────────────────────────
-function toCartItem(course) {
+function toCartItem(course, activeOffers) {
+  const offerInfo = getDiscountedPrice(course, activeOffers || []);
+  const finalPrice = offerInfo.hasDiscount ? offerInfo.price : course.price;
+  
   return {
     id: String(course.id),
     title: course.title,
     instructor: course.instructor,
     thumbnail: course.thumbnail,
     thumbnailBg: course.thumbnailBg,
-    unitPricePaise: parseINRPriceToPaise(course.price),
-    displayPrice: course.price,
-    oldPrice: course.oldPrice || null,
+    unitPricePaise: parseINRPriceToPaise(finalPrice),
+    displayPrice: finalPrice,
+    oldPrice: offerInfo.hasDiscount ? course.price : (course.oldPrice || null),
     qty: 1,
     rating: Number(course.rating) || 4.8,
     ratingCount: Number(course.ratingCount) || 0,
@@ -394,6 +399,7 @@ const TABS = ["Overview", "Q&A", "Notes", "Announcements", "Resources"];
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function CourseDetailsPage() {
+  const activeOffers = useActiveOffers();
   const { courseId, sessionId } = useParams();
   const detailId = courseId || sessionId || "";
   const offerTargetType = sessionId ? "session" : "course";
@@ -450,6 +456,8 @@ export default function CourseDetailsPage() {
     if (sessionId) return null;
     return getCourseById(detailId);
   }, [detailId, location?.state, remoteCourse, remoteCourseMatches, sessionId]);
+  
+  const offerInfo = getDiscountedPrice(course, activeOffers);
   const isInCart = useMemo(
     () => items.some((item) => String(item.sessionId || item.id) === String(course?.id || "")),
     [course?.id, items]
@@ -489,7 +497,7 @@ export default function CourseDetailsPage() {
       if (isInCart) return;
       if (course.createdByTrainer) {
         setSessionAction("card");
-        addItem(toCartItem(course));
+        addItem(toCartItem(course, activeOffers));
         emitCartFlyFromElement(fromEl, course.thumbnail, course.title);
         if (course.isAddedToCard) {
           setSessionAction("");
@@ -503,10 +511,10 @@ export default function CourseDetailsPage() {
         }
         return;
       }
-      addItem(toCartItem(course));
+      addItem(toCartItem(course, activeOffers));
       emitCartFlyFromElement(fromEl);
     },
-    [addItem, course, isAuthenticated, isInCart]
+    [addItem, course, isAuthenticated, isInCart, activeOffers]
   );
 
   if (!course) {
@@ -878,11 +886,21 @@ export default function CourseDetailsPage() {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2.5">
-                    <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+                    <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 flex flex-col justify-center">
                       <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                         Payment
                       </div>
-                      <div className="mt-1 font-extrabold text-slate-900">{course.price || "Free"}</div>
+                      {offerInfo.hasDiscount ? (
+                        <div className="mt-1 flex flex-col">
+                          <span className="font-extrabold text-red-600 text-[14px] leading-tight">{offerInfo.price}</span>
+                          <span className="text-[10px] text-gray-400 line-through leading-none mt-0.5">{offerInfo.oldPrice}</span>
+                          <span className="text-[8px] font-black text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mt-1.5 text-center w-max tracking-wide">
+                            {offerInfo.badgeText}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-1 font-extrabold text-slate-900 text-[14px]">{course.price || "Free"}</div>
+                      )}
                     </div>
                     <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
                       <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
@@ -1375,7 +1393,7 @@ export default function CourseDetailsPage() {
                           disabled={isInCart}
                           className="w-full bg-[#059669] hover:bg-[#047857] text-white font-extrabold text-[13px] py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          {isInCart ? "In shopping cart" : `Subscribe - ${course.price}`}
+                          {isInCart ? "In shopping cart" : `Subscribe - ${offerInfo.hasDiscount ? offerInfo.price : course.price}`}
                         </button>
                       </div>
                     )}

@@ -51,7 +51,7 @@ export default function CertificateCard({ course, certificatePrice, updateCourse
       progressColor: "bg-blue-500",
       textColor: "text-blue-600"
     };
-  } else if ((eligStatus === "NONE" || eligStatus === "NOT_ELIGIBLE") && (attended < requiredCount)) {
+  } else if ((eligStatus === "NONE" || eligStatus === "NOT_ELIGIBLE" || eligStatus === "INELIGIBLE") && (attended < requiredCount)) {
     badgeProps = {
       bg: "bg-rose-500/10 text-rose-700 border-rose-500/20",
       label: "Low attendance",
@@ -177,7 +177,7 @@ export default function CertificateCard({ course, certificatePrice, updateCourse
       );
     }
 
-    if ((eligStatus === "NONE" || eligStatus === "NOT_ELIGIBLE") && attended < requiredCount) {
+    if ((eligStatus === "NONE" || eligStatus === "NOT_ELIGIBLE" || eligStatus === "INELIGIBLE") && attended < requiredCount) {
       return (
         <button disabled className="w-full py-2.5 px-4 rounded-xl bg-rose-50/50 text-rose-600 border border-rose-100/50 text-[10px] font-bold cursor-not-allowed flex items-center justify-center text-center gap-1.5 leading-relaxed">
           <FiLock className="text-xs shrink-0" />

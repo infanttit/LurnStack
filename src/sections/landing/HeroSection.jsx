@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { HiCheckBadge } from "react-icons/hi2";
 import { FiPlay, FiUsers, FiTrendingUp, FiArrowRight, FiCode, FiDatabase, FiCloud, FiSmartphone, FiCpu } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import lurnStackLogo from "../../assets/Logo/Logo4.png";
 import bannerIntroVideo from "../../assets/Images/Banner-video/Hailuo_Video_but insife that image that hum_516003651053973511.mp4";
 import heroLoginImage from "../../assets/Images/Hero/hero3.png";
@@ -10,6 +10,105 @@ import heroLoginImageAlt from "../../assets/Images/Hero/hero-image1.png";
 import { useAuth } from "../../auth";
 import { getPublicUpcomingSessions, getStudentSessions } from "../../courses/api/studentSessionsApi";
 import { getSessionOccurrenceTiming, isSessionUnavailable } from "../../shared/utils/sessionTiming";
+import { env } from "../../shared/config/env";
+
+const MOCK_STORIES = [
+  {
+    id: "mock-1",
+    title: "SQL Mastery Live",
+    instructorName: "Aks Hai",
+    thumbnail: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80",
+    isLive: true,
+    isMock: true,
+  },
+  {
+    id: "mock-2",
+    title: "Python Programming",
+    instructorName: "Social Critic",
+    thumbnail: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80",
+    isLive: true,
+    isMock: true,
+  },
+  {
+    id: "mock-3",
+    title: "AWS Cloud Expert",
+    instructorName: "Radha Kutty",
+    thumbnail: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=150&h=150&q=80",
+    isLive: true,
+    isMock: true,
+  },
+  {
+    id: "mock-4",
+    title: "DevOps Pipeline",
+    instructorName: "Anisha Vid",
+    thumbnail: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
+    isLive: true,
+    isMock: true,
+  },
+  {
+    id: "mock-5",
+    title: "Power BI Bootcamp",
+    instructorName: "Im Your N",
+    thumbnail: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&h=150&q=80",
+    isLive: true,
+    isMock: true,
+  },
+  {
+    id: "mock-6",
+    title: "React Web Dev",
+    instructorName: "Azhagiya T",
+    thumbnail: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+    isLive: true,
+    isMock: true,
+  }
+];
+
+function formatInstagramHandle(name) {
+  if (!name) return "trainer";
+  const clean = name.toLowerCase().trim();
+  
+  if (clean.includes("aks") && clean.includes("hai")) return "__aks__hai...";
+  if (clean.includes("social") && clean.includes("critic")) return "social_cri...";
+  if (clean.includes("radha") && clean.includes("kutty")) return "radhakutty...";
+  if (clean.includes("anisha") && clean.includes("vid")) return "anisha_vid...";
+  if (clean.includes("im") && clean.includes("your") && clean.includes("n")) return "imyour_.n...";
+  if (clean.includes("azhagiya") && clean.includes("t")) return "azhagiya_t...";
+
+  let handle = clean
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_.]/g, "");
+
+  if (handle.length > 11) {
+    return handle.slice(0, 10) + "...";
+  }
+  return handle;
+}
+
+function getSessionImageUrl(session) {
+  if (session.isMock) return session.thumbnail;
+  
+  const trainerPhoto = session?.raw?.trainer?.profilePhotoUrl || session?.raw?.trainer?.profile_photo_url;
+  if (trainerPhoto) {
+    if (/^(https?:|data:|blob:)/i.test(trainerPhoto)) return trainerPhoto;
+    const baseUrl = String(env.apiBaseUrl || "").replace(/\/+$/, "");
+    return `${baseUrl}/${trainerPhoto.replace(/^\/+/, "")}`;
+  }
+  
+  if (session.thumbnail && !session.thumbnail.includes("placeholder")) {
+    return session.thumbnail;
+  }
+  
+  const seed = String(session.id || "").charCodeAt(0) || 0;
+  const avatars = [
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80",
+    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80"
+  ];
+  return avatars[seed % avatars.length];
+}
 
 const authenticatedHeroImages = [heroLoginImage, heroLoginImageAlt];
 const HERO_INTRO_SEEN_KEY = "lurnstack:hero:intro-seen:v1";
@@ -24,32 +123,11 @@ function rememberHeroIntroSeen() {
   window.localStorage.setItem(HERO_INTRO_SEEN_KEY, "true");
 }
 
-function formatSessionTime(iso) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Time pending";
-  return date.toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function getSessionPriceLabel(session) {
-  if (session?.isFree) return "Free";
-  if (session?.priceINR) return `Rs ${session.priceINR}`;
-  const amount = Number(session?.amountPaise || 0);
-  if (amount > 0) return `Rs ${(amount / 100).toFixed(amount % 100 === 0 ? 0 : 2)}`;
-  return "Paid";
-}
-
 function prioritizeUpcomingSessions(sessions, now) {
   return (sessions || [])
     .map((session) => {
       const live = session?.liveClass || session;
-      const occurrence = getSessionOccurrenceTiming(live, now, { defaultRecurring: false });
+      const occurrence = getSessionOccurrenceTiming(live, now, { defaultRecurring: false, rollForwardAfterEnd: true });
       const startMs = occurrence.startMs || 0;
       const endMs = occurrence.endMs || 0;
       const isLive = startMs > 0 && now >= startMs && now <= endMs;
@@ -72,7 +150,27 @@ function prioritizeUpcomingSessions(sessions, now) {
     });
 }
 
-function UpcomingSessionsTicker() {
+function getUpcomingBadgeText(scheduledAt) {
+  if (!scheduledAt) return "UPCOMING";
+  const date = new Date(scheduledAt);
+  const now = new Date();
+  
+  if (date.toDateString() === now.toDateString()) {
+    const timeStr = date.toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    }).toUpperCase();
+    return `TODAY ${timeStr}`;
+  }
+  
+  const day = date.toLocaleDateString("en-IN", { weekday: "short" }).toUpperCase();
+  const dateNum = date.getDate();
+  const month = date.toLocaleDateString("en-IN", { month: "short" }).toUpperCase();
+  return `${day} ${dateNum} ${month}`;
+}
+
+export function UpcomingSessionsTicker() {
   const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState([]);
 
@@ -85,13 +183,14 @@ function UpcomingSessionsTicker() {
           ? await getStudentSessions()
           : await getPublicUpcomingSessions();
         if (!cancelled) {
-          setSessions(prioritizeUpcomingSessions(items, Date.now()).slice(0, 8));
+          const activeList = prioritizeUpcomingSessions(items, Date.now());
+          setSessions(activeList);
         }
       } catch {
         try {
           const fallbackItems = await getPublicUpcomingSessions();
           if (!cancelled) {
-            setSessions(prioritizeUpcomingSessions(fallbackItems, Date.now()).slice(0, 8));
+            setSessions(prioritizeUpcomingSessions(fallbackItems, Date.now()));
           }
         } catch {
           if (!cancelled) setSessions([]);
@@ -107,51 +206,62 @@ function UpcomingSessionsTicker() {
 
   if (!sessions.length) return null;
 
-  const shouldAnimate = sessions.length > 1;
-  const tickerItems = shouldAnimate ? [...sessions, ...sessions] : sessions;
+  let repeatedSessions = [...sessions];
+  while (repeatedSessions.length < 18) {
+    repeatedSessions = [...repeatedSessions, ...sessions];
+  }
+  const tickerItems = [...repeatedSessions, ...repeatedSessions];
 
   return (
-    <div className="relative z-20 border-b border-cyan-100 bg-white/95 shadow-[0_10px_24px_rgba(15,23,42,0.04)] backdrop-blur">
-      <div className="mx-auto flex h-12 max-w-7xl items-center gap-3 overflow-hidden px-4 sm:px-6 lg:px-8">
-        <Link
-          to="/sessions"
-          className="shrink-0 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-sm"
-        >
-          Live / Upcoming
-        </Link>
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <div className={`${shouldAnimate ? "auth-session-ticker-track" : ""} flex w-max items-center gap-3`}>
-            {tickerItems.map((session, index) => {
-              const scheduledAt = session.occurrence?.scheduledAt || session.scheduledAt;
-              const itemClass = session.isLive
-                ? "auth-live-session-pill border-red-200 bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 text-red-950 shadow-[0_10px_26px_rgba(239,68,68,0.16)]"
-                : "border-cyan-100 bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50 text-slate-800 shadow-[0_8px_22px_rgba(14,165,233,0.10)]";
-              const dotClass = session.isLive
-                ? "auth-live-dot bg-red-500 shadow-[0_0_0_5px_rgba(239,68,68,0.14)]"
-                : "bg-sky-500 shadow-[0_0_0_4px_rgba(14,165,233,0.12)]";
-              const badgeClass = session.isLive
-                ? "auth-live-badge bg-red-600 text-white ring-red-200"
-                : session?.isFree
-                  ? "bg-emerald-600 text-white ring-emerald-200 shadow-[0_6px_16px_rgba(16,185,129,0.22)]"
-                  : "bg-indigo-600 text-white ring-indigo-200 shadow-[0_6px_16px_rgba(79,70,229,0.22)]";
-              return (
-                <Link
-                  key={`${session.id}-${index}`}
-                  to={`/courses/${encodeURIComponent(String(session.id))}`}
-                  className={`group inline-flex h-8 max-w-[320px] shrink-0 items-center gap-2 rounded-full border px-3 text-[11px] font-bold transition hover:-translate-y-0.5 hover:shadow-md ${itemClass}`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
-                  <span className="truncate">{session.title || "Live session"}</span>
-                  <span className="hidden shrink-0 text-slate-500 sm:inline">
-                    {formatSessionTime(scheduledAt)}
-                  </span>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ring-1 ${badgeClass}`}>
-                    {session.isLive ? "Live now" : getSessionPriceLabel(session)}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+    <div className="relative z-20 bg-transparent py-4 border-b border-slate-100/80">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="auth-session-ticker-track flex w-max items-center py-1">
+          {tickerItems.map((session, index) => {
+            const handle = formatInstagramHandle(session.instructorName || session.instructor);
+            const imageUrl = getSessionImageUrl(session);
+            const linkPath = `/courses/${encodeURIComponent(String(session.id))}`;
+            const isLive = session.isLive;
+
+            return (
+              <Link
+                key={`${session.id}-${index}`}
+                to={linkPath}
+                className="flex flex-col items-center shrink-0 group transition-all duration-200 hover:scale-105 active:scale-95 mr-6"
+              >
+                <div className="relative">
+                  <div className={`w-[74px] h-[74px] rounded-full p-[2.5px] ${
+                    isLive 
+                      ? "bg-gradient-to-tr from-[#f59e0b] via-[#ef4444] to-[#ec4899] shadow-sm animate-pulse" 
+                      : "bg-gradient-to-tr from-[#10b981] via-[#06b6d4] to-[#3b82f6] shadow-sm"
+                  }`}>
+                    <div className="w-full h-full rounded-full bg-white p-[2.5px] flex items-center justify-center">
+                      <img
+                        src={imageUrl}
+                        alt={session.instructorName || "Trainer"}
+                        className="w-full h-full rounded-full object-cover bg-slate-50"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+
+                  {isLive ? (
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md scale-95 flex items-center gap-0.5 border border-white">
+                      <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                      LIVE
+                    </div>
+                  ) : (
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[7.5px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm scale-95 border border-white whitespace-nowrap">
+                      {getUpcomingBadgeText(session.occurrence?.scheduledAt || session.scheduledAt)}
+                    </div>
+                  )}
+                </div>
+
+                <span className="text-[11px] text-[#52525b] group-hover:text-slate-900 font-medium mt-3.5 tracking-wide truncate max-w-[78px]">
+                  {handle}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -482,7 +592,6 @@ export default function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-white">
       <div className="pointer-events-none absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-[#ffe7ea] via-[#fff5f6] to-transparent" />
-      <UpcomingSessionsTicker />
       <div className="relative mx-auto grid min-h-[calc(100svh-137px)] w-full max-w-7xl items-center gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-12">
         <motion.div
           initial={{ opacity: 0, x: -36 }}
