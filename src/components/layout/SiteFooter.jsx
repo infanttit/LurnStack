@@ -115,26 +115,6 @@ export default function SiteFooter() {
                 <FiMail className="text-[14px]" />
               </SocialBtn>
             </div>
-
-            {/* Newsletter */}
-            <div>
-              <p className="text-xs font-semibold text-gray-950 uppercase tracking-wider mb-2">
-                Weekly learning digest
-              </p>
-              <div className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-[1fr_auto]">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-950 placeholder:text-gray-400 focus:outline-none focus:border-[#004d3d] focus:ring-4 focus:ring-emerald-900/10 transition-colors"
-                />
-                <button
-                  type="button"
-                  className="px-3 py-2 bg-[#004d3d] text-white rounded-lg text-sm font-bold hover:bg-[#003d31] transition-colors whitespace-nowrap"
-                >
-                  Subscribe
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Nav columns */}
