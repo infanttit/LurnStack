@@ -108,7 +108,7 @@ function DraggableWhatsApp() {
         userSelect: "none",
         touchAction: "none"
       }}
-      className="fixed right-0 z-[9999] flex h-10 w-10 items-center justify-center bg-[#075E54] text-white shadow-lg transition-all duration-300 hover:bg-[#128C7E] active:scale-95 group rounded-none"
+      className="fixed right-0 z-[9999] md:hidden flex h-10 w-10 items-center justify-center bg-[#075E54] text-white shadow-lg transition-all duration-300 hover:bg-[#128C7E] active:scale-95 group rounded-none"
       aria-label="Chat on WhatsApp"
     >
       <svg
