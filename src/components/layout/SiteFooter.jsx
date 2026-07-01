@@ -41,7 +41,6 @@ const NAV = [
     heading: "Company",
     links: [
       { label: "About Us", to: PATHS.ABOUT_COMPANY },
-      { label: "Blog", to: "/blog" },
       { label: "Careers", to: "/careers" },
       { label: "Contact", to: "/contact" },
     ],
