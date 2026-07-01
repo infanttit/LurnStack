@@ -14,11 +14,9 @@ import {
   FiSmartphone,
   FiCpu,
   FiMapPin,
-  FiAward,
   FiMap,
   FiChevronDown,
 } from "react-icons/fi";
-import { motion } from "framer-motion";
 import lurnStackLogo from "../../assets/Logo/Logo4.png";
 
 const STATIC_FALLBACK_COURSES = [
