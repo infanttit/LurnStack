@@ -169,11 +169,11 @@ export default function SiteFooter() {
             <FiGlobe className="text-[12px]" />
             <span>English</span>
             <span className="mx-3">&middot;</span>
-            <Link to="/privacy" className="hover:text-gray-950 transition-colors">Privacy Policy</Link>
+            <Link to={PATHS.PRIVACY} className="hover:text-gray-950 transition-colors">Privacy Policy</Link>
             <span className="mx-3">&middot;</span>
-            <Link to="/cookies" className="hover:text-gray-950 transition-colors">Cookies</Link>
+            <Link to={PATHS.COOKIES} className="hover:text-gray-950 transition-colors">Cookies</Link>
             <span className="mx-3">&middot;</span>
-            <Link to="/terms" className="hover:text-gray-950 transition-colors">Terms and Conditions</Link>
+            <Link to={PATHS.TERMS} className="hover:text-gray-950 transition-colors">Terms and Conditions</Link>
           </div>
         </div>
       </div>

@@ -18,6 +18,7 @@ export const PATHS = {
   CHECKOUT: "/checkout",
   TERMS: "/terms",
   PRIVACY: "/privacy",
+  COOKIES: "/cookies",
   DATA_DELETION: "/data-deletion",
   PROFILE: "/profile",
   STUDENT_ATTENDANCE: "/attendance",
