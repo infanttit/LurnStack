@@ -41,7 +41,6 @@ const NAV = [
     heading: "Company",
     links: [
       { label: "About Us", to: PATHS.ABOUT_COMPANY },
-      { label: "Careers", to: "/careers" },
       { label: "Contact", to: "/contact" },
     ],
   },
@@ -51,12 +50,6 @@ const NAV = [
       { label: "Help Center", to: "/help" },
       { label: "Privacy Policy", to: PATHS.PRIVACY },
       { label: "Terms and Conditions", to: PATHS.TERMS },
-    ],
-  },
-  {
-    heading: "Locations",
-    links: [
-      { label: "Software Courses in Chennai", to: PATHS.CHENNAI },
     ],
   },
 ];
@@ -105,7 +98,7 @@ export default function SiteFooter() {
           </div>
 
           {/* Nav columns */}
-          <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
+          <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-8">
             {NAV.map((col) => (
               <div key={col.heading} className="space-y-3">
                 <h5 className="text-xs font-bold text-gray-950 uppercase tracking-widest">
