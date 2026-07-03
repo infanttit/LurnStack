@@ -1,10 +1,11 @@
 import CategoriesSection from "../sections/landing/CategoriesSection";
 import SliderSection from "../sections/landing/SliderSection";
 import CtaSection from "../sections/landing/CtaSection";
-import HeroSection from "../sections/landing/HeroSection";
+import HeroSection, { UpcomingSessionsTicker } from "../sections/landing/HeroSection";
 import LearningAppSection from "../sections/landing/LearningAppSection";
 import PassionCategoriesSection from "../sections/landing/PassionCategoriesSection";
 import WhyChooseSection from "../sections/landing/WhyChooseSection";
+import HeroPromoCarousel from "../sections/landing/HeroPromoCarousel";
 import { useAuth } from "../auth";
 import { useSEO } from "../shared/hooks/useSEO";
 
@@ -20,6 +21,8 @@ export default function LandingPage() {
 
   return (
     <main>
+      <UpcomingSessionsTicker />
+      <HeroPromoCarousel />
       <HeroSection />
       {!isAuthenticated ? <WhyChooseSection /> : null}
       {!isAuthenticated ? <LearningAppSection /> : null}

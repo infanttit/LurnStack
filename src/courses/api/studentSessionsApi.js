@@ -551,19 +551,34 @@ export async function addStudentSessionCard(sessionId) {
   }
 }
 
-export async function createStudentSessionBooking(sessionId, { sessionDate = "", courseId = "" } = {}) {
+export async function createStudentSessionBooking(sessionId, { sessionDate = "", courseId = "", offerId = "" } = {}) {
   if (isBrowserOffline()) throw new Error("You are offline. Payment cannot be started right now.");
   const safeCourseId = String(courseId || "").trim();
-  const createBooking = (accessScope) =>
-    axiosClient.post(`/api/student/sessions/${encodeURIComponent(sessionId)}/bookings`, {
-      sessionDate,
+  const safeSessionDate = String(sessionDate || "").trim();
+  const safeOfferId = String(offerId || "").trim();
+  const createBooking = (accessScope) => {
+    const payload = {
       accessScope,
-      ...(accessScope === "course" && safeCourseId ? { courseId: safeCourseId } : {}),
-    });
+    };
+    if (safeSessionDate) {
+      payload.sessionDate = safeSessionDate;
+    }
+    if (accessScope === "course" && safeCourseId) {
+      payload.courseId = safeCourseId;
+    }
+    if (safeOfferId) {
+      payload.offerId = safeOfferId;
+    }
+    console.log("Creating booking with payload:", payload);
+    return axiosClient.post(`/api/student/sessions/${encodeURIComponent(sessionId)}/bookings`, payload);
+  };
+
 
   try {
     const res = await createBooking(safeCourseId ? "course" : "session");
-    return normalizeBookingPayload(unwrap(res));
+    const parsed = normalizeBookingPayload(unwrap(res));
+    console.log("Booking response parsed:", parsed);
+    return parsed;
   } catch (err) {
     let finalErr = err;
     const status = getAxiosErrorStatus(err);
@@ -655,21 +670,29 @@ export async function joinStudentSession(
   if (isBrowserOffline()) throw new Error("You are offline. Session join is unavailable right now.");
   const id = String(sessionId || "").trim();
   if (!id) throw new Error("Missing session id");
-  const requestBody = sessionDate
-    ? {
-        sessionDate,
-        occurrenceDate: sessionDate,
-        scheduledAt: scheduledAt || startsAt || "",
-        startsAt: startsAt || scheduledAt || "",
-        endsAt: endsAt || "",
-        clientJoinedAt: new Date().toISOString(),
-      }
-    : undefined;
+  const requestBody = {
+    sessionId: id,
+    liveClassId: id,
+    courseId: id,
+    trainerClassId: id,
+    ...(sessionDate
+      ? {
+          sessionDate,
+          occurrenceDate: sessionDate,
+          scheduledAt: scheduledAt || startsAt || "",
+          startsAt: startsAt || scheduledAt || "",
+          endsAt: endsAt || "",
+        }
+      : {}),
+    clientJoinedAt: new Date().toISOString(),
+  };
 
   const loadMeetingLinkFromDetails = async () => {
     const detailEndpoints = [
       `/api/student/sessions/${encodeURIComponent(id)}`,
+      `/api/student/live-classes/${encodeURIComponent(id)}`,
       `/api/sessions/${encodeURIComponent(id)}`,
+      `/api/live-classes/${encodeURIComponent(id)}`,
     ];
 
     for (const endpoint of detailEndpoints) {
@@ -687,7 +710,9 @@ export async function joinStudentSession(
 
   const joinEndpoints = [
     `/api/student/sessions/${encodeURIComponent(id)}/join`,
+    `/api/student/live-classes/${encodeURIComponent(id)}/join`,
     `/api/sessions/${encodeURIComponent(id)}/join`,
+    `/api/live-classes/${encodeURIComponent(id)}/join`,
   ];
 
   let lastErr = null;
@@ -748,25 +773,41 @@ export async function heartbeatStudentSession(
   if (isBrowserOffline()) return null;
   const id = String(sessionId || "").trim();
   if (!id) return null;
-  try {
-    const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(id)}/heartbeat`, {
-      sessionId: id,
-      bookingId,
-      sessionDate,
-      occurrenceDate: sessionDate,
-      scheduledAt: scheduledAt || startsAt || "",
-      startsAt: startsAt || scheduledAt || "",
-      endsAt: endsAt || "",
-      joinedAt,
-      clientHeartbeatAt: new Date().toISOString(),
-    });
-    const payload = unwrap(res);
-    return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
-  } catch (err) {
-    const status = getAxiosErrorStatus(err);
-    if (status === 400 || status === 404 || status === 405) return false;
-    return null;
+
+  const body = {
+    sessionId: id,
+    liveClassId: id,
+    courseId: id,
+    trainerClassId: id,
+    bookingId,
+    sessionDate,
+    occurrenceDate: sessionDate,
+    scheduledAt: scheduledAt || startsAt || "",
+    startsAt: startsAt || scheduledAt || "",
+    endsAt: endsAt || "",
+    joinedAt,
+    clientHeartbeatAt: new Date().toISOString(),
+  };
+
+  const endpoints = [
+    `/api/student/sessions/${encodeURIComponent(id)}/heartbeat`,
+    `/api/student/live-classes/${encodeURIComponent(id)}/heartbeat`,
+    `/api/sessions/${encodeURIComponent(id)}/heartbeat`,
+    `/api/live-classes/${encodeURIComponent(id)}/heartbeat`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await axiosClient.post(endpoint, body);
+      const payload = unwrap(res);
+      return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
+    } catch (err) {
+      const status = getAxiosErrorStatus(err);
+      if (status === 404 || status === 405) continue;
+      return null;
+    }
   }
+  return null;
 }
 
 export async function leaveStudentSession(
@@ -776,21 +817,39 @@ export async function leaveStudentSession(
   if (isBrowserOffline()) return null;
   const id = String(sessionId || "").trim();
   if (!id) return null;
-  try {
-    const res = await axiosClient.post(`/api/student/sessions/${encodeURIComponent(id)}/leave`, {
-      sessionId: id,
-      bookingId,
-      sessionDate,
-      occurrenceDate: sessionDate,
-      scheduledAt: scheduledAt || startsAt || "",
-      startsAt: startsAt || scheduledAt || "",
-      endsAt: endsAt || "",
-      joinedAt,
-      clientLeftAt: new Date().toISOString(),
-    });
-    const payload = unwrap(res);
-    return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
-  } catch {
-    return null;
+
+  const body = {
+    sessionId: id,
+    liveClassId: id,
+    courseId: id,
+    trainerClassId: id,
+    bookingId,
+    sessionDate,
+    occurrenceDate: sessionDate,
+    scheduledAt: scheduledAt || startsAt || "",
+    startsAt: startsAt || scheduledAt || "",
+    endsAt: endsAt || "",
+    joinedAt,
+    clientLeftAt: new Date().toISOString(),
+  };
+
+  const endpoints = [
+    `/api/student/sessions/${encodeURIComponent(id)}/leave`,
+    `/api/student/live-classes/${encodeURIComponent(id)}/leave`,
+    `/api/sessions/${encodeURIComponent(id)}/leave`,
+    `/api/live-classes/${encodeURIComponent(id)}/leave`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await axiosClient.post(endpoint, body);
+      const payload = unwrap(res);
+      return normalizeAttendance(payload.data?.attendance || payload.attendance || payload.data || {});
+    } catch (err) {
+      const status = getAxiosErrorStatus(err);
+      if (status === 404 || status === 405) continue;
+      return null;
+    }
   }
+  return null;
 }

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HiMiniStar } from "react-icons/hi2";
 import { useAuth } from "../../auth";
+import { useActiveOffers } from "../../shared/hooks/useActiveOffers";
+import { getDiscountedPrice } from "../../shared/utils/offerCalculator";
 import AuthRequiredModal from "../../auth/components/AuthRequiredModal";
 import { PATHS } from "../../app/router/paths";
 import { useSEO } from "../../shared/hooks/useSEO";
@@ -24,7 +26,7 @@ import { openRazorpayCheckout } from "../../shared/utils/razorpayCheckout";
 import { useAttendanceTracking } from "../hooks/useAttendanceTracking";
 import { formatAttendanceStatus } from "../api/studentAttendanceApi";
 import { formatDecimalHours } from "../../shared/utils/durationFormatter";
-import { startAttendanceHeartbeat } from "../utils/attendanceHeartbeat";
+
 import { rememberRecentlyJoinedSession } from "../../my-learning/utils/learningModel";
 
 const COURSE_CATEGORIES = [
@@ -119,8 +121,12 @@ function getKnownCategory(value) {
   return COURSE_CATEGORIES.find((category) => category.toLowerCase() === normalized) || "";
 }
 
-function courseCategoryPath(category) {
-  return `/courses?category=${encodeURIComponent(category)}`;
+function courseCategoryPath(category, priceFilter = "") {
+  let path = `/courses?category=${encodeURIComponent(category)}`;
+  if (priceFilter) {
+    path += `&price=${encodeURIComponent(priceFilter)}`;
+  }
+  return path;
 }
 
 function getCategoryDescriptions(category) {
@@ -267,6 +273,8 @@ function isSessionCompleted(liveClass, now = Date.now()) {
 }
 
 function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayForClass, actionId, now }) {
+  const activeOffers = useActiveOffers();
+  const offerInfo = getDiscountedPrice(course, activeOffers);
   const isTrainerCourse = !!course.createdByTrainer;
   const isCancelled = String(liveClass?.status || course.status || "").toLowerCase() === "cancelled";
   const unavailable = isSessionUnavailable(liveClass);
@@ -314,11 +322,23 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
         ) : (
           <div className={`w-full h-full bg-gradient-to-br ${course.thumbnailBg}`} />
         )}
+        {offerInfo.hasDiscount && (
+          <div className="absolute left-2 top-2 bg-red-600 text-white font-black text-[9px] px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
+            {offerInfo.badgeText}
+          </div>
+        )}
         <div className="absolute right-2 top-2 overflow-hidden rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-[11px] font-black text-[#00342b] shadow-[0_14px_34px_rgba(3,52,43,0.20)] ring-1 ring-emerald-900/5 animate-priceFloat">
           <span className="absolute inset-y-0 -left-6 w-5 rotate-12 bg-white/80 blur-[2px] animate-priceShine" />
           <span className="relative inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
-            {course.price || "Free"}
+            {offerInfo.hasDiscount ? (
+              <span className="flex items-center gap-1.5">
+                <span className="text-red-500 line-through text-[9.5px] opacity-75">{offerInfo.oldPrice}</span>
+                <span>{offerInfo.price}</span>
+              </span>
+            ) : (
+              course.price || "Free"
+            )}
           </span>
         </div>
       </div>
@@ -407,16 +427,29 @@ function CourseGridCard({ course, liveClass, onViewDetails, onJoinClass, onPayFo
 
         <div className="mt-0.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-[14px] text-gray-900">{course.price}</span>
-            {course.oldPrice && (
-              <span className="text-[12px] text-gray-400 line-through">{course.oldPrice}</span>
+            {offerInfo.hasDiscount ? (
+              <>
+                <span className="font-extrabold text-[14px] text-red-600">{offerInfo.price}</span>
+                <span className="text-[12px] text-gray-400 line-through">{offerInfo.oldPrice}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-extrabold text-[14px] text-gray-900">{course.price}</span>
+                {course.oldPrice && (
+                  <span className="text-[12px] text-gray-400 line-through">{course.oldPrice}</span>
+                )}
+              </>
             )}
           </div>
-          {course.badge && !isCompleted && (
+          {offerInfo.hasDiscount ? (
+            <span className="text-[9px] font-black px-2 py-0.5 rounded bg-red-100 text-red-800 uppercase tracking-wide border border-red-200">
+              {offerInfo.badgeText}
+            </span>
+          ) : course.badge && !isCompleted ? (
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${isCompleted ? "bg-slate-100 text-slate-700" : course.badgeColor}`}>
               {course.badge}
             </span>
-          )}
+          ) : null}
         </div>
 
         <div className={["mt-auto pt-1 grid gap-1.5", isTrainerCourse ? "grid-cols-1 min-[420px]:grid-cols-[1fr_auto]" : "grid-cols-1"].join(" ")}>
@@ -461,6 +494,7 @@ export default function CoursesPage() {
   const [urlSearchParams] = useSearchParams();
   const routeSearchQuery = urlSearchParams.get("q") || "";
   const routeCategory = getKnownCategory(urlSearchParams.get("category"));
+  const routePrice = urlSearchParams.get("price") || "";
   const [activeCategory, setActiveCategory] = useState(routeCategory || COURSE_CATEGORIES[0]);
   const [searchQuery, setSearchQuery] = useState(routeSearchQuery);
   const { isAuthenticated, user } = useAuth();
@@ -469,15 +503,17 @@ export default function CoursesPage() {
   const [authPrompt, setAuthPrompt] = useState(null);
   const [categoryDescriptionIndexes, setCategoryDescriptionIndexes] = useState({});
   const { track } = useAttendanceTracking();
+  const activeOffers = useActiveOffers();
 
   const profileName = user?.fullName || "LurnStack Learner";
   const profileLine = user?.role === "trainer" ? "Trainer" : "Student";
   const showOverviewPanel = activeCategory === "Trainer Courses";
 
+  const priceSuffix = routePrice.toLowerCase() === "free" ? " Free Classes" : routePrice.toLowerCase() === "paid" ? " Paid Courses" : " Courses";
   useSEO({
-    title: activeCategory ? `${activeCategory} Courses` : "Courses",
-    description: `Browse expert-led ${activeCategory || ""} courses on LurnStack. Live trainer sessions, hands-on practice, and real-world projects.`.trim(),
-    keywords: "LurnStack courses, online courses, live classes, web development, database, cloud, UI/UX",
+    title: activeCategory ? `${activeCategory}${priceSuffix}` : `All${priceSuffix}`,
+    description: `Browse expert-led ${activeCategory || ""}${priceSuffix.toLowerCase()} on LurnStack. Live trainer sessions, hands-on practice, and real-world projects.`.trim(),
+    keywords: `LurnStack, online courses, live classes, web development, database, cloud, UI/UX, ${routePrice || "free"}`,
     canonical: "/courses",
   });
 
@@ -542,16 +578,27 @@ export default function CoursesPage() {
     const source = q ? sessions : categorySource.length ? categorySource : sessions;
     return source
       .filter((course) => {
-      const matchesSearch =
-        !q ||
-        course.title.toLowerCase().includes(q) ||
-        course.instructor.toLowerCase().includes(q) ||
-        String(course.description || "").toLowerCase().includes(q) ||
-        String(course.category || course.tab || "").toLowerCase().includes(q);
-      return matchesSearch && matchesCategory(course, activeCategory);
+        const matchesSearch =
+          !q ||
+          course.title.toLowerCase().includes(q) ||
+          course.instructor.toLowerCase().includes(q) ||
+          String(course.description || "").toLowerCase().includes(q) ||
+          String(course.category || course.tab || "").toLowerCase().includes(q);
+
+        const sessionIsFree =
+          course.isFree === true ||
+          String(course.pricingState || "").trim().toUpperCase() === "FREE" ||
+          Number(course.amountPaise || 0) <= 0;
+
+        const matchesPrice =
+          !routePrice ||
+          (routePrice.toLowerCase() === "free" && sessionIsFree) ||
+          (routePrice.toLowerCase() === "paid" && !sessionIsFree);
+
+        return matchesSearch && matchesCategory(course, activeCategory) && matchesPrice;
       })
       .sort(sortCoursesForDisplay);
-  }, [activeCategory, searchQuery, sessions]);
+  }, [activeCategory, searchQuery, sessions, routePrice]);
 
   const otherCourses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -564,10 +611,21 @@ export default function CoursesPage() {
           course.instructor.toLowerCase().includes(q) ||
           String(course.description || "").toLowerCase().includes(q) ||
           String(course.category || course.tab || "").toLowerCase().includes(q);
-        return matchesSearch;
+
+        const sessionIsFree =
+          course.isFree === true ||
+          String(course.pricingState || "").trim().toUpperCase() === "FREE" ||
+          Number(course.amountPaise || 0) <= 0;
+
+        const matchesPrice =
+          !routePrice ||
+          (routePrice.toLowerCase() === "free" && sessionIsFree) ||
+          (routePrice.toLowerCase() === "paid" && !sessionIsFree);
+
+        return matchesSearch && matchesPrice;
       })
       .sort(sortCoursesForDisplay);
-  }, [activeCategory, searchQuery, sessions]);
+  }, [activeCategory, searchQuery, sessions, routePrice]);
 
   const availableCategories = useMemo(() => {
     const seen = new Set();
@@ -581,7 +639,19 @@ export default function CoursesPage() {
   }, [sessions]);
 
   const categoryIntro = useMemo(() => {
-    const categoryCourses = sessions.filter((course) => matchesCategory(course, activeCategory));
+    const categoryCourses = sessions.filter((course) => {
+      const isCat = matchesCategory(course, activeCategory);
+      if (!isCat) return false;
+      const sessionIsFree =
+        course.isFree === true ||
+        String(course.pricingState || "").trim().toUpperCase() === "FREE" ||
+        Number(course.amountPaise || 0) <= 0;
+      const matchesPrice =
+        !routePrice ||
+        (routePrice.toLowerCase() === "free" && sessionIsFree) ||
+        (routePrice.toLowerCase() === "paid" && !sessionIsFree);
+      return matchesPrice;
+    });
     const related = COURSE_CATEGORIES.filter((category) => category !== activeCategory).slice(0, 4);
     const learnerCount = Math.max(1533, categoryCourses.length * 731 + activeCategory.length * 97);
     const sessionCount = Math.max(categoryCourses.length, filteredCourses.length);
@@ -597,7 +667,7 @@ export default function CoursesPage() {
       handsOn: formatCompactNumber(Math.max(handsOnCount, sessionCount ? 1 : 0)),
       related,
     };
-  }, [activeCategory, categoryDescriptionIndexes, filteredCourses.length, sessions]);
+  }, [activeCategory, categoryDescriptionIndexes, filteredCourses.length, sessions, routePrice]);
 
   const joinTrainerClass = useCallback(
     async (course) => {
@@ -706,7 +776,7 @@ export default function CoursesPage() {
         setActionId("");
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, track]
   );
 
   const payForTrainerClass = useCallback(
@@ -725,6 +795,9 @@ export default function CoursesPage() {
         return;
       }
       const occurrence = getSessionOccurrenceTiming(course.liveClass, current, { defaultRecurring: false });
+      const offerInfo = getDiscountedPrice(course, activeOffers);
+      const offerId = offerInfo.hasDiscount ? offerInfo.offerId : "";
+      const expectedAmountPaise = offerInfo.hasDiscount ? offerInfo.discountedAmountPaise : course.amountPaise;
 
       setActionId(`pay:${course.id}`);
       setError("");
@@ -734,13 +807,18 @@ export default function CoursesPage() {
         const booking = await createStudentSessionBooking(course.id, {
           sessionDate,
           courseId: courseAccessId,
+          offerId,
         });
         if (!booking.alreadyPaid) {
+          const isDiscountActive = offerInfo.hasDiscount && expectedAmountPaise > 0;
+          const backendOrderIsFullPrice = booking.amountPaise && booking.amountPaise > expectedAmountPaise;
+          const razorpayOrderId = (isDiscountActive && backendOrderIsFullPrice) ? undefined : booking.razorpayOrderId;
+
           const payment = await openRazorpayCheckout({
             keyId: booking.keyId,
-            amountPaise: booking.amountPaise || course.amountPaise,
+            amountPaise: expectedAmountPaise || booking.amountPaise || course.amountPaise,
             currency: booking.currency || course.currency || "INR",
-            razorpayOrderId: booking.razorpayOrderId,
+            razorpayOrderId,
             sessionTitle: course.title,
             student: booking.student,
           });
@@ -783,7 +861,7 @@ export default function CoursesPage() {
         setActionId("");
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, activeOffers]
   );
 
   return (
@@ -792,27 +870,22 @@ export default function CoursesPage() {
 
       <section className="mx-auto max-w-7xl px-4 sm:px-8 pt-0 md:pt-8">
         <div className="md:hidden -mx-4 border-b border-slate-200 bg-slate-50 px-5 pb-6 pt-5">
-          <h1 className="text-[20px] font-extrabold leading-tight text-slate-950">
-            {categoryIntro.title}
+          <h1 className="text-[20px] font-extrabold leading-tight text-slate-950 flex flex-wrap items-center gap-2">
+            <span>{categoryIntro.title}</span>
+            {routePrice === "free" && (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[9px] font-black text-emerald-800 ring-1 ring-inset ring-emerald-600/20 uppercase tracking-wider">
+                Free Classes
+              </span>
+            )}
+            {routePrice === "paid" && (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[9px] font-black text-blue-800 ring-1 ring-inset ring-blue-600/20 uppercase tracking-wider">
+                Paid Courses
+              </span>
+            )}
           </h1>
           <p className="mt-3 text-[13px] leading-5 text-slate-700">
             {categoryIntro.description}
           </p>
-
-          <div className="mt-5 grid grid-cols-3 divide-x divide-slate-200 text-slate-900">
-            <div className="pr-3">
-              <div className="text-[10px] leading-4 text-slate-500">Learners</div>
-              <div className="mt-1 text-[13px] font-extrabold">{categoryIntro.learners}</div>
-            </div>
-            <div className="px-3">
-              <div className="text-[10px] leading-4 text-slate-500">Courses</div>
-              <div className="mt-1 text-[13px] font-extrabold">{categoryIntro.sessions}</div>
-            </div>
-            <div className="pl-3">
-              <div className="text-[10px] leading-4 text-slate-500">Live sessions</div>
-              <div className="mt-1 text-[13px] font-extrabold">{categoryIntro.handsOn}</div>
-            </div>
-          </div>
 
           <div className="mt-5">
             <div className="text-[12px] font-bold text-slate-700">Related</div>
@@ -823,7 +896,7 @@ export default function CoursesPage() {
                   type="button"
                   onClick={() => {
                     setActiveCategory(category);
-                    navigate(courseCategoryPath(category), { replace: false });
+                    navigate(courseCategoryPath(category, routePrice), { replace: false });
                   }}
                   className="shrink-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] font-extrabold text-slate-700 shadow-sm"
                 >
@@ -835,28 +908,24 @@ export default function CoursesPage() {
         </div>
 
         <div className="hidden md:block">
-          <div className="grid gap-6 border-b border-slate-200 pb-6 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="border-b border-slate-200 pb-6">
             <div className="min-w-0">
-              <h1 className="text-[34px] font-extrabold leading-tight text-slate-950">
-                {categoryIntro.title}
+              <h1 className="text-[34px] font-extrabold leading-tight text-slate-950 flex items-center gap-3">
+                <span>{categoryIntro.title}</span>
+                {routePrice === "free" && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-800 ring-1 ring-inset ring-emerald-600/20 uppercase tracking-wider">
+                    Free Classes
+                  </span>
+                )}
+                {routePrice === "paid" && (
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black text-blue-800 ring-1 ring-inset ring-blue-600/20 uppercase tracking-wider">
+                    Paid Courses
+                  </span>
+                )}
               </h1>
               <p className="mt-3 max-w-3xl text-[16px] leading-7 text-slate-700">
                 {categoryIntro.description}
               </p>
-            </div>
-            <div className="grid min-w-[360px] grid-cols-3 divide-x divide-slate-200 text-slate-900">
-              <div className="pr-5">
-                <div className="text-[12px] leading-4 text-slate-500">Learners</div>
-                <div className="mt-1 text-[18px] font-extrabold">{categoryIntro.learners}</div>
-              </div>
-              <div className="px-5">
-                <div className="text-[12px] leading-4 text-slate-500">Courses</div>
-                <div className="mt-1 text-[18px] font-extrabold">{categoryIntro.sessions}</div>
-              </div>
-              <div className="pl-5">
-                <div className="text-[12px] leading-4 text-slate-500">Live sessions</div>
-                <div className="mt-1 text-[18px] font-extrabold">{categoryIntro.handsOn}</div>
-              </div>
             </div>
           </div>
 
@@ -868,7 +937,7 @@ export default function CoursesPage() {
                 type="button"
                 onClick={() => {
                   setActiveCategory(category);
-                  navigate(courseCategoryPath(category), { replace: false });
+                  navigate(courseCategoryPath(category, routePrice), { replace: false });
                 }}
                 className="rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] font-extrabold text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-950"
               >
@@ -877,6 +946,7 @@ export default function CoursesPage() {
             ))}
           </div>
         </div>
+
 
         {isAuthenticated && showOverviewPanel ? (
           <div className="mt-8 hidden items-start gap-4 sm:flex sm:gap-5">

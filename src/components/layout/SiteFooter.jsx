@@ -41,23 +41,15 @@ const NAV = [
     heading: "Company",
     links: [
       { label: "About Us", to: PATHS.ABOUT_COMPANY },
-      { label: "Blog", to: "/blog" },
-      { label: "Careers", to: "/careers" },
       { label: "Contact", to: "/contact" },
     ],
   },
   {
     heading: "Support",
     links: [
-      { label: "Help Center", to: "/help" },
+      { label: "Help Center", to: PATHS.HELP },
       { label: "Privacy Policy", to: PATHS.PRIVACY },
       { label: "Terms and Conditions", to: PATHS.TERMS },
-    ],
-  },
-  {
-    heading: "Locations",
-    links: [
-      { label: "Software Courses in Chennai", to: PATHS.CHENNAI },
     ],
   },
 ];
@@ -87,18 +79,6 @@ export default function SiteFooter() {
               </p>
             </div>
 
-            {/* Rating badge */}
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-0.5">
-                {[1,2,3,4,5].map((s) => (
-                  <svg key={s} className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                  </svg>
-                ))}
-              </div>
-              <span className="text-xs font-bold text-gray-950">4.9</span>
-              <span className="text-xs text-gray-600">&middot; 50,000+ students</span>
-            </div>
 
             {/* Socials */}
             <div className="flex items-center gap-2">
@@ -115,30 +95,10 @@ export default function SiteFooter() {
                 <FiMail className="text-[14px]" />
               </SocialBtn>
             </div>
-
-            {/* Newsletter */}
-            <div>
-              <p className="text-xs font-semibold text-gray-950 uppercase tracking-wider mb-2">
-                Weekly learning digest
-              </p>
-              <div className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-[1fr_auto]">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-950 placeholder:text-gray-400 focus:outline-none focus:border-[#004d3d] focus:ring-4 focus:ring-emerald-900/10 transition-colors"
-                />
-                <button
-                  type="button"
-                  className="px-3 py-2 bg-[#004d3d] text-white rounded-lg text-sm font-bold hover:bg-[#003d31] transition-colors whitespace-nowrap"
-                >
-                  Subscribe
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Nav columns */}
-          <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
+          <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-8">
             {NAV.map((col) => (
               <div key={col.heading} className="space-y-3">
                 <h5 className="text-xs font-bold text-gray-950 uppercase tracking-widest">
@@ -162,18 +122,18 @@ export default function SiteFooter() {
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} LurnStack. All rights reserved.
+            &copy; {new Date().getFullYear()} Tamil Info Technology. All rights reserved.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-gray-500 sm:justify-end">
             <FiGlobe className="text-[12px]" />
             <span>English</span>
             <span className="mx-3">&middot;</span>
-            <Link to="/privacy" className="hover:text-gray-950 transition-colors">Privacy Policy</Link>
+            <Link to={PATHS.PRIVACY} className="hover:text-gray-950 transition-colors">Privacy Policy</Link>
             <span className="mx-3">&middot;</span>
-            <Link to="/cookies" className="hover:text-gray-950 transition-colors">Cookies</Link>
+            <Link to={PATHS.COOKIES} className="hover:text-gray-950 transition-colors">Cookies</Link>
             <span className="mx-3">&middot;</span>
-            <Link to="/terms" className="hover:text-gray-950 transition-colors">Terms and Conditions</Link>
+            <Link to={PATHS.TERMS} className="hover:text-gray-950 transition-colors">Terms and Conditions</Link>
           </div>
         </div>
       </div>

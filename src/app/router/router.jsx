@@ -3,6 +3,8 @@ import AppShell from "../AppShell";
 import LandingPage from "../../pages/LandingPage";
 import SimplePage from "../../pages/SimplePage";
 import PrivacyPolicyPage from "../../pages/PrivacyPolicyPage";
+import CookiePolicyPage from "../../pages/CookiePolicyPage";
+import HelpSupportPage from "../../pages/HelpSupportPage";
 import TermsAndConditionsPage from "../../pages/TermsAndConditionsPage";
 import SignupPage from "../../auth/pages/SignupPage";
 import LoginPage from "../../auth/pages/LoginPage";
@@ -89,6 +91,14 @@ export default function AppRouter() {
         <Route
           path={PATHS.PRIVACY}
           element={<PrivacyPolicyPage />}
+        />
+        <Route
+          path={PATHS.COOKIES}
+          element={<CookiePolicyPage />}
+        />
+        <Route
+          path={PATHS.HELP}
+          element={<HelpSupportPage />}
         />
         <Route
           path={PATHS.DATA_DELETION}
