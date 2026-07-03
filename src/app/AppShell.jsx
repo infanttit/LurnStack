@@ -87,7 +87,7 @@ function DraggableWhatsApp() {
 
   return (
     <a
-      href="https://wa.me/919677794485?text=Hi%20LurnStack%20Support%2C%20I'd%20like%20to%20inquire%20about%20your%20courses%20and%20upcoming%20live%20classes."
+      href="https://wa.me/918056780587?text=Hi%20LurnStack%20Support%2C%20I'd%20like%20to%20inquire%20about%20your%20courses%20and%20upcoming%20live%20classes."
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}

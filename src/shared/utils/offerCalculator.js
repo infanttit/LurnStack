@@ -11,58 +11,50 @@ export function formatPriceString(value) {
 
 export function getDiscountedPrice(course, activeOffers) {
   if (!course || !course.price || String(course.price).toLowerCase() === "free") {
-    return {
-      hasDiscount: false,
-      price: course?.price || "Free",
-      oldPrice: course?.oldPrice || null,
-      badgeText: null
-    };
+    return { hasDiscount: false, price: course?.price || "Free", oldPrice: course?.oldPrice || null, badgeText: null };
   }
-
-  const basePrice = parsePriceString(course.price);
+  let basePrice = parsePriceString(course.price);
+  if (basePrice <= 0 && course.amountPaise > 0) {
+    basePrice = course.amountPaise / 100;
+  }
   if (basePrice <= 0) {
-    return {
-      hasDiscount: false,
-      price: course.price,
-      oldPrice: course.oldPrice || null,
-      badgeText: null
-    };
+    return { hasDiscount: false, price: course.price, oldPrice: course.oldPrice || null, badgeText: null };
   }
-
-  const category = course.category || course.raw?.category || course.raw?.course_category || "";
+  // Retrieve course category values
+  const categoryId = String(course.courseId || course.courseAccessId || "").trim().toLowerCase();
+  const category = course.category || course.raw?.category || "";
   const normalizedCategory = String(category).trim().toLowerCase();
   const slugifiedCategory = normalizedCategory.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  
   const matchingOffer = (activeOffers || []).find(offer => {
     if (!offer.isActive) return false;
-    
-    // Check Category-wide matches
+    // Check Category-wide matches against ID, Slug or raw category string
     if (offer.targetCategoryId) {
       const target = String(offer.targetCategoryId).trim().toLowerCase();
       const slugifiedTarget = target.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      if (normalizedCategory === target || slugifiedCategory === slugifiedTarget) return true;
+      if (
+        categoryId === target ||
+        normalizedCategory === target ||
+        slugifiedCategory === slugifiedTarget
+      ) {
+        return true;
+      }
     }
-    
     // Check Course-specific matches
-    if (offer.targetCourseId && String(offer.targetCourseId) === String(course.id)) {
-      return true;
+    if (offer.targetCourseId) {
+      const targetId = String(offer.targetCourseId).trim().toLowerCase();
+      const courseId = String(course.id || "").trim().toLowerCase();
+      const parentCourseId = String(course.courseId || course.courseAccessId || "").trim().toLowerCase();
+      if (targetId === courseId || targetId === parentCourseId) {
+        return true;
+      }
     }
-    
     return false;
   });
-
   if (!matchingOffer) {
-    return {
-      hasDiscount: false,
-      price: course.price,
-      oldPrice: course.oldPrice || null,
-      badgeText: null
-    };
+    return { hasDiscount: false, price: course.price, oldPrice: course.oldPrice || null, badgeText: null };
   }
-
   let discountedValue = basePrice;
   let badgeText = "";
-
   if (matchingOffer.discountType === "PERCENTAGE") {
     discountedValue = basePrice - (basePrice * (matchingOffer.discountValue / 100));
     badgeText = `${matchingOffer.discountValue}% OFF`;
@@ -70,14 +62,14 @@ export function getDiscountedPrice(course, activeOffers) {
     discountedValue = Math.max(0, basePrice - matchingOffer.discountValue);
     badgeText = `Flat ₹${matchingOffer.discountValue} OFF`;
   } else if (matchingOffer.discountType === "CASHBACK") {
-    // Cashback does not reduce base price directly, but offers cashback benefits
     badgeText = `₹${matchingOffer.discountValue} Cashback`;
   }
-
   return {
     hasDiscount: true,
     price: formatPriceString(discountedValue),
     oldPrice: course.price,
-    badgeText
+    badgeText,
+    offerId: matchingOffer.id,
+    discountedAmountPaise: Math.round(discountedValue * 100)
   };
 }

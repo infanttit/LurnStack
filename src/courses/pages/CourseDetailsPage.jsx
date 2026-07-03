@@ -608,6 +608,10 @@ export default function CourseDetailsPage() {
             minute: "2-digit",
           })
         : "Schedule not available";
+    const offerInfo = getDiscountedPrice(course, activeOffers);
+    const offerId = offerInfo.hasDiscount ? offerInfo.offerId : "";
+    const expectedAmountPaise = offerInfo.hasDiscount ? offerInfo.discountedAmountPaise : course.amountPaise;
+
     const payForSession = async () => {
       if (!isAuthenticated) {
         setAuthPrompt({
@@ -624,13 +628,18 @@ export default function CourseDetailsPage() {
         const booking = await createStudentSessionBooking(liveClass.id, {
           sessionDate,
           courseId: courseAccessId,
+          offerId,
         });
         if (!booking.alreadyPaid) {
+          const isDiscountActive = offerInfo.hasDiscount && expectedAmountPaise > 0;
+          const backendOrderIsFullPrice = booking.amountPaise && booking.amountPaise > expectedAmountPaise;
+          const razorpayOrderId = (isDiscountActive && backendOrderIsFullPrice) ? undefined : booking.razorpayOrderId;
+
           const payment = await openRazorpayCheckout({
             keyId: booking.keyId,
-            amountPaise: booking.amountPaise || course.amountPaise,
+            amountPaise: expectedAmountPaise || booking.amountPaise || course.amountPaise,
             currency: booking.currency || course.currency || "INR",
-            razorpayOrderId: booking.razorpayOrderId,
+            razorpayOrderId,
             sessionTitle: course.title,
             student: booking.student,
           });

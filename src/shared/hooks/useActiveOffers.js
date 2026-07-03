@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { axiosClient } from "../api/axiosClient";
 
+const CACHE_KEY = "lurnstack:active-offers:v1";
+
 const MOCK_OFFERS = [
   {
     id: 1,
@@ -22,8 +24,30 @@ const MOCK_OFFERS = [
   }
 ];
 
+function readCachedOffers() {
+  if (typeof window === "undefined") return null;
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedOffers(offers) {
+  if (typeof window === "undefined" || !offers) return;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(offers));
+  } catch {
+    // Ignore cache write errors
+  }
+}
+
 export function useActiveOffers() {
-  const [offers, setOffers] = useState(MOCK_OFFERS);
+  const [offers, setOffers] = useState(() => {
+    const cached = readCachedOffers();
+    return cached || MOCK_OFFERS;
+  });
 
   useEffect(() => {
     let active = true;
@@ -32,6 +56,7 @@ export function useActiveOffers() {
         const res = await axiosClient.get("/api/offers/active");
         if (active && res.data && res.data.success && Array.isArray(res.data.data)) {
           setOffers(res.data.data);
+          writeCachedOffers(res.data.data);
         }
       } catch (err) {
         // Suppress print to avoid distracting console logs, fall back to mock data
