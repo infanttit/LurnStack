@@ -286,7 +286,7 @@ export default function StudentSessionsPage() {
       });
       rememberRecentlyJoinedSession(session, {
         joinedAt: result?.joinedAt || new Date().toISOString(),
-        attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
+        attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "pending",
       });
       
       const startTracking = (joinResult = {}) =>

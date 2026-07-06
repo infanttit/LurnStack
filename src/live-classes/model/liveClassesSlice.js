@@ -104,7 +104,7 @@ const liveClassesSlice = createSlice({
           joinedAt: attendance?.firstJoinedAt || joinedAt || new Date().toISOString(),
           lastJoinedAt: attendance?.lastJoinedAt || joinedAt || new Date().toISOString(),
           joinCount: attendance?.joinCount || 1,
-          attendanceStatus: attendance?.attendanceStatus || attendance?.status || attendanceStatus || "present",
+          attendanceStatus: attendance?.attendanceStatus || attendance?.status || attendanceStatus || "pending",
           occurrenceDate: attendance?.occurrenceDate || "",
           meetUrl: meetUrl || "",
         };

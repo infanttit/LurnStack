@@ -174,6 +174,14 @@ export function UpcomingSessionsTicker() {
   const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState([]);
 
+  const scrollRef = useRef(null);
+  const isInteractingRef = useRef(false);
+  const resumeTimeoutRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startScrollLeftRef = useRef(0);
+  const hasMovedRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -204,6 +212,95 @@ export function UpcomingSessionsTicker() {
     };
   }, [isAuthenticated]);
 
+  // Continuous auto-scroll loop via requestAnimationFrame
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !sessions.length) return undefined;
+
+    let animId;
+    const speed = 0.75; // Pixels per frame (~45px/s at 60fps)
+
+    const step = () => {
+      if (el && !isInteractingRef.current && !isDraggingRef.current) {
+        el.scrollLeft += speed;
+        const halfWidth = el.scrollWidth / 2;
+        if (halfWidth > 0 && el.scrollLeft >= halfWidth) {
+          el.scrollLeft -= halfWidth;
+        }
+      }
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, [sessions.length]);
+
+  const handleInteractionStart = () => {
+    isInteractingRef.current = true;
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+    }
+  };
+
+  const handleInteractionEnd = () => {
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+    }
+    resumeTimeoutRef.current = setTimeout(() => {
+      isInteractingRef.current = false;
+    }, 2500);
+  };
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const halfWidth = el.scrollWidth / 2;
+    if (halfWidth > 0) {
+      if (el.scrollLeft >= halfWidth * 1.5) {
+        el.scrollLeft -= halfWidth;
+      } else if (el.scrollLeft <= 0) {
+        el.scrollLeft += halfWidth;
+      }
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    handleInteractionStart();
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    startXRef.current = e.clientX;
+    if (scrollRef.current) {
+      startScrollLeftRef.current = scrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    const deltaX = e.clientX - startXRef.current;
+    if (Math.abs(deltaX) > 5) {
+      hasMovedRef.current = true;
+    }
+    scrollRef.current.scrollLeft = startScrollLeftRef.current - deltaX;
+  };
+
+  const handleMouseUp = () => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      handleInteractionEnd();
+    }
+  };
+
+  const handleCardClick = (e) => {
+    if (hasMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   if (!sessions.length) return null;
 
   let repeatedSessions = [...sessions];
@@ -214,7 +311,23 @@ export function UpcomingSessionsTicker() {
 
   return (
     <div className="relative z-20 bg-transparent py-4 border-b border-slate-100/80">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <div
+        ref={scrollRef}
+        onMouseEnter={handleInteractionStart}
+        onMouseLeave={() => {
+          handleMouseUp();
+          handleInteractionEnd();
+        }}
+        onTouchStart={handleInteractionStart}
+        onTouchEnd={handleInteractionEnd}
+        onTouchCancel={handleInteractionEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onScroll={handleScroll}
+        className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar scroll-smooth select-none cursor-grab active:cursor-grabbing"
+        style={{ touchAction: "pan-x" }}
+      >
         <div className="auth-session-ticker-track flex w-max items-center py-1">
           {tickerItems.map((session, index) => {
             const handle = formatInstagramHandle(session.instructorName || session.instructor);
@@ -226,6 +339,7 @@ export function UpcomingSessionsTicker() {
               <Link
                 key={`${session.id}-${index}`}
                 to={linkPath}
+                onClick={handleCardClick}
                 className="flex flex-col items-center shrink-0 group transition-all duration-200 hover:scale-105 active:scale-95 mr-6"
               >
                 <div className="relative">
@@ -238,7 +352,7 @@ export function UpcomingSessionsTicker() {
                       <img
                         src={imageUrl}
                         alt={session.instructorName || "Trainer"}
-                        className="w-full h-full rounded-full object-cover bg-slate-50"
+                        className="w-full h-full rounded-full object-cover bg-slate-50 pointer-events-none"
                         loading="lazy"
                       />
                     </div>

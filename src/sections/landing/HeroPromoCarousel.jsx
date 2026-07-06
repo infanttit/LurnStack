@@ -80,10 +80,28 @@ function getCategoryPathFromPoster(poster) {
   return poster?.linkUrl || "/courses";
 }
 
+const PROMO_POSTERS_CACHE_KEY = "lurnstack:promo_posters_v1";
+
+function getInitialPosters() {
+  if (typeof window === "undefined") return MOCK_POSTERS;
+  try {
+    const cached = window.localStorage.getItem(PROMO_POSTERS_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore storage parse error
+  }
+  return MOCK_POSTERS;
+}
+
 export default function HeroPromoCarousel() {
-  const [posters, setPosters] = useState(MOCK_POSTERS);
+  const [posters, setPosters] = useState(getInitialPosters);
   const N = posters.length;
-  const [activeIndex, setActiveIndex] = useState(N);
+  const [activeIndex, setActiveIndex] = useState(() => posters.length);
   const [isPaused, setIsPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(true);
 
@@ -93,10 +111,28 @@ export default function HeroPromoCarousel() {
       try {
         const res = await axiosClient.get("/api/promos/posters");
         if (active && res.data && res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
-          setPosters(res.data.data);
+          const freshData = res.data.data;
+          
+          // Preload images into browser cache to prevent image rendering flash
+          const baseUrl = String(env.apiBaseUrl || "").replace(/\/+$/, "");
+          freshData.forEach((poster) => {
+            const rawUrl = poster?.imageUrl || "";
+            if (rawUrl) {
+              const fullUrl = rawUrl.startsWith("http") ? rawUrl : `${baseUrl}/${rawUrl.replace(/^\/+/, "")}`;
+              const img = new Image();
+              img.src = fullUrl;
+            }
+          });
+
+          setPosters(freshData);
+          try {
+            window.localStorage.setItem(PROMO_POSTERS_CACHE_KEY, JSON.stringify(freshData));
+          } catch {
+            // Storage quota fallback
+          }
         }
       } catch (err) {
-        // Fallback silently to mock banners
+        // Fallback silently to cached / mock banners
       }
     }
     loadPosters();

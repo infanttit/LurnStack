@@ -14,10 +14,9 @@ function normalizeStatus(value) {
   const status = String(value || "").trim().toLowerCase();
   if (status === "late") return "late";
   if (status === "absent") return "absent";
-  if (status === "pending" || status === "tracking") return "pending";
+  if (status === "pending" || status === "tracking" || status === "joined") return "pending";
   if (status === "present") return "present";
   if (status === "attended") return "present";
-  if (status === "joined") return "present";
   return status || "";
 }
 
@@ -48,7 +47,7 @@ export function formatAttendanceStatus(value) {
   if (status === "present") return "Present";
   if (status === "late") return "Late";
   if (status === "absent") return "Absent";
-  if (status === "pending") return "Tracking";
+  if (status === "pending") return "Pending";
   return status ? status[0].toUpperCase() + status.slice(1) : "Not marked";
 }
 

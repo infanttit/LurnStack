@@ -736,7 +736,7 @@ export default function CoursesPage() {
         });
         rememberRecentlyJoinedSession(course, {
           joinedAt: result?.joinedAt || new Date().toISOString(),
-          attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
+          attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "pending",
         });
         setSessions((prev) =>
           prev.map((item) =>
