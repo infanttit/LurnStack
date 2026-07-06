@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import brandLogo from "../../assets/Logo/Logo4.png";
@@ -351,6 +352,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
+              {/* Social Login Options (Commented out)
               <div className="relative mt-2 mb-2 anim-3">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
                 <div className="relative flex justify-center"><span className="px-4 bg-white text-slate-400 text-[8px] uppercase tracking-[0.2em] font-bold">OR CONTINUE WITH</span></div>
@@ -367,6 +369,7 @@ export default function LoginPage() {
                   <span>{socialLoading ? "Opening..." : "Google"}</span>
                 </button>
               </div>
+              */}
 
               <p className="mt-5 text-center text-[12px] text-slate-500">
                 New to LurnStack?{" "}

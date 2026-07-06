@@ -89,16 +89,17 @@ export function startAttendanceHeartbeat({
 
   const beat = async () => {
     if (stopped) return;
-    if (meetingWindow && meetingWindow.closed) {
-      stop();
-      return;
+    try {
+      const attendance = await heartbeatStudentSession(id, details);
+      // NOTE: Heartbeat interval must continue firing at regular intervals
+      // for as long as the LurnStack tab remains open to accurately track total duration.
+      // Do NOT stop interval on 'present' status.
+      if (attendance) {
+        onAttendance?.(attendance);
+      }
+    } catch {
+      // Best-effort heartbeat; continue on next interval
     }
-    const attendance = await heartbeatStudentSession(id, details);
-    if (attendance === false) {
-      stop({ sendLeave: false });
-      return;
-    }
-    if (attendance) onAttendance?.(attendance);
   };
 
   const handleOnline = async () => {

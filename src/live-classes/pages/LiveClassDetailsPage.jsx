@@ -258,7 +258,7 @@ export default function LiveClassDetailsPage() {
                     <div className="text-sm text-on-surface-variant">
                       Attendance{" "}
                       <span className={["ml-1 rounded-full px-2.5 py-1 text-xs font-extrabold", attendanceBadgeClass].join(" ")}>
-                        {formatAttendanceStatus(joinedStatus || "present")}
+                        {formatAttendanceStatus(joinedStatus || "pending")}
                       </span>
                       {joined.joinCount ? (
                         <span className="ml-2 text-xs font-semibold text-on-surface-variant">

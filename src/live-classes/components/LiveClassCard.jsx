@@ -216,7 +216,7 @@ export default function LiveClassCard({ liveClass, joined, onJoin }) {
               <div className="text-[12px] text-on-surface-variant sm:ml-1">
                 Attendance{" "}
                 <span className={["ml-1 rounded-full px-2 py-1 text-[11px] font-extrabold", statusClass].join(" ")}>
-                  {formatAttendanceStatus(joinedStatus || "present")}
+                  {formatAttendanceStatus(joinedStatus || "pending")}
                 </span>
               </div>
             ) : null}

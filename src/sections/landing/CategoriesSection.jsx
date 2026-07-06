@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiTrendingUp, FiArrowRight } from "react-icons/fi";
@@ -268,36 +269,7 @@ export default function CategoriesSection() {
               designed by experts from top companies worldwide.
             </motion.p>
 
-            {/* Stats — dark theme */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.32 }}
-              className="flex flex-wrap items-center gap-5 mt-6"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <FaGraduationCap className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-gray-500 text-[11px]">Premium Courses</p>
-                  <p className="font-bold text-lg text-gray-800">1,332+</p>
-                </div>
-              </div>
 
-              <div className="h-6 w-[1px] bg-gray-200 hidden sm:block" />
-
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <FaUserGraduate className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-gray-500 text-[11px]">Active Learners</p>
-                  <p className="font-bold text-lg text-gray-800">645K+</p>
-                </div>
-              </div>
-            </motion.div>
           </div>
 
           {/* Right: CTA — green primary button */}

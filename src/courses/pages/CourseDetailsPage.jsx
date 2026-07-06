@@ -1040,7 +1040,7 @@ export default function CourseDetailsPage() {
                       });
                       rememberRecentlyJoinedSession({ ...course, id: liveClass.id, liveClass }, {
                         joinedAt: result?.joinedAt || new Date().toISOString(),
-                        attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "joined",
+                        attendanceStatus: result?.attendance?.attendanceStatus || result?.attendance?.status || "pending",
                       });
                       setSessionAttendance(result?.attendance || { attendanceStatus: "pending", firstJoinedAt: result?.joinedAt || "" });
                       if (openMeetingLink(meetingWindow, result?.meetingLink || liveClass?.meetUrl || course?.meetUrl || "")) {

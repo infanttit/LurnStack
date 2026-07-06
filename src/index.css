@@ -303,12 +303,16 @@
   animation-delay: 1.8s;
 }
 
-.auth-session-ticker-track {
-  animation: authSessionTicker 20s ease-in-out infinite;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.auth-session-ticker-track:hover {
-  animation-play-state: paused;
+.auth-session-ticker-track {
+  touch-action: pan-x;
 }
 
 .auth-live-session-pill {
@@ -490,26 +494,7 @@
   }
 }
 
-@keyframes authSessionTicker {
-  0%, 15% {
-    transform: translateX(0);
-  }
-  20%, 35% {
-    transform: translateX(-10%);
-  }
-  40%, 55% {
-    transform: translateX(-20%);
-  }
-  60%, 75% {
-    transform: translateX(-30%);
-  }
-  80%, 95% {
-    transform: translateX(-40%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
+/* Ticker keyframes retired in favor of smooth JS scroll & manual touch-drag */
 
 @keyframes liveSessionJump {
   0%,
