@@ -52,6 +52,7 @@ const GlobalStyles = () => (
     .anim-1 { animation: fade-in-up 0.3s ease-out both; }
     .anim-2 { animation: fade-in-up 0.3s ease-out 0.05s both; }
     .anim-3 { animation: fade-in-up 0.3s ease-out 0.1s both; }
+    .anim-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
     
     html, body, #root { min-height: 100%; margin: 0; padding: 0; overflow-x: hidden; }
     
@@ -89,6 +90,28 @@ const GlobalStyles = () => (
     }
     .auth-content { position: relative; z-index: 1; }
     .auth-mark { box-shadow: 0 18px 38px rgba(84, 212, 16, 0.2); }
+
+    @keyframes progress-bar {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+    .animate-progress {
+      animation: progress-bar 3s linear forwards;
+    }
+    @keyframes phone-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-phone {
+      animation: phone-bounce 4s ease-in-out infinite;
+    }
+    @keyframes gradient-shift {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.3; }
+    }
+    .animate-glow {
+      animation: gradient-shift 6s ease-in-out infinite;
+    }
   `}</style>
 );
 
@@ -105,6 +128,16 @@ export default function LoginPage() {
   const [formError, setFormError] = useState("");
   const [externalAuthLoading, setExternalAuthLoading] = useState(false);
   const [externalAuthError, setExternalAuthError] = useState("");
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    if (!showSuccessBanner) return undefined;
+    const interval = setInterval(() => {
+      setCountdown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showSuccessBanner]);
 
   useSEO({
     title: "Login",
@@ -126,9 +159,9 @@ export default function LoginPage() {
           ? redirect
           : "";
     if (target && target !== PATHS.LOGIN) return target;
-    return PATHS.COURSES;
+    return PATHS.HOME;
   })();
-  const googleRedirectTo = redirectTo === PATHS.COURSES ? PATHS.COURSES : redirectTo;
+  const googleRedirectTo = redirectTo === PATHS.HOME ? PATHS.HOME : redirectTo;
 
   useEffect(() => {
     if (!externalToken && !externalError) return undefined;
@@ -168,7 +201,7 @@ export default function LoginPage() {
     };
   }, [externalError, externalToken, googleRedirectTo, isAuthenticated, navigate, signInWithToken]);
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !showSuccessBanner) {
     return (
       <Navigate
         to={userRole === "student" ? (externalToken ? googleRedirectTo : redirectTo) : PATHS.HOME}
@@ -207,12 +240,14 @@ export default function LoginPage() {
         remember: form.remember,
         role: "student",
       });
-      navigate(redirectTo, {
-        replace: true,
-      });
+      setShowSuccessBanner(true);
+      setTimeout(() => {
+        navigate(redirectTo, {
+          replace: true,
+        });
+      }, 3000);
     } catch (err) {
       setFormError(err?.message || "Unable to sign in.");
-    } finally {
       setLoading(false);
     }
   };
@@ -234,6 +269,107 @@ export default function LoginPage() {
 
     window.location.assign(authUrl);
   };
+
+  if (showSuccessBanner) {
+    return (
+      <>
+        <GlobalStyles />
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-950 text-white overflow-hidden font-sans">
+          {/* Glowing Gradients background */}
+          <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none animate-glow" />
+          <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] rounded-full bg-lime-500/10 blur-[120px] pointer-events-none animate-glow" style={{ animationDelay: "-3s" }} />
+
+          {/* Grid Background Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
+
+          {/* Content Container */}
+          <div className="relative flex flex-col md:flex-row items-center gap-12 md:gap-20 max-w-4xl px-6 w-full justify-center">
+            
+            {/* Left Column: Welcome text and Redirect Indicator */}
+            <div className="flex flex-col text-center md:text-left md:max-w-md anim-fade-in-up anim-1">
+              <div className="inline-flex items-center justify-center md:justify-start gap-2 mb-4">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-[11px] font-black uppercase tracking-[0.25em] text-emerald-400">Login Successful</span>
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white mb-6 leading-[1.1]">
+                Welcome to <br />
+                <span className="bg-gradient-to-r from-emerald-400 to-lime-300 bg-clip-text text-transparent">LurnStack</span>
+              </h1>
+              <p className="text-slate-400 text-sm md:text-base font-semibold leading-relaxed mb-8">
+                Prepare to master new skills and accelerate your career. Our support and training teams are here to guide you.
+              </p>
+
+              {/* Redirecting Progress */}
+              <div className="w-full bg-slate-900/80 rounded-full h-1.5 overflow-hidden mb-3 border border-white/5">
+                <div className="bg-gradient-to-r from-emerald-500 to-lime-400 h-full rounded-full animate-progress" />
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold text-slate-500 tracking-wide uppercase">
+                <span>Setting up dashboard...</span>
+                <span className="text-emerald-400">{countdown}s</span>
+              </div>
+            </div>
+
+            {/* Right Column: Sleek Phone Mock-up */}
+            <div className="relative anim-fade-in-up anim-2 animate-phone select-none pointer-events-auto">
+              {/* External Ring Glow */}
+              <div className="absolute -inset-1 bg-gradient-to-tr from-emerald-500 to-lime-400 rounded-[52px] blur-xl opacity-30 group-hover:opacity-50 transition duration-1000" />
+              
+              {/* Phone Body */}
+              <div className="relative w-[290px] h-[550px] bg-slate-950 rounded-[48px] border-[6px] border-slate-800/90 shadow-[0_24px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden ring-1 ring-white/10">
+                {/* Notch / Dynamic Island */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-[22px] bg-slate-900 rounded-b-2xl z-20 flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-black/50 mr-2 border border-slate-800" />
+                  <div className="w-8 h-1 bg-black/50 rounded-full border border-slate-800" />
+                </div>
+
+                {/* Screen Content */}
+                <div className="relative flex-1 flex flex-col justify-between p-6 pt-10 text-center">
+                  {/* Glowing Logo Section inside phone */}
+                  <div className="mt-6">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#54d410] mb-3">LurnStack Support</p>
+                    <div className="w-14 h-14 mx-auto rounded-[20px] bg-gradient-to-br from-slate-900 to-slate-950 flex items-center justify-center border border-slate-800/80 shadow-inner">
+                      <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Contact Info Card inside phone */}
+                  <div className="my-auto py-6 px-4 bg-slate-900/60 border border-slate-800/80 rounded-3xl backdrop-blur-md flex flex-col items-center">
+                    <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mb-2">Learning Partner</p>
+                    
+                    <h2 className="text-2xl font-black text-white tracking-tight leading-none mb-1">
+                      90666 60360
+                    </h2>
+                    <p className="text-[11px] text-emerald-400 font-bold mb-4">
+                      +91 90666 60360
+                    </p>
+
+                    {/* Calling Button */}
+                    <a 
+                      href="tel:9066660360"
+                      className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 font-bold text-[13px] text-slate-950 flex items-center justify-center gap-2 shadow-[0_12px_24px_rgba(16,185,129,0.25)] transition-all hover:scale-[1.03] active:scale-95 border border-emerald-400/20"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M20 15.5c-1.2 0-2.4-.2-3.6-.6-.3-.1-.7 0-1 .3l-2.2 2.2c-2.8-1.4-5.1-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.3-1-.3-1.1-.5-2.3-.5-3.5 0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1 0 9.4 7.6 17 17 17 .6 0 1-.4 1-1v-3.5c0-.6-.4-1-1-1z" />
+                      </svg>
+                      <span>Call Support</span>
+                    </a>
+                  </div>
+
+                  {/* Phone Footer */}
+                  <div className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em] mt-auto">
+                    Secure Session Verified
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
