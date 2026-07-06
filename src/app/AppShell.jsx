@@ -123,19 +123,28 @@ function DraggableWhatsApp() {
 }
 
 export default function AppShell() {
+  const { pathname } = useLocation();
+  const isAuthPage = [
+    "/login",
+    "/signup",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+  ].includes(pathname.toLowerCase()) || pathname.toLowerCase().startsWith("/reset-password/");
+
   return (
     <div className="min-h-dvh bg-background text-on-background">
       <ScrollToTop />
-      <ZohoSalesIQ />
+      {!isAuthPage && <ZohoSalesIQ />}
       <CartFlyAnimator />
-      <AiChatWidget />
-      <DraggableWhatsApp />
+      {!isAuthPage && <AiChatWidget />}
+      {!isAuthPage && <DraggableWhatsApp />}
 
-      <SiteNavbar />
-      <main className="pt-[89px]">
+      {!isAuthPage && <SiteNavbar />}
+      <main className={isAuthPage ? "" : "pt-[89px]"}>
         <Outlet />
       </main>
-      <SiteFooter />
+      {!isAuthPage && <SiteFooter />}
     </div>
   );
 }
