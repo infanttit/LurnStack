@@ -237,6 +237,35 @@ export function formatRecurringDays(recurringDays, { useFullNames = false } = {}
   return sorted.map((d) => names[d]).join(", ");
 }
 
+function parseTimeToParts(timeStr) {
+  if (!timeStr) return null;
+  const s = String(timeStr).trim().toLowerCase();
+  let h = 0;
+  let m = 0;
+
+  if (s.includes("pm") || s.includes("am")) {
+    const isPm = s.includes("pm");
+    const cleaned = s.replace(/am|pm/g, "").trim();
+    const parts = cleaned.split(":");
+    h = parseInt(parts[0], 10) || 0;
+    m = parseInt(parts[1], 10) || 0;
+    if (isPm && h < 12) h += 12;
+    if (!isPm && h === 12) h = 0;
+  } else if (s.includes(":")) {
+    const parts = s.split(":");
+    h = parseInt(parts[0], 10) || 0;
+    m = parseInt(parts[1], 10) || 0;
+  } else {
+    return null;
+  }
+
+  return {
+    hour: String(h).padStart(2, "0"),
+    minute: String(m).padStart(2, "0"),
+    second: "00",
+  };
+}
+
 export function getSessionOccurrenceTiming(liveClass, now = Date.now(), options = {}) {
   const scheduledAt = liveClass?.scheduledAt;
   const durationMinutes = liveClass?.durationMinutes || 60;
@@ -255,7 +284,15 @@ export function getSessionOccurrenceTiming(liveClass, now = Date.now(), options 
   }
 
   const todayParts = getKolkataParts(now);
-  const startTimeParts = getKolkataParts(scheduledAt);
+
+  const rawStart = liveClass?.startTime || liveClass?.start_time || liveClass?.raw?.startTime || liveClass?.raw?.start_time || "";
+  const rawEnd = liveClass?.endTime || liveClass?.end_time || liveClass?.raw?.endTime || liveClass?.raw?.end_time || "";
+
+  let startTimeParts = parseTimeToParts(rawStart);
+  if (!startTimeParts && scheduledAt) {
+    startTimeParts = getKolkataParts(scheduledAt);
+  }
+
   if (!todayParts || !startTimeParts) {
     return {
       ...base,
@@ -265,7 +302,10 @@ export function getSessionOccurrenceTiming(liveClass, now = Date.now(), options 
     };
   }
 
-  const endTimeParts = endsAt ? getKolkataParts(endsAt) : null;
+  let endTimeParts = parseTimeToParts(rawEnd);
+  if (!endTimeParts && endsAt) {
+    endTimeParts = getKolkataParts(endsAt);
+  }
 
   const buildOccurrence = (dateParts) => {
     const occurrenceScheduledAt = kolkataIsoFromParts(dateParts, startTimeParts);
